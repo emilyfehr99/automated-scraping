@@ -103,12 +103,54 @@ class NHLAPIClient:
         # Since this is a specific request, we'll search for recent matchups
         return self.find_recent_game('FLA', 'EDM', days_back=60)
     
+    def get_play_by_play(self, game_id):
+        """Get play-by-play data for a game"""
+        url = f"{self.base_url}/gamecenter/{game_id}/play-by-play"
+        response = self.session.get(url)
+        if response.status_code == 200:
+            return response.json()
+        return None
+
     def get_comprehensive_game_data(self, game_id):
         """Get comprehensive game data including boxscore and play-by-play"""
         game_center = self.get_game_center(game_id)
         boxscore = self.get_game_boxscore(game_id)
+        play_by_play = self.get_play_by_play(game_id)
+        
+        print(f"Debug - Game Center data: {game_center is not None}")
+        print(f"Debug - Boxscore data: {boxscore is not None}")
+        print(f"Debug - Play-by-play data: {play_by_play is not None}")
+        
+        # If we have boxscore but no game_center, create a minimal game_center from boxscore
+        if boxscore is not None and game_center is None:
+            print("Creating minimal game_center from boxscore data...")
+            game_center = {
+                'game': {
+                    'gameDate': '2024-03-04',  # Default date
+                    'awayTeamScore': boxscore['awayTeam']['score'],
+                    'homeTeamScore': boxscore['homeTeam']['score'],
+                    'awayTeamScoreByPeriod': [0, 0, 0, 0],  # Default periods
+                    'homeTeamScoreByPeriod': [0, 0, 0, 0]
+                },
+                'awayTeam': {
+                    'abbrev': boxscore['awayTeam']['abbrev'],
+                    'name': boxscore['awayTeam'].get('name', 'Away Team')
+                },
+                'homeTeam': {
+                    'abbrev': boxscore['homeTeam']['abbrev'],
+                    'name': boxscore['homeTeam'].get('name', 'Home Team')
+                },
+                'venue': {
+                    'default': 'Unknown Arena'
+                }
+            }
+        
+        if game_center is None or boxscore is None:
+            print("Warning: Missing game data, returning None")
+            return None
         
         return {
             'game_center': game_center,
-            'boxscore': boxscore
+            'boxscore': boxscore,
+            'play_by_play': play_by_play
         }

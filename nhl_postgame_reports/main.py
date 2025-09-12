@@ -20,26 +20,18 @@ def main():
     nhl_client = NHLAPIClient()
     
     try:
-        # Find the most recent Stanley Cup Finals game between FLA and EDM
-        print("Searching for recent Florida Panthers vs Edmonton Oilers game...")
-        game_id = nhl_client.get_stanley_cup_finals_game()
+        # Use the requested game ID: 2024030416
+        game_id = "2024030416"
+        print(f"Using game ID: {game_id}")
         
-        if not game_id:
-            print("❌ No recent game found between FLA and EDM")
-            print("Trying to find any recent game for demonstration...")
-            
-            # Try to find any recent game for demonstration
-            game_id = nhl_client.find_recent_game('FLA', 'EDM', days_back=365)
-            
-            if not game_id:
-                print("❌ No games found. Creating a sample report with mock data...")
-                game_data = create_sample_game_data()
-            else:
-                print(f"✅ Found game ID: {game_id}")
-                game_data = nhl_client.get_comprehensive_game_data(game_id)
+        # Get game data for the specific game
+        game_data = nhl_client.get_comprehensive_game_data(game_id)
+        
+        if not game_data:
+            print("❌ Could not fetch game data. Creating a sample report with mock data...")
+            game_data = create_sample_game_data()
         else:
-            print(f"✅ Found Stanley Cup Finals game ID: {game_id}")
-            game_data = nhl_client.get_comprehensive_game_data(game_id)
+            print(f"✅ Successfully fetched game data for ID: {game_id}")
         
         # Generate the PDF report
         print("Generating PDF report...")
