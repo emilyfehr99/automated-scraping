@@ -174,9 +174,18 @@ class PostGameReportGenerator:
                 
                 # Get game date and score for subtitle
                 try:
-                    game_date = game_data['game_center']['game']['gameDate']
-                    away_score = game_data['game_center']['game']['awayTeamScore']
-                    home_score = game_data['game_center']['game']['homeTeamScore']
+                    # Try to get date from play-by-play data first (most reliable)
+                    play_by_play = game_data.get('play_by_play', {})
+                    if play_by_play and 'gameDate' in play_by_play:
+                        game_date = play_by_play['gameDate']
+                    else:
+                        # Fallback to game_center data
+                        game_date = game_data['game_center']['game']['gameDate']
+                    
+                    # Get scores from boxscore (most reliable)
+                    boxscore = game_data['boxscore']
+                    away_score = boxscore['awayTeam']['score']
+                    home_score = boxscore['homeTeam']['score']
                     
                     # Determine winning team
                     if away_score > home_score:
@@ -711,61 +720,6 @@ class PostGameReportGenerator:
         
         return story
     
-    def create_scoring_summary(self, game_data):
-        """Create scoring summary section"""
-        story = []
-        
-        story.append(Paragraph("SCORING SUMMARY", self.subtitle_style))
-        story.append(Spacer(1, 15))
-        
-        # Get scoring plays
-        plays = game_data['game_center'].get('plays', [])
-        scoring_plays = [play for play in plays if play.get('typeDescKey') == 'goal']
-        
-        if scoring_plays:
-            # Create scoring summary table
-            scoring_data = [['Period', 'Time', 'Team', 'Scorer', 'Assists', 'Score']]
-            
-            for play in scoring_plays:
-                period = play.get('periodNumber', 'N/A')
-                time = play.get('timeInPeriod', 'N/A')
-                team = play.get('team', {}).get('abbrev', 'N/A')
-                scorer = play.get('scorer', {}).get('name', 'N/A')
-                
-                # Get assists
-                assists = []
-                for player in play.get('players', []):
-                    if player.get('playerType') == 'assist':
-                        assists.append(player.get('name', 'N/A'))
-                
-                assists_str = ', '.join(assists) if assists else 'Unassisted'
-                
-                # Get score at time of goal
-                score = play.get('score', 'N/A')
-                
-                scoring_data.append([period, time, team, scorer, assists_str, score])
-            
-            scoring_table = Table(scoring_data, colWidths=[0.8*inch, 1*inch, 1.2*inch, 2*inch, 2.5*inch, 1*inch])
-            scoring_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgreen),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('FONTNAME', (0, 1), (-1, -1), 'RussoOne-Regular'),
-                ('ALIGN', (3, 1), (4, -1), 'CENTER'),  # Left align scorer and assists columns
-            ]))
-            
-            story.append(scoring_table)
-        else:
-            story.append(Paragraph("No scoring information available", self.normal_style))
-        
-        story.append(Spacer(1, 20))
-        return story
     
     def create_player_performance(self, game_data):
         """Create comprehensive player performance section using play-by-play data"""
@@ -911,86 +865,6 @@ class PostGameReportGenerator:
         story.append(Spacer(1, 20))
         return story
     
-    def create_goalie_performance(self, game_data):
-        """Create goalie performance section"""
-        story = []
-        
-        story.append(Paragraph("GOALIE PERFORMANCE", self.subtitle_style))
-        story.append(Spacer(1, 15))
-        
-        # Get goalie stats from boxscore
-        boxscore = game_data['boxscore']
-        away_goalies = []
-        home_goalies = []
-        
-        # Find goalies in player lists
-        for player in boxscore.get('awayTeam', {}).get('players', []):
-            if player.get('position', '').upper() == 'G':
-                away_goalies.append(player)
-        
-        for player in boxscore.get('homeTeam', {}).get('players', []):
-            if player.get('position', '').upper() == 'G':
-                home_goalies.append(player)
-        
-        # Create goalie comparison table
-        goalie_data = [['Team', 'Goalie', 'Shots Against', 'Saves', 'Save %', 'Goals Against', 'Time on Ice']]
-        
-        for goalie in away_goalies:
-            stats = goalie.get('stats', {})
-            shots_against = stats.get('shotsAgainst', 0)
-            saves = stats.get('saves', 0)
-            goals_against = stats.get('goalsAgainst', 0)
-            save_pct = f"{(saves/shots_against*100):.1f}%" if shots_against > 0 else "N/A"
-            time_on_ice = stats.get('timeOnIce', 'N/A')
-            
-            goalie_data.append([
-                boxscore['awayTeam']['abbrev'],
-                goalie.get('name', 'Unknown'),
-                shots_against,
-                saves,
-                save_pct,
-                goals_against,
-                time_on_ice
-            ])
-        
-        for goalie in home_goalies:
-            stats = goalie.get('stats', {})
-            shots_against = stats.get('shotsAgainst', 0)
-            saves = stats.get('saves', 0)
-            goals_against = stats.get('goalsAgainst', 0)
-            save_pct = f"{(saves/shots_against*100):.1f}%" if shots_against > 0 else "N/A"
-            time_on_ice = stats.get('timeOnIce', 'N/A')
-            
-            goalie_data.append([
-                boxscore['homeTeam']['abbrev'],
-                goalie.get('name', 'Unknown'),
-                shots_against,
-                saves,
-                save_pct,
-                goals_against,
-                time_on_ice
-            ])
-        
-        if len(goalie_data) > 1:  # If we have goalie data
-            goalie_table = Table(goalie_data, colWidths=[1.2*inch, 2*inch, 1*inch, 0.8*inch, 1*inch, 1*inch, 1.2*inch])
-            goalie_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightblue),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('FONTNAME', (0, 1), (-1, -1), 'RussoOne-Regular'),
-            ]))
-            story.append(goalie_table)
-        else:
-            story.append(Paragraph("No goalie performance data available", self.normal_style))
-        
-        story.append(Spacer(1, 20))
-        return story
     
     def create_game_analysis(self, game_data):
         """Create game analysis and key moments section"""
@@ -1017,46 +891,6 @@ class PostGameReportGenerator:
             loser = away_team['abbrev']
             margin = home_score - away_score
         
-        # Game summary
-        story.append(Paragraph(f"<b>Game Summary:</b>", self.section_style))
-        story.append(Paragraph(f"The {winner} defeated the {loser} by a score of {max(away_score, home_score)}-{min(away_score, home_score)}.", self.normal_style))
-        
-        if margin == 1:
-            story.append(Paragraph("This was a close, competitive game that could have gone either way.", self.normal_style))
-        elif margin <= 3:
-            story.append(Paragraph("The game was competitive with a moderate margin of victory.", self.normal_style))
-        else:
-            story.append(Paragraph("This was a decisive victory with a significant margin.", self.normal_style))
-        
-        story.append(Spacer(1, 10))
-        
-        # Key moments analysis
-        story.append(Paragraph(f"<b>Key Moments:</b>", self.section_style))
-        
-        # Analyze scoring by period
-        away_periods = game_info.get('awayTeamScoreByPeriod', [])
-        home_periods = game_info.get('homeTeamScoreByPeriod', [])
-        
-        if len(away_periods) >= 3:
-            story.append(Paragraph(f"• First Period: {away_team['abbrev']} {away_periods[0]} - {home_team['abbrev']} {home_periods[0]}", self.normal_style))
-            story.append(Paragraph(f"• Second Period: {away_team['abbrev']} {away_periods[1]} - {home_team['abbrev']} {home_periods[1]}", self.normal_style))
-            story.append(Paragraph(f"• Third Period: {away_team['abbrev']} {away_periods[2]} - {home_team['abbrev']} {home_periods[2]}", self.normal_style))
-            
-            if len(away_periods) > 3:
-                story.append(Paragraph(f"• Overtime: {away_team['abbrev']} {away_periods[3]} - {home_team['abbrev']} {home_periods[3]}", self.normal_style))
-        
-        story.append(Spacer(1, 10))
-        
-        # Special teams analysis
-        story.append(Paragraph(f"<b>Special Teams:</b>", self.section_style))
-        
-        # Get power play and penalty kill info from boxscore
-        boxscore = game_data['boxscore']
-        away_pp = boxscore.get('awayTeam', {}).get('powerPlayConversion', 'N/A')
-        home_pp = boxscore.get('homeTeam', {}).get('powerPlayConversion', 'N/A')
-        
-        story.append(Paragraph(f"• {away_team['abbrev']} Power Play: {away_pp}", self.normal_style))
-        story.append(Paragraph(f"• {home_team['abbrev']} Power Play: {home_pp}", self.normal_style))
         
         story.append(Spacer(1, 20))
         return story
@@ -1185,12 +1019,16 @@ class PostGameReportGenerator:
             ax.set_xlim(-100, 100)
             ax.set_ylim(-42.5, 42.5)
             ax.set_aspect('equal')
-            ax.set_title(f'{away_team["abbrev"]} vs {home_team["abbrev"]} - Shot & Goal Locations', 
-                        fontsize=18, fontweight='bold', pad=20)
-            ax.set_xlabel('X Coordinate (Feet)', fontsize=14)
-            ax.set_ylabel('Y Coordinate (Feet)', fontsize=14)
             ax.legend(fontsize=12, loc='upper right', framealpha=0.9)
             ax.grid(False)  # Turn off grid since we have the rink image
+            
+            # Remove axis ticks and spines for cleaner look
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            ax.spines['left'].set_visible(False)
 
             # Add team labels on the rink
             ax.text(-50, 0, f'{away_team["abbrev"]}', fontsize=14, ha='center', color='blue', weight='bold')
@@ -1343,7 +1181,6 @@ class PostGameReportGenerator:
         """Create shot location visualizations"""
         story = []
         
-        story.append(Paragraph("SHOT LOCATION ANALYSIS", self.subtitle_style))
         story.append(Spacer(1, 15))
         
         try:
@@ -1363,7 +1200,6 @@ class PostGameReportGenerator:
                 
                 if combined_plot and os.path.exists(combined_plot):
                     print(f"Adding combined plot from file: {combined_plot}")
-                    story.append(Paragraph(f"{away_team['abbrev']} vs {home_team['abbrev']} - Shot & Goal Locations", self.section_style))
                     try:
                         combined_image = Image(combined_plot, width=8*inch, height=5.3*inch)
                         combined_image.hAlign = 'CENTER'
@@ -1421,11 +1257,7 @@ class PostGameReportGenerator:
         # Add all sections
         story.extend(self.create_score_summary(game_data))
         story.extend(self.create_team_stats_comparison(game_data))
-        story.extend(self.create_scoring_summary(game_data))
         story.extend(self.create_player_performance(game_data))
-        story.extend(self.create_goalie_performance(game_data))
-        story.extend(self.create_advanced_metrics_section(game_data))
-        story.extend(self.create_game_analysis(game_data))
         story.extend(self.create_visualizations(game_data))
         
         # Build the PDF
