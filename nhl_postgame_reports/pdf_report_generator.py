@@ -10,6 +10,7 @@ from reportlab.graphics.shapes import Drawing, String
 from reportlab.graphics.charts.linecharts import HorizontalLineChart
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from advanced_metrics_analyzer import AdvancedMetricsAnalyzer
 from reportlab.graphics.charts.barcharts import VerticalBarChart
 from reportlab.graphics.charts.piecharts import Pie
 from reportlab.graphics.charts.legends import Legend
@@ -105,6 +106,52 @@ class PostGameReportGenerator:
                 
                 team_x = (header_img.width - team_text_width) // 2
                 team_y = (header_img.height - team_text_height) // 2 - 20  # Move up slightly to make room for subtitle
+                
+                # Load team logos
+                away_logo = None
+                home_logo = None
+                
+                try:
+                    import requests
+                    from io import BytesIO
+                    
+                    # Get team abbreviations from boxscore data
+                    away_team_abbrev = game_data['boxscore']['awayTeam']['abbrev']
+                    home_team_abbrev = game_data['boxscore']['homeTeam']['abbrev']
+                    
+                    # Try to load team logos from ESPN API using team abbreviations
+                    away_logo_url = f"https://a.espncdn.com/i/teamlogos/nhl/500/{away_team_abbrev.lower()}.png"
+                    home_logo_url = f"https://a.espncdn.com/i/teamlogos/nhl/500/{home_team_abbrev.lower()}.png"
+                    
+                    # Download away team logo
+                    away_response = requests.get(away_logo_url, timeout=5)
+                    if away_response.status_code == 200:
+                        away_logo = PILImage.open(BytesIO(away_response.content))
+                        away_logo = away_logo.resize((240, 212), PILImage.Resampling.LANCZOS)
+                        print(f"Loaded away team logo: {away_team}")
+                    
+                    # Download home team logo
+                    home_response = requests.get(home_logo_url, timeout=5)
+                    if home_response.status_code == 200:
+                        home_logo = PILImage.open(BytesIO(home_response.content))
+                        home_logo = home_logo.resize((240, 212), PILImage.Resampling.LANCZOS)
+                        print(f"Loaded home team logo: {home_team}")
+                        
+                except Exception as e:
+                    print(f"Could not load team logos: {e}")
+                
+                # Draw team logos if available
+                if away_logo:
+                    # Position away logo to the left of team text (moved 5cm left, condensed height)
+                    away_logo_x = team_x - 270  # Moved 5cm (140px) further left
+                    away_logo_y = team_y - 106  # Centered vertically for condensed height
+                    header_img.paste(away_logo, (away_logo_x, away_logo_y), away_logo)
+                
+                if home_logo:
+                    # Position home logo to the right of team text (condensed height)
+                    home_logo_x = team_x + team_text_width + 10  # Right to accommodate 2x logo
+                    home_logo_y = team_y - 106  # Centered vertically for condensed height
+                    header_img.paste(home_logo, (home_logo_x, home_logo_y), home_logo)
                 
                 # Draw team name white text with black outline for better visibility
                 draw.text((team_x-1, team_y-1), team_text, font=font, fill=(0, 0, 0))  # Black outline
@@ -240,29 +287,53 @@ class PostGameReportGenerator:
         """Create the score summary section"""
         story = []
         
-        # Game header
-        game_info = game_data['game_center']['game']
-        away_team = game_data['game_center']['awayTeam']
-        home_team = game_data['game_center']['homeTeam']
+        # Get team info
+        boxscore = game_data['boxscore']
+        away_team = boxscore['awayTeam']
+        home_team = boxscore['homeTeam']
         
         story.append(Paragraph(f"FINAL SCORE", self.title_style))
         story.append(Spacer(1, 20))
+        
+        # Calculate period scores from play-by-play data
+        away_period_scores = [0, 0, 0, 0]  # 1st, 2nd, 3rd, OT
+        home_period_scores = [0, 0, 0, 0]  # 1st, 2nd, 3rd, OT
+        
+        play_by_play = game_data.get('play_by_play')
+        if play_by_play and 'plays' in play_by_play:
+            for play in play_by_play['plays']:
+                if play.get('typeDescKey') == 'goal':
+                    details = play.get('details', {})
+                    period = play.get('periodDescriptor', {}).get('number', 1)
+                    event_team = details.get('eventOwnerTeamId')
+                    
+                    # Adjust period index (period 1 = index 0, etc.)
+                    period_index = min(period - 1, 3)  # Cap at OT (index 3)
+                    
+                    if event_team == away_team['id']:
+                        away_period_scores[period_index] += 1
+                    elif event_team == home_team['id']:
+                        home_period_scores[period_index] += 1
+        
+        # Calculate totals
+        away_total = sum(away_period_scores)
+        home_total = sum(home_period_scores)
         
         # Score display
         score_data = [
             ['', '1st', '2nd', '3rd', 'OT', 'Total'],
             [away_team['abbrev'], 
-             game_info['awayTeamScoreByPeriod'][0] if len(game_info['awayTeamScoreByPeriod']) > 0 else 0,
-             game_info['awayTeamScoreByPeriod'][1] if len(game_info['awayTeamScoreByPeriod']) > 1 else 0,
-             game_info['awayTeamScoreByPeriod'][2] if len(game_info['awayTeamScoreByPeriod']) > 2 else 0,
-             game_info['awayTeamScoreByPeriod'][3] if len(game_info['awayTeamScoreByPeriod']) > 3 else 0,
-             game_info['awayTeamScore']],
+             away_period_scores[0],
+             away_period_scores[1], 
+             away_period_scores[2],
+             away_period_scores[3],
+             away_total],
             [home_team['abbrev'],
-             game_info['homeTeamScoreByPeriod'][0] if len(game_info['homeTeamScoreByPeriod']) > 0 else 0,
-             game_info['homeTeamScoreByPeriod'][1] if len(game_info['homeTeamScoreByPeriod']) > 1 else 0,
-             game_info['homeTeamScoreByPeriod'][2] if len(game_info['homeTeamScoreByPeriod']) > 2 else 0,
-             game_info['homeTeamScoreByPeriod'][3] if len(game_info['homeTeamScoreByPeriod']) > 3 else 0,
-             game_info['homeTeamScore']]
+             home_period_scores[0],
+             home_period_scores[1],
+             home_period_scores[2], 
+             home_period_scores[3],
+             home_total]
         ]
         
         score_table = Table(score_data, colWidths=[1.5*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 1*inch])
@@ -323,7 +394,9 @@ class PostGameReportGenerator:
                 'powerPlayGoals': 0,
                 'powerPlayOpportunities': 0,
                 'faceoffWins': 0,
-                'faceoffTotal': 0
+                'faceoffTotal': 0,
+                'shotsOnGoal': 0,
+                'missedShots': 0
             }
             
             # Process each play
@@ -336,6 +409,10 @@ class PostGameReportGenerator:
                 if event_owner_team_id == team_id:
                     if play_type == 'hit':
                         stats['hits'] += 1
+                    elif play_type == 'shot-on-goal':
+                        stats['shotsOnGoal'] += 1
+                    elif play_type == 'missed-shot':
+                        stats['missedShots'] += 1
                     elif play_type == 'blocked-shot':
                         stats['blockedShots'] += 1
                     elif play_type == 'giveaway':
@@ -404,7 +481,14 @@ class PostGameReportGenerator:
                         'giveaways': 0,
                         'takeaways': 0,
                         'faceoffWins': 0,
-                        'faceoffTotal': 0
+                        'faceoffTotal': 0,
+                        'primaryAssists': 0,
+                        'secondaryAssists': 0,
+                        'penaltiesDrawn': 0,
+                        'penaltiesTaken': 0,
+                        'goalsFor': 0,
+                        'goalsAgainst': 0,
+                        'gameScore': 0.0
                     }
             
             # Process each play
@@ -427,12 +511,14 @@ class PostGameReportGenerator:
                             player_stats[primary_player_id]['goals'] += 1
                             player_stats[primary_player_id]['points'] += 1
                         
-                        # Count assists
+                        # Count assists (primary and secondary)
                         if assist1_player_id and assist1_player_id in player_stats:
                             player_stats[assist1_player_id]['assists'] += 1
+                            player_stats[assist1_player_id]['primaryAssists'] += 1
                             player_stats[assist1_player_id]['points'] += 1
                         if assist2_player_id and assist2_player_id in player_stats:
                             player_stats[assist2_player_id]['assists'] += 1
+                            player_stats[assist2_player_id]['secondaryAssists'] += 1
                             player_stats[assist2_player_id]['points'] += 1
                     
                     elif play_type == 'shot-on-goal':
@@ -475,12 +561,44 @@ class PostGameReportGenerator:
                         duration = play_details.get('duration', 0)
                         if primary_player_id and primary_player_id in player_stats:
                             player_stats[primary_player_id]['pim'] += duration
+                            player_stats[primary_player_id]['penaltiesTaken'] += 1
+                        
+                        # Check if there's a player who drew the penalty
+                        drawn_by_player_id = play_details.get('drawnByPlayerId')
+                        if drawn_by_player_id and drawn_by_player_id in player_stats:
+                            player_stats[drawn_by_player_id]['penaltiesDrawn'] += 1
+            
+            # Calculate Game Score for each player
+            for player_id, stats in player_stats.items():
+                stats['gameScore'] = self._calculate_game_score(stats)
             
             return player_stats
             
         except (KeyError, TypeError) as e:
             print(f"Error calculating player stats from play-by-play: {e}")
             return {}
+    
+    def _calculate_game_score(self, player_stats):
+        """Calculate Game Score using Dom Luszczyszyn formula"""
+        try:
+            # Game Score = 0.75×G + 0.7×A1 + 0.55×A2 + 0.075×SOG + 0.05×BLK + 0.15×PD - 0.15×PT + 0.01×FOW - 0.01×FOL + 0.15×GF - 0.15×GA
+            game_score = (
+                0.75 * player_stats.get('goals', 0) +
+                0.7 * player_stats.get('primaryAssists', 0) +
+                0.55 * player_stats.get('secondaryAssists', 0) +
+                0.075 * player_stats.get('sog', 0) +
+                0.05 * player_stats.get('blockedShots', 0) +
+                0.15 * player_stats.get('penaltiesDrawn', 0) -
+                0.15 * player_stats.get('penaltiesTaken', 0) +
+                0.01 * player_stats.get('faceoffWins', 0) -
+                0.01 * (player_stats.get('faceoffTotal', 0) - player_stats.get('faceoffWins', 0)) +
+                0.15 * player_stats.get('goalsFor', 0) -
+                0.15 * player_stats.get('goalsAgainst', 0)
+            )
+            return round(game_score, 2)
+        except (KeyError, TypeError) as e:
+            print(f"Error calculating game score: {e}")
+            return 0.0
     
     def _calculate_team_stats_from_players(self, boxscore, team_side):
         """Calculate team statistics from individual player data (fallback)"""
@@ -553,15 +671,22 @@ class PostGameReportGenerator:
         away_team_stats = self._calculate_team_stats_from_play_by_play(game_data, 'awayTeam')
         home_team_stats = self._calculate_team_stats_from_play_by_play(game_data, 'homeTeam')
         
+        # Calculate Corsi % (Shots + Blocks + Misses)
+        away_corsi = away_team_stats['shotsOnGoal'] + away_team_stats['blockedShots'] + away_team_stats['missedShots']
+        home_corsi = home_team_stats['shotsOnGoal'] + home_team_stats['blockedShots'] + home_team_stats['missedShots']
+        away_corsi_pct = (away_corsi / (away_corsi + home_corsi) * 100) if (away_corsi + home_corsi) > 0 else 0
+        home_corsi_pct = (home_corsi / (away_corsi + home_corsi) * 100) if (away_corsi + home_corsi) > 0 else 0
+        
         # Create stats comparison table
         stats_data = [
             ['Statistic', away_stats['abbrev'], home_stats['abbrev']],
             ['Goals', away_stats['score'], home_stats['score']],
             ['Shots', away_stats.get('sog', 'N/A'), home_stats.get('sog', 'N/A')],
+            ['Corsi %', f"{away_corsi_pct:.1f}%", f"{home_corsi_pct:.1f}%"],
             ['Power Play', f"{away_team_stats['powerPlayGoals']}/{away_team_stats['powerPlayOpportunities']}", f"{home_team_stats['powerPlayGoals']}/{home_team_stats['powerPlayOpportunities']}"],
             ['Penalty Minutes', away_team_stats['penaltyMinutes'], home_team_stats['penaltyMinutes']],
             ['Hits', away_team_stats['hits'], home_team_stats['hits']],
-            ['Faceoff Wins', f"{away_team_stats['faceoffWins']}/{away_team_stats['faceoffTotal']}", f"{home_team_stats['faceoffWins']}/{home_team_stats['faceoffTotal']}"],
+            ['Faceoff %', f"{away_team_stats['faceoffWins']/(away_team_stats['faceoffTotal'] + home_team_stats['faceoffTotal'])*100:.1f}%" if (away_team_stats['faceoffTotal'] + home_team_stats['faceoffTotal']) > 0 else "0.0%", f"{home_team_stats['faceoffWins']/(away_team_stats['faceoffTotal'] + home_team_stats['faceoffTotal'])*100:.1f}%" if (away_team_stats['faceoffTotal'] + home_team_stats['faceoffTotal']) > 0 else "0.0%"],
             ['Blocked Shots', away_team_stats['blockedShots'], home_team_stats['blockedShots']],
             ['Giveaways', away_team_stats['giveaways'], home_team_stats['giveaways']],
             ['Takeaways', away_team_stats['takeaways'], home_team_stats['takeaways']]
@@ -660,9 +785,9 @@ class PostGameReportGenerator:
         
         away_players = []
         if away_player_stats:
-            # Sort by points, then goals, then assists
+            # Sort by Game Score, then points, then goals
             sorted_players = sorted(away_player_stats.values(), 
-                                  key=lambda x: (x['points'], x['goals'], x['assists']), 
+                                  key=lambda x: (x['gameScore'], x['points'], x['goals']), 
                                   reverse=True)
             
             for player in sorted_players:
@@ -676,7 +801,8 @@ class PostGameReportGenerator:
                     player['pim'],
                     player['sog'],
                     player['hits'],
-                    player['blockedShots']
+                    player['blockedShots'],
+                    player['gameScore']
                 ])
         else:
             # Fallback to boxscore data
@@ -697,7 +823,10 @@ class PostGameReportGenerator:
                         ])
         
         if away_players:
-            away_table = Table(away_players, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
+            # Add header row
+            away_headers = ["Player", "Pos", "G", "A", "P", "+/-", "PIM", "SOG", "H", "BLK", "GS"]
+            away_players_with_header = [away_headers] + away_players
+            away_table = Table(away_players_with_header, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
             away_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -723,9 +852,9 @@ class PostGameReportGenerator:
         
         home_players = []
         if home_player_stats:
-            # Sort by points, then goals, then assists
+            # Sort by Game Score, then points, then goals
             sorted_players = sorted(home_player_stats.values(), 
-                                  key=lambda x: (x['points'], x['goals'], x['assists']), 
+                                  key=lambda x: (x['gameScore'], x['points'], x['goals']), 
                                   reverse=True)
             
             for player in sorted_players:
@@ -739,7 +868,8 @@ class PostGameReportGenerator:
                     player['pim'],
                     player['sog'],
                     player['hits'],
-                    player['blockedShots']
+                    player['blockedShots'],
+                    player['gameScore']
                 ])
         else:
             # Fallback to boxscore data
@@ -760,7 +890,10 @@ class PostGameReportGenerator:
                         ])
         
         if home_players:
-            home_table = Table(home_players, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
+            # Add header row
+            home_headers = ["Player", "Pos", "G", "A", "P", "+/-", "PIM", "SOG", "H", "BLK", "GS"]
+            home_players_with_header = [home_headers] + home_players
+            home_table = Table(home_players_with_header, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
             home_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -928,120 +1061,334 @@ class PostGameReportGenerator:
         story.append(Spacer(1, 20))
         return story
     
-    def create_visualizations(self, game_data):
-        """Create charts and visualizations"""
+    def create_combined_shot_location_plot(self, game_data):
+        """Create combined shot and goal location scatter plot for both teams"""
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import os
+            
+            play_by_play = game_data.get('play_by_play')
+            if not play_by_play or 'plays' not in play_by_play:
+                return None
+                
+            boxscore = game_data['boxscore']
+            away_team = boxscore['awayTeam']
+            home_team = boxscore['homeTeam']
+            
+            # Collect shot and goal data for both teams
+            away_shots = []
+            away_goals = []
+            home_shots = []
+            home_goals = []
+            
+            for play in play_by_play['plays']:
+                details = play.get('details', {})
+                event_type = play.get('typeDescKey', '')
+                event_team = details.get('eventOwnerTeamId')
+                
+                if event_team == away_team['id'] and event_type in ['shot-on-goal', 'missed-shot', 'blocked-shot']:
+                    x_coord = details.get('xCoord', 0)
+                    y_coord = details.get('yCoord', 0)
+                    if x_coord is not None and y_coord is not None:
+                        away_shots.append((x_coord, y_coord))
+                        
+                elif event_team == away_team['id'] and event_type == 'goal':
+                    x_coord = details.get('xCoord', 0)
+                    y_coord = details.get('yCoord', 0)
+                    if x_coord is not None and y_coord is not None:
+                        away_goals.append((x_coord, y_coord))
+                        
+                elif event_team == home_team['id'] and event_type in ['shot-on-goal', 'missed-shot', 'blocked-shot']:
+                    x_coord = details.get('xCoord', 0)
+                    y_coord = details.get('yCoord', 0)
+                    if x_coord is not None and y_coord is not None:
+                        home_shots.append((x_coord, y_coord))
+                        
+                elif event_team == home_team['id'] and event_type == 'goal':
+                    x_coord = details.get('xCoord', 0)
+                    y_coord = details.get('yCoord', 0)
+                    if x_coord is not None and y_coord is not None:
+                        home_goals.append((x_coord, y_coord))
+            
+            if not (away_shots or away_goals or home_shots or home_goals):
+                print("No shots or goals found for either team")
+                return None
+                
+            print(f"Found {len(away_shots)} shots and {len(away_goals)} goals for {away_team['abbrev']}")
+            print(f"Found {len(home_shots)} shots and {len(home_goals)} goals for {home_team['abbrev']}")
+            
+            # Create the plot
+            plt.ioff()
+            fig, ax = plt.subplots(figsize=(12, 8))
+            
+            # Load and display the rink image
+            rink_path = '/Users/emilyfehr8/Desktop/My Analytics Work/Rink.png'
+            try:
+                if os.path.exists(rink_path):
+                    from matplotlib.image import imread
+                    rink_img = imread(rink_path)
+                    # Display the rink image
+                    ax.imshow(rink_img, extent=[-100, 100, -42.5, 42.5], aspect='equal', alpha=0.8)
+                    print(f"Loaded rink image from: {rink_path}")
+                else:
+                    print(f"Rink image not found at: {rink_path}")
+                    # Fallback to drawing rink outline
+                    ax.plot([-100, 100], [42.5, 42.5], 'k-', linewidth=3)  # Top boards
+                    ax.plot([-100, 100], [-42.5, -42.5], 'k-', linewidth=3)  # Bottom boards
+                    ax.plot([-100, -100], [-42.5, 42.5], 'k-', linewidth=3)  # Left boards
+                    ax.plot([100, 100], [-42.5, 42.5], 'k-', linewidth=3)  # Right boards
+                    ax.plot([89, 89], [-42.5, 42.5], 'r-', linewidth=2)  # Right goal line
+                    ax.plot([-89, -89], [-42.5, 42.5], 'r-', linewidth=2)  # Left goal line
+                    ax.plot([25, 25], [-42.5, 42.5], 'b-', linewidth=2)  # Right blue line
+                    ax.plot([-25, -25], [-42.5, 42.5], 'b-', linewidth=2)  # Left blue line
+                    ax.plot([0, 0], [-42.5, 42.5], 'k-', linewidth=1)  # Center line
+            except Exception as e:
+                print(f"Error loading rink image: {e}")
+                # Fallback to drawing rink outline
+                ax.plot([-100, 100], [42.5, 42.5], 'k-', linewidth=3)  # Top boards
+                ax.plot([-100, 100], [-42.5, -42.5], 'k-', linewidth=3)  # Bottom boards
+                ax.plot([-100, -100], [-42.5, 42.5], 'k-', linewidth=3)  # Left boards
+                ax.plot([100, 100], [-42.5, 42.5], 'k-', linewidth=3)  # Right boards
+                ax.plot([89, 89], [-42.5, 42.5], 'r-', linewidth=2)  # Right goal line
+                ax.plot([-89, -89], [-42.5, 42.5], 'r-', linewidth=2)  # Left goal line
+                ax.plot([25, 25], [-42.5, 42.5], 'b-', linewidth=2)  # Right blue line
+                ax.plot([-25, -25], [-42.5, 42.5], 'b-', linewidth=2)  # Left blue line
+                ax.plot([0, 0], [-42.5, 42.5], 'k-', linewidth=1)  # Center line
+            
+            # Plot away team shots as light blue circles
+            if away_shots:
+                shot_x, shot_y = zip(*away_shots)
+                ax.scatter(shot_x, shot_y, c='lightblue', alpha=0.8, s=30, 
+                          label=f'{away_team["abbrev"]} Shots ({len(away_shots)})', marker='o', edgecolors='blue', linewidth=1)
+
+            # Plot away team goals as dark blue circles
+            if away_goals:
+                goal_x, goal_y = zip(*away_goals)
+                ax.scatter(goal_x, goal_y, c='darkblue', alpha=0.9, s=100, 
+                          label=f'{away_team["abbrev"]} Goals ({len(away_goals)})', marker='o', edgecolors='navy', linewidth=2)
+
+            # Plot home team shots as light red circles
+            if home_shots:
+                shot_x, shot_y = zip(*home_shots)
+                ax.scatter(shot_x, shot_y, c='lightcoral', alpha=0.8, s=30, 
+                          label=f'{home_team["abbrev"]} Shots ({len(home_shots)})', marker='o', edgecolors='red', linewidth=1)
+
+            # Plot home team goals as dark red circles
+            if home_goals:
+                goal_x, goal_y = zip(*home_goals)
+                ax.scatter(goal_x, goal_y, c='darkred', alpha=0.9, s=100, 
+                          label=f'{home_team["abbrev"]} Goals ({len(home_goals)})', marker='o', edgecolors='maroon', linewidth=2)
+
+            # Set plot properties
+            ax.set_xlim(-100, 100)
+            ax.set_ylim(-42.5, 42.5)
+            ax.set_aspect('equal')
+            ax.set_title(f'{away_team["abbrev"]} vs {home_team["abbrev"]} - Shot & Goal Locations', 
+                        fontsize=18, fontweight='bold', pad=20)
+            ax.set_xlabel('X Coordinate (Feet)', fontsize=14)
+            ax.set_ylabel('Y Coordinate (Feet)', fontsize=14)
+            ax.legend(fontsize=12, loc='upper right', framealpha=0.9)
+            ax.grid(False)  # Turn off grid since we have the rink image
+
+            # Add team labels on the rink
+            ax.text(-50, 0, f'{away_team["abbrev"]}', fontsize=14, ha='center', color='blue', weight='bold')
+            ax.text(50, 0, f'{home_team["abbrev"]}', fontsize=14, ha='center', color='red', weight='bold')
+            
+            # Save to file with a unique name to avoid conflicts
+            import time
+            timestamp = int(time.time() * 1000)  # milliseconds
+            plot_filename = f'combined_shot_plot_{away_team["abbrev"]}_vs_{home_team["abbrev"]}_{timestamp}.png'
+            abs_plot_filename = os.path.abspath(plot_filename)
+            print(f"Saving combined plot to: {abs_plot_filename}")
+            fig.savefig(abs_plot_filename, dpi=200, bbox_inches='tight', facecolor='white')
+            plt.close(fig)
+            
+            # Verify file was created
+            if os.path.exists(abs_plot_filename):
+                print(f"Combined plot saved successfully: {abs_plot_filename}")
+                print(f"File size: {os.path.getsize(abs_plot_filename)} bytes")
+                return abs_plot_filename
+            else:
+                print(f"Failed to create combined plot: {abs_plot_filename}")
+                return None
+            
+        except Exception as e:
+            print(f"Error creating combined shot location plot: {e}")
+            return None
+    
+    def create_advanced_metrics_section(self, game_data):
+        """Create advanced metrics section using the analyzer"""
         story = []
         
-        story.append(Paragraph("GAME VISUALIZATIONS", self.subtitle_style))
+        story.append(Paragraph("ADVANCED METRICS", self.subtitle_style))
         story.append(Spacer(1, 15))
         
-        # Create shot comparison chart
         try:
+            # Get play-by-play data
+            play_by_play = game_data.get('play_by_play')
+            if not play_by_play:
+                story.append(Paragraph("Advanced metrics not available for this game.", self.normal_style))
+                return story
+            
+            # Create analyzer
+            analyzer = AdvancedMetricsAnalyzer(play_by_play)
+            
+            # Get team IDs
             boxscore = game_data['boxscore']
-            away_team = boxscore['awayTeam']['abbrev']
-            home_team = boxscore['homeTeam']['abbrev']
+            away_team_id = boxscore['awayTeam']['id']
+            home_team_id = boxscore['homeTeam']['id']
             
-            # Get shots on goal
-            away_shots = boxscore['awayTeam'].get('sog', 0)
-            home_shots = boxscore['homeTeam'].get('sog', 0)
+            # Generate metrics
+            metrics = analyzer.generate_comprehensive_report(away_team_id, home_team_id)
             
-            # Create matplotlib chart
-            fig, ax = plt.subplots(figsize=(8, 6))
-            teams = [away_team, home_team]
-            shots = [away_shots, home_shots]
-            colors_chart = ['#C8102E', '#FF6B35']  # Red and Orange
+            # Combined Advanced Metrics Table
+            story.append(Paragraph("ADVANCED METRICS ANALYSIS", self.section_style))
+            story.append(Spacer(1, 10))
             
-            bars = ax.bar(teams, shots, color=colors_chart, alpha=0.8)
-            ax.set_title('Shots on Goal Comparison', fontsize=16, fontweight='bold')
-            ax.set_ylabel('Shots on Goal', fontsize=12)
-            ax.set_xlabel('Team', fontsize=12)
+            # Calculate average shots per sequence
+            away_avg_shots = sum(metrics['away_team']['pressure']['shot_attempts_per_sequence'])/len(metrics['away_team']['pressure']['shot_attempts_per_sequence']) if metrics['away_team']['pressure']['shot_attempts_per_sequence'] else 0.0
+            home_avg_shots = sum(metrics['home_team']['pressure']['shot_attempts_per_sequence'])/len(metrics['home_team']['pressure']['shot_attempts_per_sequence']) if metrics['home_team']['pressure']['shot_attempts_per_sequence'] else 0.0
             
-            # Add value labels on bars
-            for bar, shot in zip(bars, shots):
-                height = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
-                       f'{shot}', ha='center', va='bottom', fontweight='bold')
+            combined_data = [
+                ['Category', 'Metric', boxscore['awayTeam']['abbrev'], boxscore['homeTeam']['abbrev']],
+                
+                # Shot Quality Analysis
+                ['SHOT QUALITY', 'High Danger Shots', 
+                 metrics['away_team']['shot_quality']['high_danger_shots'],
+                 metrics['home_team']['shot_quality']['high_danger_shots']],
+                ['', 'Total Shots', 
+                 metrics['away_team']['shot_quality']['total_shots'],
+                 metrics['home_team']['shot_quality']['total_shots']],
+                ['', 'Shots on Goal', 
+                 metrics['away_team']['shot_quality']['shots_on_goal'],
+                 metrics['home_team']['shot_quality']['shots_on_goal']],
+                ['', 'Shooting %', 
+                 f"{metrics['away_team']['shot_quality']['shooting_percentage']:.1%}",
+                 f"{metrics['home_team']['shot_quality']['shooting_percentage']:.1%}"],
+                
+                # Pressure Analysis
+                ['PRESSURE', 'Sustained Pressure Sequences', 
+                 metrics['away_team']['pressure']['sustained_pressure_sequences'],
+                 metrics['home_team']['pressure']['sustained_pressure_sequences']],
+                ['', 'Quick Strike Opportunities', 
+                 metrics['away_team']['pressure']['quick_strike_opportunities'],
+                 metrics['home_team']['pressure']['quick_strike_opportunities']],
+                ['', 'Avg Shots per Sequence', 
+                 f"{away_avg_shots:.1f}",
+                 f"{home_avg_shots:.1f}"],
+                
+                # Defensive Analysis
+                ['DEFENSIVE', 'Blocked Shots', 
+                 metrics['away_team']['defense']['blocked_shots'],
+                 metrics['home_team']['defense']['blocked_shots']],
+                ['', 'Takeaways', 
+                 metrics['away_team']['defense']['takeaways'],
+                 metrics['home_team']['defense']['takeaways']],
+                ['', 'Hits', 
+                 metrics['away_team']['defense']['hits'],
+                 metrics['home_team']['defense']['hits']],
+                ['', 'Shot Attempts Against', 
+                 metrics['away_team']['defense']['shot_attempts_against'],
+                 metrics['home_team']['defense']['shot_attempts_against']],
+                ['', 'High Danger Chances Against', 
+                 metrics['away_team']['defense']['high_danger_chances_against'],
+                 metrics['home_team']['defense']['high_danger_chances_against']]
+            ]
             
-            plt.tight_layout()
+            combined_table = Table(combined_data, colWidths=[1.5*inch, 2*inch, 1.2*inch, 1.2*inch])
+            combined_table.setStyle(TableStyle([
+                # Header row
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                
+                # Category headers (SHOT QUALITY, PRESSURE, DEFENSIVE)
+                ('BACKGROUND', (0, 1), (0, 4), colors.lightblue),  # Shot Quality
+                ('BACKGROUND', (0, 5), (0, 7), colors.lightgreen),  # Pressure
+                ('BACKGROUND', (0, 8), (0, 12), colors.lightgrey),  # Defensive
+                ('FONTNAME', (0, 1), (0, -1), 'RussoOne-Regular'),
+                ('FONTSIZE', (0, 1), (0, -1), 9),
+                ('FONTWEIGHT', (0, 1), (0, -1), 'BOLD'),
+                
+                # Data rows
+                ('BACKGROUND', (1, 1), (-1, -1), colors.white),
+                ('FONTNAME', (1, 1), (-1, -1), 'RussoOne-Regular'),
+                ('FONTSIZE', (1, 1), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                
+                # Alternating row colors
+                ('BACKGROUND', (1, 2), (-1, 2), colors.lightgrey),
+                ('BACKGROUND', (1, 4), (-1, 4), colors.lightgrey),
+                ('BACKGROUND', (1, 6), (-1, 6), colors.lightgrey),
+                ('BACKGROUND', (1, 8), (-1, 8), colors.lightgrey),
+                ('BACKGROUND', (1, 10), (-1, 10), colors.lightgrey),
+                ('BACKGROUND', (1, 12), (-1, 12), colors.lightgrey),
+            ]))
             
-            # Save to BytesIO and convert to ReportLab Image
-            img_buffer = BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
-            img_buffer.seek(0)
-            
-            # Create ReportLab Image
-            img = Image(img_buffer)
-            img.drawHeight = 4*inch
-            img.drawWidth = 6*inch
-            
-            story.append(img)
-            story.append(Spacer(1, 15))
-            
-            plt.close()
+            story.append(combined_table)
+            story.append(Spacer(1, 20))
             
         except Exception as e:
-            story.append(Paragraph(f"Chart generation error: {str(e)}", self.normal_style))
+            print(f"Error creating advanced metrics: {e}")
+            story.append(Paragraph("Advanced metrics could not be calculated for this game.", self.normal_style))
         
-        # Create scoring by period chart
+        return story
+    
+    def create_visualizations(self, game_data):
+        """Create shot location visualizations"""
+        story = []
+        
+        story.append(Paragraph("SHOT LOCATION ANALYSIS", self.subtitle_style))
+        story.append(Spacer(1, 15))
+        
         try:
-            game_info = game_data['game_center']['game']
-            away_periods = game_info.get('awayTeamScoreByPeriod', [0, 0, 0])
-            home_periods = game_info.get('homeTeamScoreByPeriod', [0, 0, 0])
+            import os
+            boxscore = game_data['boxscore']
+            away_team = boxscore['awayTeam']
+            home_team = boxscore['homeTeam']
             
-            # Ensure we have at least 3 periods
-            while len(away_periods) < 3:
-                away_periods.append(0)
-            while len(home_periods) < 3:
-                home_periods.append(0)
-            
-            periods = ['1st', '2nd', '3rd']
-            if len(away_periods) > 3:
-                periods.append('OT')
-            
-            fig, ax = plt.subplots(figsize=(8, 6))
-            x = np.arange(len(periods))
-            width = 0.35
-            
-            bars1 = ax.bar(x - width/2, away_periods[:len(periods)], width, 
-                          label=away_team, color='#C8102E', alpha=0.8)
-            bars2 = ax.bar(x + width/2, home_periods[:len(periods)], width, 
-                          label=home_team, color='#FF6B35', alpha=0.8)
-            
-            ax.set_title('Scoring by Period', fontsize=16, fontweight='bold')
-            ax.set_ylabel('Goals', fontsize=12)
-            ax.set_xlabel('Period', fontsize=12)
-            ax.set_xticks(x)
-            ax.set_xticklabels(periods)
-            ax.legend()
-            
-            # Add value labels on bars
-            for bars in [bars1, bars2]:
-                for bar in bars:
-                    height = bar.get_height()
-                    if height > 0:
-                        ax.text(bar.get_x() + bar.get_width()/2., height + 0.05,
-                               f'{int(height)}', ha='center', va='bottom', fontweight='bold')
-            
-            plt.tight_layout()
-            
-            # Save to BytesIO and convert to ReportLab Image
-            img_buffer = BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
-            img_buffer.seek(0)
-            
-            # Create ReportLab Image
-            img = Image(img_buffer)
-            img.drawHeight = 4*inch
-            img.drawWidth = 6*inch
-            
-            story.append(img)
-            
-            plt.close()
+            # Create combined shot location scatter plot for both teams
+            try:
+                # Create combined plot
+                combined_plot = self.create_combined_shot_location_plot(game_data)
+                
+                # Add a small delay to ensure files are written
+                import time
+                time.sleep(0.5)
+                
+                if combined_plot and os.path.exists(combined_plot):
+                    print(f"Adding combined plot from file: {combined_plot}")
+                    story.append(Paragraph(f"{away_team['abbrev']} vs {home_team['abbrev']} - Shot & Goal Locations", self.section_style))
+                    try:
+                        combined_image = Image(combined_plot, width=8*inch, height=5.3*inch)
+                        combined_image.hAlign = 'CENTER'
+                        story.append(combined_image)
+                        story.append(Spacer(1, 20))
+                        print("Successfully added combined plot to PDF")
+                        
+                        # Store the file path for cleanup later
+                        if not hasattr(self, 'temp_plot_files'):
+                            self.temp_plot_files = []
+                        self.temp_plot_files.append(combined_plot)
+                    except Exception as e:
+                        print(f"Error adding combined plot to PDF: {e}")
+                        story.append(Paragraph("Combined shot location plot could not be added to PDF.", self.normal_style))
+                else:
+                    print(f"Combined shot location plot failed")
+                    story.append(Paragraph("Shot location analysis could not be generated.", self.normal_style))
+            except Exception as e:
+                print(f"Error creating combined plot: {e}")
+                story.append(Paragraph("Combined shot location plot could not be created.", self.normal_style))
             
         except Exception as e:
-            story.append(Paragraph(f"Period scoring chart error: {str(e)}", self.normal_style))
+            print(f"Error creating shot location plots: {e}")
+            story.append(Paragraph("Shot location analysis could not be created for this game.", self.normal_style))
         
-        story.append(Spacer(1, 20))
         return story
     
     def generate_report(self, game_data, output_filename):
@@ -1077,6 +1424,7 @@ class PostGameReportGenerator:
         story.extend(self.create_scoring_summary(game_data))
         story.extend(self.create_player_performance(game_data))
         story.extend(self.create_goalie_performance(game_data))
+        story.extend(self.create_advanced_metrics_section(game_data))
         story.extend(self.create_game_analysis(game_data))
         story.extend(self.create_visualizations(game_data))
         
