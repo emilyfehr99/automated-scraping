@@ -20,8 +20,8 @@ def main():
     nhl_client = NHLAPIClient()
     
     try:
-        # Use the requested game ID: 2024020088
-        game_id = "2024020088"
+        # Use the requested game ID: 2024030157
+        game_id = "2024030157"
         print(f"Using game ID: {game_id}")
         
         # Get game data for the specific game
@@ -42,7 +42,7 @@ def main():
         output_filename = f"nhl_postgame_report_{timestamp}.pdf"
         
         # Generate the report
-        generator.generate_report(game_data, output_filename)
+        generator.generate_report(game_data, output_filename, game_id)
         
         print(f"✅ Report generated successfully: {output_filename}")
         print(f"📁 File location: {os.path.abspath(output_filename)}")
