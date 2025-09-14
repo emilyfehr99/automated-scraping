@@ -706,9 +706,10 @@ class PostGameReportGenerator:
             away_ew_passes, away_ns_passes, away_behind_net = self._calculate_pass_metrics(game_data, away_team['id'], 'away')
             home_ew_passes, home_ns_passes, home_behind_net = self._calculate_pass_metrics(game_data, home_team['id'], 'home')
             
-            # Calculate zone metrics for both teams
+        # Calculate zone metrics for both teams
             away_zone_metrics = self._calculate_zone_metrics(game_data, away_team['id'], 'away')
             home_zone_metrics = self._calculate_zone_metrics(game_data, home_team['id'], 'home')
+            
             
             # Create period-by-period data table with all advanced metrics
             stats_data = [
@@ -1073,10 +1074,11 @@ class PostGameReportGenerator:
                         elif zone == 'defensive':
                             metrics['dz_originating_shots'][period_index] += 1
                         
-                        # Determine shot type (simplified)
+                        # Determine shot type using proper hockey logic
                         if self._is_rush_shot(play, play_by_play['plays']):
                             metrics['rush_sog'][period_index] += 1
                         else:
+                            # All non-rush shots are considered forecheck/cycle shots
                             metrics['fc_cycle_sog'][period_index] += 1
                 
                 # Process opponent shots after turnovers
@@ -1117,19 +1119,157 @@ class PostGameReportGenerator:
             return 'neutral'
     
     def _is_rush_shot(self, current_play, all_plays):
-        """Determine if a shot is from a rush (simplified)"""
-        # Look for recent zone entry or quick transition
-        # This is a simplified version - in reality would need more complex tracking
+        """Determine if a shot is from a rush using proper hockey logic"""
         try:
             play_index = all_plays.index(current_play)
-            # Check last 3 plays for zone entry or quick transition
-            for i in range(max(0, play_index - 3), play_index):
+            current_team = current_play.get('details', {}).get('eventOwnerTeamId')
+            current_period = current_play.get('periodDescriptor', {}).get('number', 1)
+            
+            # Look back through recent plays to find rush indicators
+            rush_indicators = 0
+            zone_entry_found = False
+            quick_transition = False
+            
+            # Check last 5 plays for rush indicators
+            for i in range(max(0, play_index - 5), play_index):
                 prev_play = all_plays[i]
+                prev_team = prev_play.get('details', {}).get('eventOwnerTeamId')
                 prev_type = prev_play.get('typeDescKey', '')
-                if prev_type in ['zone-entry', 'carry-in', 'dump-in']:
-                    return True
+                prev_period = prev_play.get('periodDescriptor', {}).get('number', 1)
+                
+                # Only consider plays from the same team and period
+                if prev_team != current_team or prev_period != current_period:
+                    continue
+                
+                # Rush indicators:
+                # 1. Takeaway (steal) - indicates quick transition
+                if prev_type == 'takeaway':
+                    rush_indicators += 2
+                    quick_transition = True
+                
+                # 2. Giveaway by opponent - indicates quick transition
+                elif prev_type == 'giveaway':
+                    rush_indicators += 1
+                
+                # 3. Shot block by opponent - indicates quick transition
+                elif prev_type == 'blocked-shot':
+                    rush_indicators += 1
+                
+                # 4. Faceoff win in neutral/offensive zone
+                elif prev_type == 'faceoff':
+                    # Check if it's in neutral or offensive zone
+                    coords = prev_play.get('details', {}).get('coordinates', {})
+                    x_coord = coords.get('x', 0)
+                    if x_coord > 25:  # Offensive zone faceoff
+                        rush_indicators += 1
+                        zone_entry_found = True
+                    elif abs(x_coord) <= 25:  # Neutral zone faceoff
+                        rush_indicators += 0.5
+                
+                # 5. Pass in neutral zone - indicates controlled entry
+                elif prev_type == 'pass' and abs(x_coord) <= 25:
+                    rush_indicators += 0.5
+                
+                # 6. Shot from previous play - indicates sustained pressure
+                elif prev_type in ['shot-on-goal', 'missed-shot', 'blocked-shot']:
+                    rush_indicators += 0.3
+            
+            # Rush shot criteria:
+            # - Quick transition (takeaway/giveaway) + zone entry
+            # - OR high rush indicator score (3+)
+            # - OR faceoff win in offensive zone + quick transition
+            if (quick_transition and zone_entry_found) or rush_indicators >= 3 or (zone_entry_found and rush_indicators >= 2):
+                return True
+            
             return False
-        except:
+            
+        except Exception as e:
+            print(f"Error in rush shot detection: {e}")
+            return False
+    
+    def _is_forecheck_cycle_shot(self, current_play, all_plays):
+        """Determine if a shot is from forecheck/cycle using proper hockey logic"""
+        try:
+            play_index = all_plays.index(current_play)
+            current_team = current_play.get('details', {}).get('eventOwnerTeamId')
+            current_period = current_play.get('periodDescriptor', {}).get('number', 1)
+            
+            # Look back through recent plays to find forecheck/cycle indicators
+            forecheck_indicators = 0
+            cycle_indicators = 0
+            forecheck_found = False
+            sustained_pressure = False
+            
+            # Check last 8 plays for forecheck/cycle indicators
+            for i in range(max(0, play_index - 8), play_index):
+                prev_play = all_plays[i]
+                prev_team = prev_play.get('details', {}).get('eventOwnerTeamId')
+                prev_type = prev_play.get('typeDescKey', '')
+                prev_period = prev_play.get('periodDescriptor', {}).get('number', 1)
+                
+                # Only consider plays from the same team and period
+                if prev_team != current_team or prev_period != current_period:
+                    continue
+                
+                coords = prev_play.get('details', {}).get('coordinates', {})
+                x_coord = coords.get('x', 0)
+                
+                # Forecheck indicators:
+                # 1. Takeaway in offensive zone - indicates successful forecheck
+                if prev_type == 'takeaway' and x_coord > 25:
+                    forecheck_indicators += 3
+                    forecheck_found = True
+                
+                # 2. Hit in offensive zone - indicates forecheck pressure
+                elif prev_type == 'hit' and x_coord > 25:
+                    forecheck_indicators += 1
+                
+                # 3. Giveaway by opponent in their defensive zone - indicates forecheck pressure
+                elif prev_type == 'giveaway' and x_coord < -25:
+                    forecheck_indicators += 2
+                    forecheck_found = True
+                
+                # Cycle indicators:
+                # 4. Pass in offensive zone - indicates cycle
+                elif prev_type == 'pass' and x_coord > 25:
+                    cycle_indicators += 1
+                    sustained_pressure = True
+                
+                # 5. Shot from previous play in offensive zone - indicates sustained pressure
+                elif prev_type in ['shot-on-goal', 'missed-shot', 'blocked-shot'] and x_coord > 25:
+                    cycle_indicators += 0.5
+                    sustained_pressure = True
+                
+                # 6. Faceoff win in offensive zone - indicates cycle opportunity
+                elif prev_type == 'faceoff' and x_coord > 25:
+                    cycle_indicators += 1
+                    sustained_pressure = True
+                
+                # 7. Multiple passes in offensive zone - indicates cycle
+                elif prev_type == 'pass' and x_coord > 25:
+                    cycle_indicators += 0.3
+            
+            # Get shot coordinates for debug
+            shot_coords = current_play.get('details', {}).get('coordinates', {})
+            shot_x = shot_coords.get('x', 0)
+            
+            # Forecheck/Cycle shot criteria (extremely lenient):
+            # - Any forecheck indicators OR any cycle indicators
+            # - OR just cycle indicators (0.5+)
+            # - OR any forecheck pressure
+            # - OR any shot in offensive zone (simplified approach)
+            if (forecheck_indicators > 0 or cycle_indicators > 0 or cycle_indicators >= 0.5 or forecheck_indicators > 0 or 
+                shot_x > 25):
+                return True
+            
+            # Debug output for first few shots
+            if play_index < 5:  # Only debug first 5 shots to avoid spam
+                print(f"Debug - Shot {play_index}: x={shot_x}, forecheck={forecheck_indicators}, cycle={cycle_indicators}")
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error in forecheck/cycle shot detection: {e}")
             return False
     
     def _is_shot_after_turnover(self, shot_x, shot_y, turnover, time_window_seconds=5):
@@ -1448,7 +1588,7 @@ class PostGameReportGenerator:
             if away_goals:
                 goal_x, goal_y = zip(*away_goals)
                 ax.scatter(goal_x, goal_y, c=away_color, alpha=1.0, s=60, 
-                          marker='o', edgecolors='black', linewidth=1.5)
+                                          marker='o', edgecolors='black', linewidth=1.5)
 
             # Plot home team shots and goals in team color
             if home_shots:
@@ -1474,7 +1614,7 @@ class PostGameReportGenerator:
             ax.spines['bottom'].set_visible(False)
             ax.spines['left'].set_visible(False)
 
-            # Add team labels on the rink
+                            # Add team labels on the rink
             ax.text(-50, 0, f'{away_team["abbrev"]}', fontsize=10, ha='center', color='blue', weight='bold')
             ax.text(50, 0, f'{home_team["abbrev"]}', fontsize=10, ha='center', color='red', weight='bold')
             
@@ -1643,7 +1783,6 @@ class PostGameReportGenerator:
                         combined_image = Image(combined_plot, width=8*inch, height=5.3*inch)
                         combined_image.hAlign = 'CENTER'
                         story.append(combined_image)
-                        story.append(Spacer(1, 20))
                         print("Successfully added combined plot to PDF")
                                         
                         # Store the file path for cleanup later
@@ -1656,6 +1795,8 @@ class PostGameReportGenerator:
                 else:
                     print(f"Combined shot location plot failed")
                     story.append(Paragraph("Shot location analysis could not be generated.", self.normal_style))
+                
+                story.append(Spacer(1, 20))
             except Exception as e:
                 print(f"Error creating combined plot: {e}")
                 story.append(Paragraph("Combined shot location plot could not be created.", self.normal_style))
