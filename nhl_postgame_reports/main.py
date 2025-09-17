@@ -21,7 +21,7 @@ def main():
     
     try:
         # Use the requested game ID: 2024030116
-        game_id = "2024030116"
+        game_id = "2024030162"
         print(f"Using game ID: {game_id}")
         
         # Get game data for the specific game
