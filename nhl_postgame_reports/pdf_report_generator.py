@@ -788,28 +788,28 @@ class PostGameReportGenerator:
                  f'{sum(home_zone_metrics["fc_cycle_sog"])}', f'{sum(home_zone_metrics["rush_sog"])}']
             ]
             
-            stats_table = Table(stats_data, colWidths=[0.4*inch, 0.3*inch, 0.3*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
+            stats_table = Table(stats_data, colWidths=[0.4*inch, 0.35*inch, 0.35*inch, 0.4*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.4*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch, 0.35*inch])
             stats_table.setStyle(TableStyle([
                 # Header row
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 0), (-1, 0), 4),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 3),
+                ('FONTSIZE', (0, 0), (-1, 0), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 4),
                 
                 # Team name rows (STL and WPG)
                 ('BACKGROUND', (0, 1), (-1, 1), colors.lightblue),  # STL row
                 ('BACKGROUND', (0, 6), (-1, 6), colors.lightcoral),  # WPG row
                 ('FONTNAME', (0, 1), (-1, 6), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 1), (-1, 6), 5),
+                ('FONTSIZE', (0, 1), (-1, 6), 6),
                 ('FONTWEIGHT', (0, 1), (-1, 6), 'BOLD'),
                 
                 # Data rows
                 ('BACKGROUND', (0, 2), (-1, 5), colors.white),  # STL data
                 ('BACKGROUND', (0, 7), (-1, 10), colors.white),  # WPG data
                 ('FONTNAME', (0, 2), (-1, 10), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 2), (-1, 10), 5),
+                ('FONTSIZE', (0, 2), (-1, 10), 6),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 
                 # Final row highlighting
@@ -1462,98 +1462,75 @@ class PostGameReportGenerator:
         return distance < 50  # Within 50 units
     
     def create_player_performance(self, game_data):
-        """Create comprehensive player performance section using play-by-play data"""
+        """Create top 5 players by Game Score across both teams"""
         story = []
         
-        story.append(Paragraph("PLAYER PERFORMANCE", self.subtitle_style))
+        story.append(Paragraph("TOP 5 PLAYERS BY GAME SCORE", self.subtitle_style))
         story.append(Spacer(1, 15))
         
         boxscore = game_data['boxscore']
         
-        # Away team players
+        # Get player stats from play-by-play data for both teams
         away_team = boxscore['awayTeam']
-        story.append(Paragraph(f"<b>{away_team['abbrev']} Players</b>", self.normal_style))
-        
-        # Get player stats from play-by-play data
-        away_player_stats = self._calculate_player_stats_from_play_by_play(game_data, 'awayTeam')
-        
-        away_players = []
-        if away_player_stats:
-            # Sort by Game Score, then points, then goals
-            sorted_players = sorted(away_player_stats.values(), 
-                                  key=lambda x: (x['gameScore'], x['points'], x['goals']), 
-                                  reverse=True)
-            
-            for player in sorted_players:
-                away_players.append([
-                    f"#{player['sweaterNumber']} {player['name']}",
-                    player['position'],
-                    player['goals'],
-                    player['assists'],
-                    player['points'],
-                    player['plusMinus'],
-                    player['pim'],
-                    player['sog'],
-                    player['hits'],
-                    player['blockedShots'],
-                    player['gameScore']
-                ])
-        else:
-            # Fallback to boxscore data
-            for position_group in ['forwards', 'defense', 'goalies']:
-                if position_group in boxscore['playerByGameStats']['awayTeam']:
-                    for player in boxscore['playerByGameStats']['awayTeam'][position_group]:
-                        away_players.append([
-                            player.get('name', 'Unknown'),
-                            player.get('position', 'N/A'),
-                            player.get('goals', 0),
-                            player.get('assists', 0),
-                            player.get('points', 0),
-                            player.get('plusMinus', 0),
-                            player.get('pim', 0),
-                            player.get('sog', 0),
-                            player.get('hits', 0),
-                            player.get('blockedShots', 0)
-                        ])
-        
-        if away_players:
-            # Add header row
-            away_headers = ["Player", "Pos", "G", "A", "P", "+/-", "PIM", "SOG", "H", "BLK", "GS"]
-            away_players_with_header = [away_headers] + away_players
-            away_table = Table(away_players_with_header, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
-            away_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
-                ('FONTSIZE', (0, 0), (-1, 0), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('FONTSIZE', (0, 1), (-1, -1), 7),
-                ('FONTNAME', (0, 1), (-1, -1), 'RussoOne-Regular'),
-            ]))
-            story.append(away_table)
-        
-        story.append(Spacer(1, 20))
-        
-        # Home team players
         home_team = boxscore['homeTeam']
-        story.append(Paragraph(f"<b>{home_team['abbrev']} Players</b>", self.normal_style))
-        
-        # Get player stats from play-by-play data
+        away_player_stats = self._calculate_player_stats_from_play_by_play(game_data, 'awayTeam')
         home_player_stats = self._calculate_player_stats_from_play_by_play(game_data, 'homeTeam')
         
-        home_players = []
+        # Get all players from both teams
+        all_players = []
+        
+        # Add away team players
+        if away_player_stats:
+            for player in away_player_stats.values():
+                all_players.append({
+                    'player': f"#{player['sweaterNumber']} {player['name']}",
+                    'team': away_team['abbrev'],
+                    'position': player['position'],
+                    'goals': player['goals'],
+                    'assists': player['assists'],
+                    'points': player['points'],
+                    'plusMinus': player['plusMinus'],
+                    'pim': player['pim'],
+                    'sog': player['sog'],
+                    'hits': player['hits'],
+                    'blockedShots': player['blockedShots'],
+                    'gameScore': player['gameScore']
+                })
+        
+        # Add home team players
         if home_player_stats:
-            # Sort by Game Score, then points, then goals
-            sorted_players = sorted(home_player_stats.values(), 
-                                  key=lambda x: (x['gameScore'], x['points'], x['goals']), 
-                                  reverse=True)
+            for player in home_player_stats.values():
+                all_players.append({
+                    'player': f"#{player['sweaterNumber']} {player['name']}",
+                    'team': home_team['abbrev'],
+                    'position': player['position'],
+                    'goals': player['goals'],
+                    'assists': player['assists'],
+                    'points': player['points'],
+                    'plusMinus': player['plusMinus'],
+                    'pim': player['pim'],
+                    'sog': player['sog'],
+                    'hits': player['hits'],
+                    'blockedShots': player['blockedShots'],
+                    'gameScore': player['gameScore']
+                })
+        
+        # Sort by Game Score, then points, then goals (descending)
+        all_players.sort(key=lambda x: (x['gameScore'], x['points'], x['goals']), reverse=True)
+        
+        # Take top 5 players
+        top_5_players = all_players[:5]
+        
+        if top_5_players:
+            # Create table data with team indicators
+            table_data = []
+            headers = ["Player", "Team", "Pos", "G", "A", "P", "+/-", "PIM", "SOG", "H", "BLK", "GS"]
+            table_data.append(headers)
             
-            for player in sorted_players:
-                home_players.append([
-                    f"#{player['sweaterNumber']} {player['name']}",
+            for player in top_5_players:
+                table_data.append([
+                    player['player'],
+                    player['team'],
                     player['position'],
                     player['goals'],
                     player['assists'],
@@ -1563,33 +1540,13 @@ class PostGameReportGenerator:
                     player['sog'],
                     player['hits'],
                     player['blockedShots'],
-                    player['gameScore']
+                    f"{player['gameScore']:.1f}" if player['gameScore'] > 0 else "N/A"
                 ])
-        else:
-            # Fallback to boxscore data
-            for position_group in ['forwards', 'defense', 'goalies']:
-                if position_group in boxscore['playerByGameStats']['homeTeam']:
-                    for player in boxscore['playerByGameStats']['homeTeam'][position_group]:
-                        home_players.append([
-                            player.get('name', 'Unknown'),
-                            player.get('position', 'N/A'),
-                            player.get('goals', 0),
-                            player.get('assists', 0),
-                            player.get('points', 0),
-                            player.get('plusMinus', 0),
-                            player.get('pim', 0),
-                            player.get('sog', 0),
-                            player.get('hits', 0),
-                            player.get('blockedShots', 0)
-                        ])
-        
-        if home_players:
-            # Add header row
-            home_headers = ["Player", "Pos", "G", "A", "P", "+/-", "PIM", "SOG", "H", "BLK", "GS"]
-            home_players_with_header = [home_headers] + home_players
-            home_table = Table(home_players_with_header, colWidths=[1.8*inch, 0.4*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch, 0.3*inch])
-            home_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
+            
+            # Create table with condensed column widths
+            player_table = Table(table_data, colWidths=[1.5*inch, 0.4*inch, 0.3*inch, 0.25*inch, 0.25*inch, 0.25*inch, 0.3*inch, 0.25*inch, 0.25*inch, 0.25*inch, 0.25*inch, 0.3*inch])
+            player_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'RussoOne-Regular'),
@@ -1599,8 +1556,16 @@ class PostGameReportGenerator:
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('FONTSIZE', (0, 1), (-1, -1), 7),
                 ('FONTNAME', (0, 1), (-1, -1), 'RussoOne-Regular'),
+                # Highlight the top player
+                ('BACKGROUND', (0, 1), (-1, 1), colors.yellow),
+                ('FONTNAME', (0, 1), (-1, 1), 'RussoOne-Regular'),
+                ('FONTSIZE', (0, 1), (-1, 1), 8),
             ]))
-            story.append(home_table)
+            story.append(player_table)
+            
+            # Add note about Game Score
+            story.append(Spacer(1, 10))
+            story.append(Paragraph("<i>Top 5 players ranked by Game Score (GS) - a comprehensive metric combining goals, assists, shots, hits, and other key performance indicators.</i>", self.normal_style))
         
         story.append(Spacer(1, 20))
         return story
@@ -2043,7 +2008,6 @@ class PostGameReportGenerator:
         story.append(Spacer(1, 0))  # No top spacing
         
         # Add all sections
-        story.extend(self.create_score_summary(game_data))
         story.extend(self.create_team_stats_comparison(game_data))
         story.extend(self.create_advanced_metrics_section(game_data))
         story.extend(self.create_player_performance(game_data))
