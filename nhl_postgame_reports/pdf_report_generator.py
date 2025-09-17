@@ -62,8 +62,8 @@ class PostGameReportGenerator:
     def create_header_image(self, game_data, game_id=None):
         """Create the modern header image for the report using the user's header with team names"""
         try:
-            # Use the user's header image from desktop
-            header_path = "/Users/emilyfehr8/Desktop/Header.jpg"
+            # Use the user's header image from project directory
+            header_path = "/Users/emilyfehr8/CascadeProjects/nhl_postgame_reports/Header.jpg"
             
             if os.path.exists(header_path):
                 # Create a custom header with team names overlaid
@@ -102,20 +102,37 @@ class PostGameReportGenerator:
                             except:
                                 font = ImageFont.load_default()
                 
-                # Determine game type based on game ID
+                # Determine game type from API data
                 game_type = "Regular Season"  # Default
-                if game_id:
-                    try:
-                        # Extract game number from game ID (e.g., 2024030157 -> 03)
-                        game_number = int(game_id[-2:]) if len(game_id) >= 2 else 0
-                        if game_number >= 1 and game_number <= 4:
+                try:
+                    # Get game type from boxscore data
+                    if 'boxscore' in game_data and 'gameType' in game_data['boxscore']:
+                        api_game_type = game_data['boxscore']['gameType']
+                        
+                        # NHL Game Type Codes:
+                        # 2 = Regular Season, 3 = Playoffs, 4 = Pre-season, 5 = All-Star, etc.
+                        if api_game_type == 2:
+                            game_type = "Regular Season"
+                        elif api_game_type == 3:
                             game_type = "Playoffs"
-                        elif game_number >= 5 and game_number <= 8:
-                            game_type = "Conference Finals"
-                        elif game_number >= 9 and game_number <= 12:
-                            game_type = "Stanley Cup Finals"
-                    except (ValueError, TypeError):
-                        game_type = "Regular Season"
+                        elif api_game_type == 4:
+                            game_type = "Pre-Season"
+                        elif api_game_type == 5:
+                            game_type = "All-Star Game"
+                        else:
+                            game_type = f"Game Type {api_game_type}"
+                    else:
+                        # Fallback: try to determine from game ID if API data not available
+                        if game_id:
+                            game_number = int(game_id[-2:]) if len(game_id) >= 2 else 0
+                            if game_number >= 1 and game_number <= 4:
+                                game_type = "Playoffs"
+                            elif game_number >= 5 and game_number <= 8:
+                                game_type = "Conference Finals"
+                            elif game_number >= 9 and game_number <= 12:
+                                game_type = "Stanley Cup Finals"
+                except (ValueError, TypeError, KeyError):
+                    game_type = "Regular Season"
                 
                 # Calculate team name text position (left-aligned, moved 3cm right)
                 team_text = f"{game_type}: {away_team} vs {home_team}"
@@ -904,51 +921,200 @@ class PostGameReportGenerator:
             return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
     
     def _calculate_shot_xg(self, shot_details):
-        """Calculate expected goals for a single shot"""
+        """Calculate expected goals for a single shot using our advanced model"""
         try:
-            # Base xG values by shot type
-            shot_type = shot_details.get('shotType', 'wrist')
-            base_xg = {
-                'wrist': 0.08,
-                'slap': 0.06,
-                'snap': 0.09,
-                'backhand': 0.05,
-                'tip': 0.12,
-                'deflection': 0.15,
-                'wrap': 0.04
-            }.get(shot_type, 0.08)
-            
-            # Distance multiplier
             x_coord = shot_details.get('xCoord', 0)
-            distance_multiplier = 1.0
-            if x_coord > 50:  # Close to net
-                distance_multiplier = 1.5
-            elif x_coord > 30:  # Medium distance
-                distance_multiplier = 1.2
-            elif x_coord > 10:  # Far from net
-                distance_multiplier = 0.8
-            else:  # Very far
-                distance_multiplier = 0.6
-            
-            # Angle multiplier
             y_coord = shot_details.get('yCoord', 0)
-            angle_multiplier = 1.0
-            if abs(y_coord) < 10:  # In front of net
-                angle_multiplier = 1.3
-            elif abs(y_coord) < 20:  # Good angle
-                angle_multiplier = 1.1
-            elif abs(y_coord) < 30:  # Moderate angle
-                angle_multiplier = 0.9
-            else:  # Sharp angle
-                angle_multiplier = 0.7
+            zone = shot_details.get('zoneCode', '')
+            shot_type = shot_details.get('shotType', 'unknown')
             
-            # Calculate final xG
-            xg = base_xg * distance_multiplier * angle_multiplier
-            return min(xg, 0.5)  # Cap at 0.5 for very high probability shots
+            # Use our advanced xG model
+            return self._calculate_single_shot_xG_advanced(x_coord, y_coord, zone, shot_type, 'shot-on-goal')
             
         except Exception as e:
             print(f"Error calculating shot xG: {e}")
             return 0.0
+    
+    def _calculate_single_shot_xG_advanced(self, x_coord: float, y_coord: float, zone: str, shot_type: str, event_type: str) -> float:
+        """Calculate expected goal value for a single shot based on NHL analytics model"""
+        import math
+        
+        # Base expected goal value
+        base_xG = 0.0
+        
+        # Distance calculation (from goal line at x=89)
+        distance_from_goal = ((89 - x_coord) ** 2 + (y_coord) ** 2) ** 0.5
+        
+        # Angle calculation (angle from goal posts)
+        # Goal posts are at y = ±3 (assuming 6-foot goal width)
+        angle_to_goal = self._calculate_shot_angle_advanced(x_coord, y_coord)
+        
+        # Zone-based adjustments
+        zone_multiplier = self._get_zone_multiplier_advanced(zone, x_coord, y_coord)
+        
+        # Shot type adjustments
+        shot_type_multiplier = self._get_shot_type_multiplier_advanced(shot_type)
+        
+        # Event type adjustments (shots on goal vs missed/blocked)
+        event_multiplier = self._get_event_type_multiplier_advanced(event_type)
+        
+        # Core distance-based model (NHL standard curve)
+        if distance_from_goal <= 10:
+            base_xG = 0.25  # Very close to net
+        elif distance_from_goal <= 20:
+            base_xG = 0.15  # Close range
+        elif distance_from_goal <= 35:
+            base_xG = 0.08  # Medium range
+        elif distance_from_goal <= 50:
+            base_xG = 0.04  # Long range
+        else:
+            base_xG = 0.02  # Very long range
+        
+        # Apply angle adjustment (shots from wider angles have lower xG)
+        if angle_to_goal > 45:
+            angle_multiplier = 0.3  # Very wide angle
+        elif angle_to_goal > 30:
+            angle_multiplier = 0.5  # Wide angle
+        elif angle_to_goal > 15:
+            angle_multiplier = 0.8  # Moderate angle
+        else:
+            angle_multiplier = 1.0  # Good angle
+        
+        # Calculate final expected goal value
+        final_xG = base_xG * zone_multiplier * shot_type_multiplier * event_multiplier * angle_multiplier
+        
+        # Cap at reasonable maximum
+        return min(final_xG, 0.95)
+    
+    def _calculate_shot_angle_advanced(self, x_coord: float, y_coord: float) -> float:
+        """Calculate the angle of the shot relative to the goal"""
+        import math
+        
+        # Goal center is at (89, 0), goal posts at (89, ±3)
+        distance_to_center = ((89 - x_coord) ** 2 + (y_coord) ** 2) ** 0.5
+        
+        if distance_to_center == 0:
+            return 0
+        
+        # Calculate angle using law of cosines
+        # Distance from shot to left post
+        dist_to_left = ((89 - x_coord) ** 2 + (y_coord - 3) ** 2) ** 0.5
+        # Distance from shot to right post  
+        dist_to_right = ((89 - x_coord) ** 2 + (y_coord + 3) ** 2) ** 0.5
+        
+        # Goal width
+        goal_width = 6
+        
+        # Use law of cosines to find angle
+        if dist_to_left > 0 and dist_to_right > 0:
+            cos_angle = (dist_to_left ** 2 + dist_to_right ** 2 - goal_width ** 2) / (2 * dist_to_left * dist_to_right)
+            cos_angle = max(-1, min(1, cos_angle))  # Clamp to valid range
+            angle = math.acos(cos_angle)
+            return math.degrees(angle)
+        
+        return 45  # Default angle if calculation fails
+    
+    def _get_zone_multiplier_advanced(self, zone: str, x_coord: float, y_coord: float) -> float:
+        """Get zone-based expected goal multiplier"""
+        
+        # High danger area (slot, crease area)
+        if zone == 'O' and x_coord > 75 and abs(y_coord) < 15:
+            return 1.5
+        
+        # Medium danger area (offensive zone, good position)
+        elif zone == 'O' and x_coord > 60 and abs(y_coord) < 25:
+            return 1.2
+        
+        # Low danger area (point shots, wide angles)
+        elif zone == 'O':
+            return 0.8
+        
+        # Neutral zone shots (rare but possible)
+        elif zone == 'N':
+            return 0.3
+        
+        # Defensive zone shots (very rare)
+        elif zone == 'D':
+            return 0.1
+        
+        return 1.0  # Default
+    
+    def _get_shot_type_multiplier_advanced(self, shot_type: str) -> float:
+        """Get shot type-based expected goal multiplier"""
+        
+        shot_type = shot_type.lower()
+        
+        # High-danger shot types
+        if shot_type in ['tip-in', 'deflection', 'backhand']:
+            return 1.3
+        elif shot_type in ['wrist', 'snap']:
+            return 1.0
+        elif shot_type in ['slap', 'slapshot']:
+            return 0.9
+        elif shot_type in ['wrap-around', 'wrap']:
+            return 1.1
+        elif shot_type in ['one-timer', 'onetime']:
+            return 1.2
+        
+        return 1.0  # Default for unknown types
+    
+    def _get_event_type_multiplier_advanced(self, event_type: str) -> float:
+        """Get event type-based expected goal multiplier"""
+        
+        if event_type == 'shot-on-goal':
+            return 1.0  # Full value for shots on goal
+        elif event_type == 'missed-shot':
+            return 0.7  # Reduced value for missed shots
+        elif event_type == 'blocked-shot':
+            return 0.5  # Lower value for blocked shots
+        
+        return 1.0  # Default
+    
+    def _get_team_color(self, team_abbrev):
+        """Get the primary team color based on team abbreviation"""
+        team_colors = {
+            # Atlantic Division
+            'BOS': '#FFB81C',  # Boston Bruins - Gold
+            'BUF': '#002E62',  # Buffalo Sabres - Navy Blue
+            'DET': '#CE1126',  # Detroit Red Wings - Red
+            'FLA': '#041E42',  # Florida Panthers - Navy Blue
+            'MTL': '#AF1E2D',  # Montreal Canadiens - Red
+            'OTT': '#E31837',  # Ottawa Senators - Red
+            'TBL': '#002868',  # Tampa Bay Lightning - Blue
+            'TOR': '#003E7E',  # Toronto Maple Leafs - Blue
+            
+            # Metropolitan Division
+            'CAR': '#CC0000',  # Carolina Hurricanes - Red
+            'CBJ': '#002654',  # Columbus Blue Jackets - Blue
+            'NJD': '#CE1126',  # New Jersey Devils - Red
+            'NYI': '#F57D31',  # New York Islanders - Orange
+            'NYR': '#0038A8',  # New York Rangers - Blue
+            'PHI': '#F74902',  # Philadelphia Flyers - Orange
+            'PIT': '#000000',  # Pittsburgh Penguins - Black
+            'WSH': '#C8102E',  # Washington Capitals - Red
+            
+            # Central Division
+            'ARI': '#8C2633',  # Arizona Coyotes - Red
+            'CHI': '#CF0A2C',  # Chicago Blackhawks - Red
+            'COL': '#6F263D',  # Colorado Avalanche - Burgundy
+            'DAL': '#006847',  # Dallas Stars - Green
+            'MIN': '#154734',  # Minnesota Wild - Green
+            'NSH': '#FFB81C',  # Nashville Predators - Gold
+            'STL': '#002F87',  # St. Louis Blues - Blue
+            'WPG': '#041E42',  # Winnipeg Jets - Navy Blue
+            
+            # Pacific Division
+            'ANA': '#B8860B',  # Anaheim Ducks - Gold
+            'CGY': '#C8102E',  # Calgary Flames - Red
+            'EDM': '#FF4C00',  # Edmonton Oilers - Orange
+            'LAK': '#111111',  # Los Angeles Kings - Black
+            'SJS': '#006D75',  # San Jose Sharks - Teal
+            'SEA': '#001628',  # Seattle Kraken - Navy Blue
+            'VAN': '#001F5C',  # Vancouver Canucks - Blue
+            'VGK': '#B4975A'   # Vegas Golden Knights - Gold
+        }
+        
+        return team_colors.get(team_abbrev.upper(), '#666666')  # Default gray if team not found
     
     def _calculate_pass_metrics(self, game_data, team_id, team_side):
         """Calculate pass metrics by period for a team"""
@@ -1558,13 +1724,13 @@ class PostGameReportGenerator:
             fig, ax = plt.subplots(figsize=(8, 5.5))
             
             # Load and display the rink image
-            rink_path = '/Users/emilyfehr8/Desktop/F300E016-E2BD-450A-B624-5BADF3853AC0.jpeg'
+            rink_path = '/Users/emilyfehr8/CascadeProjects/nhl_postgame_reports/F300E016-E2BD-450A-B624-5BADF3853AC0.jpeg'
             try:
                 if os.path.exists(rink_path):
                     from matplotlib.image import imread
                     rink_img = imread(rink_path)
                     # Display the rink image
-                    ax.imshow(rink_img, extent=[-100, 100, -42.5, 42.5], aspect='equal', alpha=0.8)
+                    ax.imshow(rink_img, extent=[-100, 100, -42.5, 42.5], aspect='equal', alpha=0.9)
                     print(f"Loaded rink image from: {rink_path}")
                 else:
                     print(f"Rink image not found at: {rink_path}")
@@ -1591,14 +1757,14 @@ class PostGameReportGenerator:
                 ax.plot([-25, -25], [-42.5, 42.5], 'b-', linewidth=2)  # Left blue line
                 ax.plot([0, 0], [-42.5, 42.5], 'k-', linewidth=1)  # Center line
             
-            # Define team primary colors
-            away_color = '#FFD700'  # STL - Gold/Yellow
-            home_color = '#003366'  # WPG - Navy Blue
+            # Get team colors based on actual teams playing
+            away_color = self._get_team_color(away_team['abbrev'])
+            home_color = self._get_team_color(home_team['abbrev'])
             
             # Plot away team shots and goals in team color
             if away_shots:
                 shot_x, shot_y = zip(*away_shots)
-                ax.scatter(shot_x, shot_y, c=away_color, alpha=0.8, s=30, 
+                ax.scatter(shot_x, shot_y, c=away_color, alpha=0.7, s=30, 
                           marker='o', edgecolors='black', linewidth=0.5)
 
             if away_goals:
@@ -1609,7 +1775,7 @@ class PostGameReportGenerator:
             # Plot home team shots and goals in team color
             if home_shots:
                 shot_x, shot_y = zip(*home_shots)
-                ax.scatter(shot_x, shot_y, c=home_color, alpha=0.8, s=30, 
+                ax.scatter(shot_x, shot_y, c=home_color, alpha=0.7, s=30, 
                           marker='o', edgecolors='white', linewidth=0.5)
 
             if home_goals:
@@ -1699,35 +1865,60 @@ class PostGameReportGenerator:
         story.append(Spacer(1, 15))
         
         try:
-            # Get team abbreviations
+            # Get team abbreviations and IDs
             boxscore = game_data['boxscore']
             away_team_abbrev = boxscore['awayTeam']['abbrev']
             home_team_abbrev = boxscore['homeTeam']['abbrev']
+            away_team_id = boxscore['awayTeam']['id']
+            home_team_id = boxscore['homeTeam']['id']
             
-            # Advanced Metrics Table with specific data
+            # Get advanced metrics using the analyzer
+            from advanced_metrics_analyzer import AdvancedMetricsAnalyzer
+            analyzer = AdvancedMetricsAnalyzer(game_data.get('play_by_play', {}))
+            metrics = analyzer.generate_comprehensive_report(away_team_id, home_team_id)
+            
+            # Advanced Metrics Table with real data
             story.append(Paragraph("ADVANCED METRICS ANALYSIS", self.section_style))
             story.append(Spacer(1, 10))
+            
+            # Extract real metrics
+            away_shot_quality = metrics['away_team']['shot_quality']
+            home_shot_quality = metrics['home_team']['shot_quality']
+            away_pressure = metrics['away_team']['pressure']
+            home_pressure = metrics['home_team']['pressure']
+            away_defense = metrics['away_team']['defense']
+            home_defense = metrics['home_team']['defense']
+            away_cross_ice = metrics['away_team']['cross_ice_passes']
+            home_cross_ice = metrics['home_team']['cross_ice_passes']
             
             combined_data = [
                 ['Category', 'Metric', away_team_abbrev, home_team_abbrev],
                 
                 # Shot Quality Analysis
-                ['SHOT QUALITY', 'High Danger Shots', '19', '8'],
-                ['', 'Total Shots', '83', '56'],
-                ['', 'Shots on Goal', '39', '31'],
-                ['', 'Shooting %', '47.0%', '55.4%'],
+                ['SHOT QUALITY', 'Expected Goals (xG)', f"{away_shot_quality['expected_goals']:.2f}", f"{home_shot_quality['expected_goals']:.2f}"],
+                ['', 'High Danger Shots', str(away_shot_quality['high_danger_shots']), str(home_shot_quality['high_danger_shots'])],
+                ['', 'Total Shots', str(away_shot_quality['total_shots']), str(home_shot_quality['total_shots'])],
+                ['', 'Shots on Goal', str(away_shot_quality['shots_on_goal']), str(home_shot_quality['shots_on_goal'])],
+                ['', 'Shooting %', f"{away_shot_quality['shooting_percentage']:.1%}", f"{home_shot_quality['shooting_percentage']:.1%}"],
                 
                 # Pressure Analysis
-                ['PRESSURE', 'Sustained Pressure Sequences', '22', '24'],
-                ['', 'Quick Strike Opportunities', '35', '21'],
-                ['', 'Avg Shots per Sequence', '1.0', '0.7'],
+                ['PRESSURE', 'Sustained Pressure Sequences', str(away_pressure['sustained_pressure_sequences']), str(home_pressure['sustained_pressure_sequences'])],
+                ['', 'Quick Strike Opportunities', str(away_pressure['quick_strike_opportunities']), str(home_pressure['quick_strike_opportunities'])],
+                ['', 'Avg Shots per Sequence', 
+                 f"{sum(away_pressure['shot_attempts_per_sequence'])/len(away_pressure['shot_attempts_per_sequence']):.1f}" if away_pressure['shot_attempts_per_sequence'] else '0.0', 
+                 f"{sum(home_pressure['shot_attempts_per_sequence'])/len(home_pressure['shot_attempts_per_sequence']):.1f}" if home_pressure['shot_attempts_per_sequence'] else '0.0'],
                 
                 # Defensive Analysis
-                ['DEFENSIVE', 'Blocked Shots', '27', '11'],
-                ['', 'Takeaways', '3', '4'],
-                ['', 'Hits', '18', '21'],
-                ['', 'Shot Attempts Against', '45', '56'],
-                ['', 'High Danger Chances Against', '8', '18']
+                ['DEFENSIVE', 'Blocked Shots', str(away_defense['blocked_shots']), str(home_defense['blocked_shots'])],
+                ['', 'Takeaways', str(away_defense['takeaways']), str(home_defense['takeaways'])],
+                ['', 'Hits', str(away_defense['hits']), str(home_defense['hits'])],
+                ['', 'Shot Attempts Against', str(away_defense['shot_attempts_against']), str(home_defense['shot_attempts_against'])],
+                ['', 'High Danger Chances Against', str(away_defense['high_danger_chances_against']), str(home_defense['high_danger_chances_against'])],
+                
+                # Cross-Ice Pass Analysis
+                ['CROSS-ICE PASSES', 'Total Attempts', str(away_cross_ice['total_cross_ice_attempts']), str(home_cross_ice['total_cross_ice_attempts'])],
+                ['', 'Successful Passes', str(away_cross_ice['successful_cross_ice_passes']), str(home_cross_ice['successful_cross_ice_passes'])],
+                ['', 'Success Rate', f"{away_cross_ice['cross_ice_success_rate']:.1%}", f"{home_cross_ice['cross_ice_success_rate']:.1%}"]
             ]
             
             combined_table = Table(combined_data, colWidths=[1.5*inch, 2*inch, 1.2*inch, 1.2*inch])
@@ -1740,10 +1931,11 @@ class PostGameReportGenerator:
                 ('FONTSIZE', (0, 0), (-1, 0), 11),
                                 ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
                 
-                # Category headers (SHOT QUALITY, PRESSURE, DEFENSIVE)
+                # Category headers (SHOT QUALITY, PRESSURE, DEFENSIVE, CROSS-ICE PASSES)
                 ('BACKGROUND', (0, 1), (0, 4), colors.lightblue),  # Shot Quality
                 ('BACKGROUND', (0, 5), (0, 7), colors.lightgreen),  # Pressure
                 ('BACKGROUND', (0, 8), (0, 12), colors.lightgrey),  # Defensive
+                ('BACKGROUND', (0, 13), (0, 15), colors.lightyellow),  # Cross-Ice Passes
                 ('FONTNAME', (0, 1), (0, -1), 'RussoOne-Regular'),
                 ('FONTSIZE', (0, 1), (0, -1), 9),
                 ('FONTWEIGHT', (0, 1), (0, -1), 'BOLD'),
