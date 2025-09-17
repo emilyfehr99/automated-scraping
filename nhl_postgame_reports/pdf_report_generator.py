@@ -84,21 +84,21 @@ class PostGameReportGenerator:
                     away_team = "FLA"
                     home_team = "EDM"
                 
-                # Try to load DaggerSquare font, fallback to Russo One, then default (2x size = 140pt)
+                # Try to load Russo One font first (better text rendering), fallback to others (reduced by 1cm = 28pt from 140pt)
                 try:
-                    # Try to load DaggerSquare font
-                    font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/DAGGERSQUARE.otf", 140)
+                    # Try to load Russo One font first (better for text rendering)
+                    font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/RussoOne-Regular.ttf", 112)
                 except:
                     try:
-                        # Fallback to Russo One font
-                        font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/RussoOne-Regular.ttf", 140)
+                        # Fallback to DaggerSquare font
+                        font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/DAGGERSQUARE.otf", 112)
                     except:
                         try:
                             # Fallback to Arial Bold
-                            font = ImageFont.truetype("/System/Library/Fonts/Arial Bold.ttf", 140)
+                            font = ImageFont.truetype("/System/Library/Fonts/Arial Bold.ttf", 112)
                         except:
                             try:
-                                font = ImageFont.truetype("Arial.ttf", 140)
+                                font = ImageFont.truetype("Arial.ttf", 112)
                             except:
                                 font = ImageFont.load_default()
                 
@@ -129,6 +129,7 @@ class PostGameReportGenerator:
                 # Load team logos
                 away_logo = None
                 home_logo = None
+                nhl_logo = None
                 
                 try:
                     import requests
@@ -141,6 +142,14 @@ class PostGameReportGenerator:
                     # Try to load team logos from ESPN API using team abbreviations
                     away_logo_url = f"https://a.espncdn.com/i/teamlogos/nhl/500/{away_team_abbrev.lower()}.png"
                     home_logo_url = f"https://a.espncdn.com/i/teamlogos/nhl/500/{home_team_abbrev.lower()}.png"
+                    nhl_logo_url = "https://a.espncdn.com/i/teamlogos/leagues/500/nhl.png"
+                    
+                    # Download NHL logo
+                    nhl_response = requests.get(nhl_logo_url, timeout=5)
+                    if nhl_response.status_code == 200:
+                        nhl_logo = PILImage.open(BytesIO(nhl_response.content))
+                        nhl_logo = nhl_logo.resize((212, 184), PILImage.Resampling.LANCZOS)
+                        print(f"Loaded NHL logo")
                     
                     # Download away team logo
                     away_response = requests.get(away_logo_url, timeout=5)
@@ -157,7 +166,7 @@ class PostGameReportGenerator:
                         print(f"Loaded home team logo: {home_team}")
                         
                 except Exception as e:
-                    print(f"Could not load team logos: {e}")
+                    print(f"Could not load logos: {e}")
                 
                 # Draw team logos if available (positioned on the right side)
                 if away_logo:
@@ -172,6 +181,13 @@ class PostGameReportGenerator:
                     home_logo_y = team_y - 106  # Centered vertically for condensed height
                     header_img.paste(home_logo, (home_logo_x, home_logo_y), home_logo)
                 
+                # Draw NHL logo under the team logos if available
+                if nhl_logo:
+                    # Position NHL logo centered under the team logos (moved up by 1cm = 28pt)
+                    nhl_logo_x = header_img.width - 375  # Centered between the two team logos
+                    nhl_logo_y = team_y + 92  # Below the team logos with proper spacing (moved up 28pt)
+                    header_img.paste(nhl_logo, (nhl_logo_x, nhl_logo_y), nhl_logo)
+                
                 # Draw team name white text with black outline for better visibility
                 draw.text((team_x-1, team_y-1), team_text, font=font, fill=(0, 0, 0))  # Black outline
                 draw.text((team_x+1, team_y-1), team_text, font=font, fill=(0, 0, 0))  # Black outline
@@ -179,12 +195,12 @@ class PostGameReportGenerator:
                 draw.text((team_x+1, team_y+1), team_text, font=font, fill=(0, 0, 0))  # Black outline
                 draw.text((team_x, team_y), team_text, font=font, fill=(255, 255, 255))  # White text
                 
-                # Create subtitle font (45pt) - DaggerSquare
+                # Create subtitle font (45pt) - Russo One first for better text rendering
                 try:
-                    subtitle_font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/DAGGERSQUARE.otf", 45)
+                    subtitle_font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/RussoOne-Regular.ttf", 45)
                 except:
                     try:
-                        subtitle_font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/RussoOne-Regular.ttf", 45)
+                        subtitle_font = ImageFont.truetype("/Users/emilyfehr8/Library/Fonts/DAGGERSQUARE.otf", 45)
                     except:
                         try:
                             subtitle_font = ImageFont.truetype("/System/Library/Fonts/Arial Bold.ttf", 45)
