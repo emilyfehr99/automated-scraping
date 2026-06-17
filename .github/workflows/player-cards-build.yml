@@ -1,0 +1,217 @@
+name: Player Cards Store Build
+
+# Offload long InStat PBP + card indexing from local machines.
+# Auth: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION repo secrets (API headers).
+# Generate once locally: python scripts/print_instat_api_tokens.py
+# Sharded matrix keeps each job under GitHub's 6h limit.
+
+concurrency:
+  group: player-cards-build
+  cancel-in-progress: false
+
+on:
+  schedule:
+    # Weekly Sunday 6am UTC (~midnight CT)
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+    inputs:
+      shard:
+        description: "Shard id (1-9) or 'all'"
+        required: false
+        default: "all"
+      teams:
+        description: "Optional comma team list (overrides shard), e.g. UTA,PIT"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
+  PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/card_store.db
+
+jobs:
+  build-shard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - shard_id: 1
+            teams: "ANA,BOS,BUF,CGY"
+          - shard_id: 2
+            teams: "CAR,CBJ,CHI,COL"
+          - shard_id: 3
+            teams: "DAL,DET,EDM,FLA"
+          - shard_id: 4
+            teams: "LAK,MIN,MTL,NJD"
+          - shard_id: 5
+            teams: "NSH,NYI,NYR,OTT"
+          - shard_id: 6
+            teams: "PHI,PIT,SEA,SJS"
+          - shard_id: 7
+            teams: "STL,TBL,TOR,UTA"
+          - shard_id: 8
+            teams: "VAN,VGK,WPG,WSH"
+          - shard_id: 9
+            teams: "BPF,MNF,MVL,NYS,OTC,TSR"
+            league: "pwhl"
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event.inputs.shard == 'all' ||
+      github.event.inputs.shard == '' ||
+      format('{0}', github.event.inputs.shard) == format('{0}', matrix.shard_id)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            player_cards/requirements.txt
+
+      - name: Configure InStat auth
+        env:
+          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
+          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
+          INSTAT_AUTH_JSON: ${{ secrets.INSTAT_AUTH_JSON }}
+        run: |
+          if [ -n "$INSTAT_X_AUTH_TOKEN" ] && [ -n "$INSTAT_AUTHORIZATION" ]; then
+            echo "Using InStat API token auth (no Playwright login)"
+          elif [ -n "$INSTAT_AUTH_JSON" ]; then
+            echo "Using auth.json session (Playwright header capture)"
+            mkdir -p hudl-scraping
+            echo "$INSTAT_AUTH_JSON" | base64 -d > hudl-scraping/auth.json
+          else
+            echo "Missing secrets: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION, or INSTAT_AUTH_JSON" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        env:
+          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r player_cards/requirements.txt
+          if [ -z "$INSTAT_X_AUTH_TOKEN" ]; then
+            echo "No API tokens — installing Playwright for auth.json session capture"
+            python -m playwright install --with-deps chromium
+          fi
+
+      - name: Resolve team list
+        id: plan
+        env:
+          INPUT_TEAMS: ${{ github.event.inputs.teams }}
+          SHARD_TEAMS: ${{ matrix.teams }}
+          SHARD_LEAGUE: ${{ matrix.league }}
+        run: |
+          if [ -n "$INPUT_TEAMS" ]; then
+            TEAMS="$INPUT_TEAMS"
+            LEAGUE="nhl"
+            echo "$INPUT_TEAMS" | grep -qE '^(BPF|MNF|MVL|NYS|OTC|TSR)' && LEAGUE="pwhl" || true
+          else
+            TEAMS="$SHARD_TEAMS"
+            LEAGUE="${SHARD_LEAGUE:-nhl}"
+          fi
+          echo "teams=$TEAMS" >> "$GITHUB_OUTPUT"
+          echo "league=$LEAGUE" >> "$GITHUB_OUTPUT"
+          echo "Building shard ${{ matrix.shard_id }}: league=$LEAGUE teams=$TEAMS"
+
+      - name: Restore PBP cache
+        uses: actions/cache@v4
+        with:
+          path: .player-cards-data
+          key: player-cards-pbp-${{ matrix.shard_id }}-${{ hashFiles('player_cards/leagues.py', 'player_cards/instat_source.py') }}
+          restore-keys: |
+            player-cards-pbp-${{ matrix.shard_id }}-
+            player-cards-pbp-
+
+      - name: Build card store shard
+        working-directory: hudl-scraping
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
+          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
+          DISABLE_AUTO_LOGIN: "1"
+          PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
+          PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
+        run: |
+          mkdir -p "$PLAYER_CARDS_WORK_ROOT/shards"
+          if [ -n "${{ github.event.inputs.teams }}" ]; then
+            TEAM_ARG="${{ github.event.inputs.teams }}"
+          else
+            TEAM_ARG="${{ steps.plan.outputs.teams }}"
+          fi
+          python -m player_cards.build_store \
+            --league "${{ steps.plan.outputs.league }}" \
+            --teams "$TEAM_ARG" \
+            --store "$PLAYER_CARDS_STORE" \
+            -v
+
+      - name: Upload shard store
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-store-shard-${{ matrix.shard_id }}
+          if-no-files-found: error
+          retention-days: 30
+          path: .player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
+
+      - name: Upload PBP cache snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbp-cache-shard-${{ matrix.shard_id }}
+          if-no-files-found: warn
+          retention-days: 7
+          path: .player-cards-data/
+          compression-level: 6
+
+  merge:
+    needs: build-shard
+    runs-on: ubuntu-latest
+    if: >-
+      always() &&
+      (github.event_name == 'schedule' ||
+       github.event.inputs.shard == 'all' ||
+       github.event.inputs.shard == '' ||
+       github.event.inputs.teams == '')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download shard stores
+        uses: actions/download-artifact@v4
+        with:
+          pattern: card-store-shard-*
+          path: shards
+          merge-multiple: true
+
+      - name: Merge stores
+        run: |
+          mkdir -p .player-cards-data
+          shards=(shards/card_store_*.db shards/*/card_store_*.db)
+          found=()
+          for f in "${shards[@]}"; do
+            [ -f "$f" ] && found+=("$f")
+          done
+          if [ "${#found[@]}" -eq 0 ]; then
+            echo "No shard databases found" >&2
+            exit 1
+          fi
+          python scripts/merge_card_stores.py \
+            --out .player-cards-data/card_store.db \
+            "${found[@]}"
+
+      - name: Upload merged card store
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-store-merged
+          if-no-files-found: error
+          retention-days: 90
+          path: .player-cards-data/card_store.db

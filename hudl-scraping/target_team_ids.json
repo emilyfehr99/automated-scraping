@@ -1,0 +1,82 @@
+{
+  "Brown": {
+    "id": 25191,
+    "full_name": "Brown Bears"
+  },
+  "Colgate": {
+    "id": 25197,
+    "full_name": "Colgate Raiders"
+  },
+  "Cornell": {
+    "id": 25201,
+    "full_name": "Cornell Big Red"
+  },
+  "Dartmouth": {
+    "id": 25202,
+    "full_name": "Dartmouth Big Green"
+  },
+  "Harvard": {
+    "id": 25207,
+    "full_name": "Harvard Crimson"
+  },
+  "Princeton": {
+    "id": 25236,
+    "full_name": "Princeton Tigers"
+  },
+  "Quinnipiac": {
+    "id": 25238,
+    "full_name": "Quinnipiac Bobcats"
+  },
+  "Rensselaer": {
+    "id": 25239,
+    "full_name": "Rensselaer Polytechnic Institute Engineers"
+  },
+  "St. Lawrence": {
+    "id": 25250,
+    "full_name": "St. Lawrence Saints"
+  },
+  "Union": {
+    "id": 25256,
+    "full_name": "Union College Garnet Chargers"
+  },
+  "Yale": {
+    "id": 25264,
+    "full_name": "Yale Bulldogs"
+  },
+  "Clarkson": {
+    "id": 25195,
+    "full_name": "Clarkson Golden Knights"
+  },
+  "Boston Fleet": {
+    "id": 148641,
+    "full_name": "Boston Fleet"
+  },
+  "Minnesota Frost": {
+    "id": 148638,
+    "full_name": "Minnesota Frost"
+  },
+  "Montreal Victoire": {
+    "id": 148640,
+    "full_name": "Montreal Victoire"
+  },
+  "New York Sirens": {
+    "id": 148642,
+    "full_name": "New York Sirens"
+  },
+  "Ottawa Charge": {
+    "id": 148637,
+    "full_name": "Ottawa Charge"
+  },
+  "Seattle Torrent": {
+    "id": 1165880,
+    "full_name": "Seattle Torrent"
+  },
+  "Toronto Sceptres": {
+    "id": 148639,
+    "full_name": "Toronto Sceptres"
+  },
+  "Vancouver Goldeneyes": {
+    "id": 1165881,
+    "full_name": "Vancouver Goldeneyes"
+  }
+}
