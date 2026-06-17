@@ -59,16 +59,23 @@ jobs:
           - shard_id: 9
             teams: "BPF,MNF,MVL,NYS,OTC,TSR"
             league: "pwhl"
-    if: >-
-      github.event_name == 'schedule' ||
-      github.event.inputs.shard == 'all' ||
-      github.event.inputs.shard == '' ||
-      format('{0}', github.event.inputs.shard) == format('{0}', matrix.shard_id)
     steps:
+      - name: Shard filter
+        id: shard_filter
+        run: |
+          WANT="${{ github.event.inputs.shard }}"
+          if [ "${{ github.event_name }}" = "schedule" ] || [ -z "$WANT" ] || [ "$WANT" = "all" ] || [ "$WANT" = "${{ matrix.shard_id }}" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.shard_filter.outputs.run == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: steps.shard_filter.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -78,6 +85,7 @@ jobs:
             player_cards/requirements.txt
 
       - name: Configure InStat auth
+        if: steps.shard_filter.outputs.run == 'true'
         env:
           INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
           INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
@@ -95,6 +103,7 @@ jobs:
           fi
 
       - name: Install dependencies
+        if: steps.shard_filter.outputs.run == 'true'
         env:
           INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
         run: |
@@ -106,6 +115,7 @@ jobs:
           fi
 
       - name: Resolve team list
+        if: steps.shard_filter.outputs.run == 'true'
         id: plan
         env:
           INPUT_TEAMS: ${{ github.event.inputs.teams }}
@@ -125,6 +135,7 @@ jobs:
           echo "Building shard ${{ matrix.shard_id }}: league=$LEAGUE teams=$TEAMS"
 
       - name: Restore PBP cache
+        if: steps.shard_filter.outputs.run == 'true'
         uses: actions/cache@v4
         with:
           path: .player-cards-data
@@ -134,6 +145,7 @@ jobs:
             player-cards-pbp-
 
       - name: Build card store shard
+        if: steps.shard_filter.outputs.run == 'true'
         working-directory: hudl-scraping
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -156,6 +168,7 @@ jobs:
             -v
 
       - name: Upload shard store
+        if: steps.shard_filter.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: card-store-shard-${{ matrix.shard_id }}
@@ -164,6 +177,7 @@ jobs:
           path: .player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
 
       - name: Upload PBP cache snapshot
+        if: steps.shard_filter.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pbp-cache-shard-${{ matrix.shard_id }}
