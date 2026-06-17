@@ -7,6 +7,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -161,9 +162,10 @@ def build_team(
                 use_store=False,
                 pbp_percentiles=pct_by_player.get(name),
             )
-            url = (profile.get("bio") or {}).get("card_photo_url")
-            if url:
-                prewarm_photo(url)
+            if os.environ.get("SKIP_PHOTO_PREWARM", "").lower() not in ("1", "true", "yes"):
+                url = (profile.get("bio") or {}).get("card_photo_url")
+                if url:
+                    prewarm_photo(url)
             store.upsert_profile(profile, season=season, pbp_fingerprint=fingerprint)
             built += 1
             logger.info("  [%s/%s] %s", built, len(roster), name)

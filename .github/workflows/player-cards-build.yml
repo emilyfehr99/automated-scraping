@@ -30,6 +30,8 @@ permissions:
 env:
   PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
   PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/card_store.db
+  # Skip NHL photo downloads during batch indexing (photos load on first card view).
+  SKIP_PHOTO_PREWARM: "1"
 
 jobs:
   build-shard:
@@ -37,7 +39,7 @@ jobs:
     timeout-minutes: 330
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 4
       matrix:
         include:
           - shard_id: 1
