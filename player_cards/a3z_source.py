@@ -3,19 +3,49 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
 from typing import Any
 
-A3Z_ROOT = Path(__file__).resolve().parents[2] / "a3z-api"
-if str(A3Z_ROOT) not in sys.path:
-    sys.path.insert(0, str(A3Z_ROOT))
-
-from src.db import connect, init_db  # noqa: E402
-from src.player_reports import build_player_profile  # noqa: E402
-
 DEFAULT_A3Z_SEASON = "2025-26"
+
+CONTEXT_ALIASES: dict[str, list[str]] = {
+    "qoc": ["qoc", "quality_of_competition", "competition", "qoc_pct"],
+    "qot": ["qot", "quality_of_teammates", "teammates", "qot_pct"],
+}
+
+
+def _a3z_root() -> Path | None:
+    """Locate a3z-api (sibling repo locally, or A3Z_API_ROOT in CI)."""
+    env = os.getenv("A3Z_API_ROOT", "").strip()
+    candidates = [
+        Path(env) if env else None,
+        Path(__file__).resolve().parents[2] / "a3z-api",
+        Path(__file__).resolve().parents[1] / "all-three-zones-api",
+    ]
+    for root in candidates:
+        if root and (root / "src" / "db.py").is_file():
+            return root
+    return None
+
+
+def _a3z_available() -> bool:
+    return _a3z_root() is not None
+
+
+def _load_a3z_modules():
+    root = _a3z_root()
+    if root is None:
+        return None, None, None
+    root_str = str(root)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    from src.db import connect, init_db
+    from src.player_reports import build_player_profile
+
+    return connect, init_db, build_player_profile
 
 
 def resolve_a3z_season(a3z_season: str | None, instat_season_id: int | None = None) -> str:
@@ -27,11 +57,6 @@ def resolve_a3z_season(a3z_season: str | None, instat_season_id: int | None = No
     if instat_season_id == 34:
         return "2024-25"
     return DEFAULT_A3Z_SEASON
-
-CONTEXT_ALIASES: dict[str, list[str]] = {
-    "qoc": ["qoc", "quality_of_competition", "competition", "qoc_pct"],
-    "qot": ["qot", "quality_of_teammates", "teammates", "qot_pct"],
-}
 
 
 def _slug(name: str, team: str) -> str:
@@ -118,6 +143,10 @@ def fetch_a3z_profile(
     *,
     pbp_team_games: int | None = None,
 ) -> dict[str, Any] | None:
+    connect, init_db, build_player_profile = _load_a3z_modules()
+    if connect is None:
+        return None
+
     conn = connect()
     init_db(conn)
     slug = _slug(player_name, team)
