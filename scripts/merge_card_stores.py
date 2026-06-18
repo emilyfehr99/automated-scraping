@@ -14,6 +14,7 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
         target.unlink()
 
     main = sqlite3.connect(target)
+    main.execute("PRAGMA busy_timeout = 30000")
     first = True
     counts = {"player_profiles": 0, "team_builds": 0}
 
@@ -21,17 +22,19 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
         if not src.is_file():
             continue
         if first:
-            backup = sqlite3.connect(src)
+            backup = sqlite3.connect(f"file:{src.resolve()}?mode=ro", uri=True)
             backup.backup(main)
             backup.close()
             first = False
         else:
-            main.execute("ATTACH DATABASE ? AS shard", (str(src.resolve()),))
+            uri = f"file:{src.resolve()}?mode=ro"
+            main.execute("ATTACH DATABASE ? AS shard", (uri,))
             for table in ("player_profiles", "team_builds"):
                 main.execute(
                     f"INSERT OR REPLACE INTO {table} SELECT * FROM shard.{table}"
                 )
             main.execute("INSERT OR IGNORE INTO meta SELECT * FROM shard.meta")
+            main.commit()
             main.execute("DETACH DATABASE shard")
 
     for table in ("player_profiles", "team_builds"):
