@@ -66,6 +66,16 @@ jobs:
         id: shard_filter
         run: |
           WANT="${{ github.event.inputs.shard }}"
+          INPUT_TEAMS="${{ github.event.inputs.teams }}"
+          # Custom team list: run only shard 1 (avoids every matrix job repeating the same teams).
+          if [ -n "$INPUT_TEAMS" ]; then
+            if [ "${{ matrix.shard_id }}" != "1" ]; then
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "${{ github.event_name }}" = "schedule" ] || [ -z "$WANT" ] || [ "$WANT" = "all" ] || [ "$WANT" = "${{ matrix.shard_id }}" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
@@ -178,15 +188,30 @@ jobs:
           retention-days: 30
           path: .player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
 
+      - name: Package PBP cache for upload
+        if: steps.shard_filter.outputs.run == 'true'
+        run: |
+          if [ ! -d .player-cards-data ]; then
+            echo "No .player-cards-data directory" >&2
+            exit 1
+          fi
+          count=$(find .player-cards-data -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
+          echo "PBP CSV files on disk: $count"
+          if [ "$count" -lt 1 ]; then
+            echo "No PBP CSV files to upload" >&2
+            exit 1
+          fi
+          tar -czf "pbp-cache-shard-${{ matrix.shard_id }}.tar.gz" -C .player-cards-data .
+
       - name: Upload PBP cache snapshot
         if: steps.shard_filter.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: pbp-cache-shard-${{ matrix.shard_id }}
-          if-no-files-found: warn
-          retention-days: 7
-          path: .player-cards-data/
-          compression-level: 6
+          if-no-files-found: error
+          retention-days: 14
+          path: pbp-cache-shard-${{ matrix.shard_id }}.tar.gz
+          compression-level: 0
 
   merge:
     needs: build-shard
@@ -231,3 +256,67 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           path: .player-cards-data/card_store.db
+
+  line-chemistry:
+    needs: build-shard
+    runs-on: ubuntu-latest
+    if: >-
+      always() &&
+      (github.event_name == 'schedule' ||
+       github.event.inputs.shard == 'all' ||
+       github.event.inputs.shard == '' ||
+       github.event.inputs.teams == '')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy httpx
+          pip install -r player_cards/requirements.txt
+
+      - name: Download PBP cache shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pbp-cache-shard-*
+          path: pbp-shards
+          merge-multiple: true
+
+      - name: Unpack PBP into work root
+        env:
+          PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
+        run: |
+          mkdir -p "$PLAYER_CARDS_WORK_ROOT"
+          shopt -s nullglob
+          archives=(pbp-shards/pbp-cache-shard-*.tar.gz pbp-shards/*/pbp-cache-shard-*.tar.gz)
+          if [ "${#archives[@]}" -eq 0 ]; then
+            echo "No pbp-cache-shard-*.tar.gz artifacts — re-run player-cards-build after workflow upload fix" >&2
+            exit 1
+          fi
+          for arc in "${archives[@]}"; do
+            echo "Unpacking $arc"
+            tar -xzf "$arc" -C "$PLAYER_CARDS_WORK_ROOT"
+          done
+          count=$(find "$PLAYER_CARDS_WORK_ROOT" -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
+          echo "Unpacked $count PBP CSV files"
+
+      - name: Run line chemistry analysis
+        env:
+          PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python research/line_chemistry_passing_networks/run_analysis.py
+
+      - name: Upload research outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: line-chemistry-research
+          if-no-files-found: error
+          retention-days: 30
+          path: research/line_chemistry_passing_networks/outputs/

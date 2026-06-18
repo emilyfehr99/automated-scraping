@@ -1,0 +1,969 @@
+unit,players,type,toi_sec,toi_min,gf,ga,sf,sa,xgf,xga,gf_pct,sf_pct,xgf_pct,team,complementarity,pass_links,pass_links_per60
+LaCombe-Trouba,"['LaCombe Jackson', 'Trouba Jacob']",pairing,66727,1112.1,123,128,1111,963,65.76,59.69,49.0,53.6,52.4,Anaheim Ducks,3781.952,543,29.3
+Trouba-Zellweger,"['Trouba Jacob', 'Zellweger Olen']",pairing,27974,466.2,52,46,454,334,26.8,21.91,53.1,57.6,55.0,Anaheim Ducks,3178.507,194,24.97
+Gudas-Zellweger,"['Gudas Radko', 'Zellweger Olen']",pairing,23250,387.5,25,32,299,275,16.8,17.3,43.9,52.1,49.3,Anaheim Ducks,2706.074,167,25.86
+Helleson-Mintyukov,"['Helleson Drew', 'Mintyukov Pavel']",pairing,22319,372.0,37,20,310,252,17.81,16.11,64.9,55.2,52.5,Anaheim Ducks,2302.877,163,26.29
+Mintyukov-Moore,"['Mintyukov Pavel', 'Moore Ian']",pairing,21775,362.9,36,37,315,249,17.8,14.78,49.3,55.9,54.6,Anaheim Ducks,2364.533,134,22.15
+Helleson-LaCombe,"['Helleson Drew', 'LaCombe Jackson']",pairing,20879,348.0,22,37,331,331,18.43,21.4,37.3,50.0,46.3,Anaheim Ducks,3861.579,169,29.14
+Carlson-Mintyukov,"['Carlson John', 'Mintyukov Pavel']",pairing,19870,331.2,18,22,193,177,10.93,11.04,45.0,52.2,49.7,Anaheim Ducks,6727.314,122,22.1
+Moore-Zellweger,"['Moore Ian', 'Zellweger Olen']",pairing,12954,215.9,9,19,90,91,4.84,6.07,32.1,49.7,44.4,Anaheim Ducks,3206.175,77,21.4
+LaCombe-Moore,"['LaCombe Jackson', 'Moore Ian']",pairing,12647,210.8,16,8,124,112,7.16,7.06,66.7,52.5,50.4,Anaheim Ducks,3815.053,92,26.19
+Gudas-Mintyukov,"['Gudas Radko', 'Mintyukov Pavel']",pairing,11234,187.2,20,10,144,157,9.0,9.91,66.7,47.8,47.6,Anaheim Ducks,1958.232,82,26.28
+Gudas-LaCombe,"['Gudas Radko', 'LaCombe Jackson']",pairing,10806,180.1,19,21,155,159,10.87,9.6,47.5,49.4,53.1,Anaheim Ducks,3219.884,62,20.66
+Moore-Trouba,"['Moore Ian', 'Trouba Jacob']",pairing,9266,154.4,5,9,54,49,2.68,3.1,35.7,52.4,46.4,Anaheim Ducks,2612.63,24,9.32
+Mintyukov-Trouba,"['Mintyukov Pavel', 'Trouba Jacob']",pairing,8845,147.4,14,17,84,78,5.05,4.46,45.2,51.9,53.1,Anaheim Ducks,2274.137,98,39.89
+Helleson-Zellweger,"['Helleson Drew', 'Zellweger Olen']",pairing,7215,120.2,12,3,78,87,4.67,5.01,80.0,47.3,48.3,Anaheim Ducks,3245.471,46,22.95
+Helleson-Hinds,"['Helleson Drew', 'Hinds Tyson']",pairing,6403,106.7,7,17,100,112,4.55,7.29,29.2,47.2,38.4,Anaheim Ducks,2438.671,33,18.55
+Gudas-Moore,"['Gudas Radko', 'Moore Ian']",pairing,6041,100.7,5,11,79,103,4.02,6.98,31.2,43.4,36.5,Anaheim Ducks,2239.163,26,15.49
+Helleson-Moore,"['Helleson Drew', 'Moore Ian']",pairing,5877,98.0,14,16,149,129,8.99,8.32,46.7,53.6,51.9,Anaheim Ducks,2654.789,23,14.09
+Carlson-Moore,"['Carlson John', 'Moore Ian']",pairing,4351,72.5,8,5,30,40,1.82,2.4,61.5,42.9,43.1,Anaheim Ducks,7626.266,27,22.34
+Carlson-LaCombe,"['Carlson John', 'LaCombe Jackson']",pairing,4052,67.5,1,5,20,32,1.02,2.17,16.7,38.5,32.1,Anaheim Ducks,10831.195,39,34.65
+Carlson-Zellweger,"['Carlson John', 'Zellweger Olen']",pairing,3197,53.3,3,5,52,37,2.45,1.64,37.5,58.4,59.9,Anaheim Ducks,9102.517,21,23.65
+Hinds-Moore,"['Hinds Tyson', 'Moore Ian']",pairing,2125,35.4,1,1,26,24,1.34,1.46,50.0,52.0,47.9,Anaheim Ducks,2468.631,9,15.25
+Carlson-Hinds,"['Carlson John', 'Hinds Tyson']",pairing,1513,25.2,2,7,47,34,2.42,1.83,22.2,58.0,56.9,Anaheim Ducks,7018.066,10,23.79
+Gudas-Helleson,"['Gudas Radko', 'Helleson Drew']",pairing,1309,21.8,0,0,3,6,0.13,0.43,,33.3,22.7,Anaheim Ducks,2183.805,9,24.75
+Gudas-Hinds,"['Gudas Radko', 'Hinds Tyson']",pairing,1110,18.5,1,0,5,5,0.32,0.22,100.0,50.0,59.5,Anaheim Ducks,2058.672,6,19.46
+Hinds-Trouba,"['Hinds Tyson', 'Trouba Jacob']",pairing,1001,16.7,3,0,16,27,0.89,1.91,100.0,37.2,31.9,Anaheim Ducks,2400.828,4,14.39
+LaCombe-Zellweger,"['LaCombe Jackson', 'Zellweger Olen']",pairing,745,12.4,0,0,1,1,0.06,0.06,,50.0,52.1,Anaheim Ducks,4477.931,7,33.83
+Hinds-Warren,"['Hinds Tyson', 'Warren Noah']",pairing,691,11.5,0,0,5,3,0.15,0.19,,62.5,44.0,Anaheim Ducks,,0,0.0
+Gudas-Trouba,"['Gudas Radko', 'Trouba Jacob']",pairing,637,10.6,0,0,0,0,0.0,0.0,,,,Anaheim Ducks,2155.899,3,16.95
+Mintyukov-Zellweger,"['Mintyukov Pavel', 'Zellweger Olen']",pairing,499,8.3,0,0,0,0,0.0,0.0,,,,Anaheim Ducks,2860.599,8,57.72
+Carlson-Helleson,"['Carlson John', 'Helleson Drew']",pairing,403,6.7,2,0,9,3,0.39,0.18,100.0,75.0,68.4,Anaheim Ducks,7558.756,6,53.6
+Helleson-Trouba,"['Helleson Drew', 'Trouba Jacob']",pairing,366,6.1,0,0,0,0,0.0,0.0,,,,Anaheim Ducks,2525.644,2,19.67
+LaCombe-Mintyukov,"['LaCombe Jackson', 'Mintyukov Pavel']",pairing,357,6.0,0,0,0,0,0.0,0.0,,,,Anaheim Ducks,3403.738,1,10.08
+Carlson-Trouba,"['Carlson John', 'Trouba Jacob']",pairing,313,5.2,0,0,1,0,0.03,0.0,,100.0,100.0,Anaheim Ducks,7436.143,2,23.0
+Hinds-Zellweger,"['Hinds Tyson', 'Zellweger Olen']",pairing,216,3.6,0,0,0,0,0.0,0.0,,,,Anaheim Ducks,2954.13,2,33.33
+LaCombe-Warren,"['LaCombe Jackson', 'Warren Noah']",pairing,107,1.8,0,0,0,1,0.0,0.15,,0.0,0.0,Anaheim Ducks,,0,0.0
+Peeke-Zadorov,"['Peeke Andrew', 'Zadorov Nikita']",pairing,35553,592.5,65,61,508,583,29.77,36.72,51.6,46.6,44.8,Boston Bruins,2707.792,253,25.62
+Aspirot-McAvoy,"['Aspirot Jonathan', 'McAvoy Charlie']",pairing,34707,578.5,69,54,644,678,37.69,39.81,56.1,48.7,48.6,Boston Bruins,3382.588,246,25.52
+Lindholm-Lohrei,"['Lindholm Hampus', 'Lohrei Mason']",pairing,22954,382.6,34,24,352,286,20.34,18.28,58.6,55.2,52.7,Boston Bruins,3848.765,183,28.7
+Lindholm-Peeke,"['Lindholm Hampus', 'Peeke Andrew']",pairing,22757,379.3,36,43,350,387,19.03,22.09,45.6,47.5,46.3,Boston Bruins,3382.902,172,27.21
+McAvoy-Zadorov,"['McAvoy Charlie', 'Zadorov Nikita']",pairing,21428,357.1,30,30,249,251,14.83,14.99,50.0,49.8,49.7,Boston Bruins,3681.347,163,27.38
+Jokiharju-Zadorov,"['Jokiharju Henri', 'Zadorov Nikita']",pairing,20339,339.0,30,27,214,253,12.83,15.53,52.6,45.8,45.2,Boston Bruins,2504.829,101,17.88
+Lohrei-Peeke,"['Lohrei Mason', 'Peeke Andrew']",pairing,15410,256.8,21,15,169,184,9.58,10.89,58.3,47.9,46.8,Boston Bruins,2726.785,141,32.94
+Lohrei-McAvoy,"['Lohrei Mason', 'McAvoy Charlie']",pairing,11123,185.4,15,5,84,105,4.43,6.65,75.0,44.4,40.0,Boston Bruins,3680.855,64,20.71
+Lindholm-McAvoy,"['Lindholm Hampus', 'McAvoy Charlie']",pairing,10797,179.9,18,16,100,142,6.35,9.16,52.9,41.3,40.9,Boston Bruins,4544.862,97,32.34
+Jokiharju-Lindholm,"['Jokiharju Henri', 'Lindholm Hampus']",pairing,10741,179.0,12,12,79,112,4.52,6.96,50.0,41.4,39.4,Boston Bruins,3114.585,72,24.13
+Aspirot-Zadorov,"['Aspirot Jonathan', 'Zadorov Nikita']",pairing,9486,158.1,16,11,180,192,10.23,13.04,59.3,48.4,44.0,Boston Bruins,2789.516,51,19.35
+Aspirot-Jokiharju,"['Aspirot Jonathan', 'Jokiharju Henri']",pairing,5638,94.0,6,6,70,100,3.76,5.61,50.0,41.2,40.1,Boston Bruins,2252.079,32,20.43
+Aspirot-Lohrei,"['Aspirot Jonathan', 'Lohrei Mason']",pairing,5047,84.1,5,5,36,48,1.62,2.88,50.0,42.9,36.0,Boston Bruins,2823.643,34,24.25
+Jokiharju-Lohrei,"['Jokiharju Henri', 'Lohrei Mason']",pairing,4102,68.4,1,1,50,39,2.88,2.45,50.0,56.2,54.1,Boston Bruins,2515.253,42,36.86
+Lohrei-Zadorov,"['Lohrei Mason', 'Zadorov Nikita']",pairing,3975,66.2,8,7,40,61,2.26,3.18,53.3,39.6,41.5,Boston Bruins,3106.369,25,22.64
+Harris-Peeke,"['Harris Jordan', 'Peeke Andrew']",pairing,3943,65.7,11,7,46,60,3.4,3.41,61.1,43.4,49.9,Boston Bruins,1904.75,22,20.09
+Aspirot-Lindholm,"['Aspirot Jonathan', 'Lindholm Hampus']",pairing,3802,63.4,1,3,31,26,1.62,1.36,25.0,54.4,54.3,Boston Bruins,3515.062,34,32.19
+Aspirot-Peeke,"['Aspirot Jonathan', 'Peeke Andrew']",pairing,3580,59.7,5,2,28,40,1.99,2.32,71.4,41.2,46.1,Boston Bruins,2399.043,31,31.17
+Lindholm-Zadorov,"['Lindholm Hampus', 'Zadorov Nikita']",pairing,3218,53.6,0,3,25,43,1.24,2.67,0.0,36.8,31.8,Boston Bruins,3845.322,19,21.26
+Aspirot-Harris,"['Aspirot Jonathan', 'Harris Jordan']",pairing,3085,51.4,3,9,46,43,3.13,3.27,25.0,51.7,48.9,Boston Bruins,1982.152,8,9.34
+McAvoy-Peeke,"['McAvoy Charlie', 'Peeke Andrew']",pairing,1685,28.1,2,0,8,11,0.41,0.53,100.0,42.1,43.4,Boston Bruins,3245.234,8,17.09
+Jokiharju-McAvoy,"['Jokiharju Henri', 'McAvoy Charlie']",pairing,1156,19.3,0,0,6,1,0.31,0.04,,85.7,89.1,Boston Bruins,2982.648,4,12.46
+Harris-Lindholm,"['Harris Jordan', 'Lindholm Hampus']",pairing,1136,18.9,2,4,15,30,0.84,1.98,33.3,33.3,29.9,Boston Bruins,2672.749,13,41.2
+Jokiharju-Peeke,"['Jokiharju Henri', 'Peeke Andrew']",pairing,672,11.2,0,0,0,0,0.0,0.0,,,,Boston Bruins,2189.379,5,26.79
+Harris-Zadorov,"['Harris Jordan', 'Zadorov Nikita']",pairing,481,8.0,0,0,0,0,0.0,0.0,,,,Boston Bruins,2163.0,4,29.94
+Harris-Jokiharju,"['Harris Jordan', 'Jokiharju Henri']",pairing,440,7.3,0,0,6,2,0.3,0.05,,75.0,84.6,Boston Bruins,1752.207,0,0.0
+Harris-McAvoy,"['Harris Jordan', 'McAvoy Charlie']",pairing,403,6.7,0,0,0,0,0.0,0.0,,,,Boston Bruins,2553.595,4,35.73
+Harris-Lohrei,"['Harris Jordan', 'Lohrei Mason']",pairing,178,3.0,0,0,0,0,0.0,0.0,,,,Boston Bruins,2163.866,0,0.0
+Dahlin-Samuelsson,"['Dahlin Rasmus', 'Samuelsson Mattias']",pairing,61569,1026.2,104,78,950,916,57.64,54.91,57.1,50.9,51.2,Buffalo Sabres,2741.229,435,25.43
+Byram-Power,"['Byram Bowen', 'Power Owen']",pairing,44512,741.9,95,47,758,626,45.49,36.37,66.9,54.8,55.6,Buffalo Sabres,3312.22,344,27.82
+Byram-Timmins,"['Byram Bowen', 'Timmins Conor']",pairing,16748,279.1,22,17,192,216,11.17,11.34,56.4,47.1,49.6,Buffalo Sabres,2589.792,163,35.04
+Byram-Dahlin,"['Byram Bowen', 'Dahlin Rasmus']",pairing,15757,262.6,37,39,340,383,20.11,22.93,48.7,47.0,46.7,Buffalo Sabres,3621.022,124,28.33
+Byram-Samuelsson,"['Byram Bowen', 'Samuelsson Mattias']",pairing,13065,217.8,24,40,177,246,10.3,15.84,37.5,41.8,39.4,Buffalo Sabres,2324.985,93,25.63
+Power-Samuelsson,"['Power Owen', 'Samuelsson Mattias']",pairing,12796,213.3,13,7,134,138,8.26,8.14,65.0,49.3,50.3,Buffalo Sabres,2422.154,95,26.73
+Dahlin-Power,"['Dahlin Rasmus', 'Power Owen']",pairing,12441,207.3,12,19,105,108,5.9,6.34,38.7,49.3,48.2,Buffalo Sabres,3867.939,104,30.09
+Power-Timmins,"['Power Owen', 'Timmins Conor']",pairing,11855,197.6,23,17,148,124,7.8,8.05,57.5,54.4,49.2,Buffalo Sabres,2712.51,94,28.54
+Kesselring-Power,"['Kesselring Michael', 'Power Owen']",pairing,9229,153.8,15,7,157,155,9.75,9.22,68.2,50.3,51.4,Buffalo Sabres,3041.339,86,33.55
+Bryson-Power,"['Bryson Jacob', 'Power Owen']",pairing,7949,132.5,14,10,111,108,6.12,6.61,58.3,50.7,48.1,Buffalo Sabres,3613.279,75,33.97
+Samuelsson-Timmins,"['Samuelsson Mattias', 'Timmins Conor']",pairing,6768,112.8,18,18,126,111,7.06,7.35,50.0,53.2,49.0,Buffalo Sabres,1876.071,31,16.49
+Stanley-Timmins,"['Stanley Logan', 'Timmins Conor']",pairing,6687,111.5,24,20,144,153,8.77,9.09,54.5,48.5,49.1,Buffalo Sabres,2887.513,37,19.92
+Byram-Kesselring,"['Byram Bowen', 'Kesselring Michael']",pairing,6646,110.8,7,14,67,91,4.17,6.04,33.3,42.4,40.9,Buffalo Sabres,2903.383,69,37.38
+Byram-Metsa,"['Byram Bowen', 'Metsa Zach']",pairing,6103,101.7,7,8,78,66,4.34,3.71,46.7,54.2,53.9,Buffalo Sabres,2911.712,43,25.36
+Bryson-Metsa,"['Bryson Jacob', 'Metsa Zach']",pairing,5765,96.1,8,1,59,58,3.69,3.27,88.9,50.4,53.0,Buffalo Sabres,3091.463,44,27.48
+Metsa-Stanley,"['Metsa Zach', 'Stanley Logan']",pairing,5320,88.7,8,18,81,100,4.17,6.17,30.8,44.8,40.3,Buffalo Sabres,3161.224,33,22.33
+Dahlin-Metsa,"['Dahlin Rasmus', 'Metsa Zach']",pairing,4252,70.9,1,2,53,65,2.7,3.37,33.3,44.9,44.4,Buffalo Sabres,3449.335,35,29.63
+Metsa-Samuelsson,"['Metsa Zach', 'Samuelsson Mattias']",pairing,3982,66.4,9,7,96,90,6.14,5.5,56.2,51.6,52.7,Buffalo Sabres,2061.037,22,19.89
+Kesselring-Samuelsson,"['Kesselring Michael', 'Samuelsson Mattias']",pairing,3596,59.9,5,7,18,27,1.29,2.0,41.7,40.0,39.2,Buffalo Sabres,2103.832,28,28.03
+Dahlin-Timmins,"['Dahlin Rasmus', 'Timmins Conor']",pairing,3586,59.8,2,4,41,48,2.56,2.88,33.3,46.1,47.1,Buffalo Sabres,3037.103,14,14.05
+Dahlin-Kesselring,"['Dahlin Rasmus', 'Kesselring Michael']",pairing,3076,51.3,0,2,15,8,0.59,0.57,0.0,65.2,50.9,Buffalo Sabres,3404.432,21,24.58
+Metsa-Power,"['Metsa Zach', 'Power Owen']",pairing,2238,37.3,0,0,7,7,0.57,0.38,,50.0,59.9,Buffalo Sabres,3018.922,15,24.13
+Schenn-Stanley,"['Schenn Luke', 'Stanley Logan']",pairing,1760,29.3,0,0,8,8,0.42,0.29,,50.0,59.3,Buffalo Sabres,3150.93,140,286.36
+Bryson-Kesselring,"['Bryson Jacob', 'Kesselring Michael']",pairing,1758,29.3,3,1,25,18,1.29,1.44,75.0,58.1,47.2,Buffalo Sabres,3143.207,14,28.67
+Bryson-Samuelsson,"['Bryson Jacob', 'Samuelsson Mattias']",pairing,1709,28.5,1,0,11,18,0.82,0.89,100.0,37.9,48.0,Buffalo Sabres,2491.074,11,23.17
+Bryson-Dahlin,"['Bryson Jacob', 'Dahlin Rasmus']",pairing,1289,21.5,0,1,4,6,0.29,0.55,0.0,40.0,34.7,Buffalo Sabres,4066.188,11,30.72
+Power-Stanley,"['Power Owen', 'Stanley Logan']",pairing,1168,19.5,0,1,4,5,0.13,0.25,0.0,44.4,34.6,Buffalo Sabres,3733.18,5,15.41
+Bryson-Johnson,"['Bryson Jacob', 'Johnson Ryan']",pairing,1157,19.3,3,3,9,11,0.75,0.66,50.0,45.0,53.2,Buffalo Sabres,295.08,2,6.22
+Johnson-Timmins,"['Johnson Ryan', 'Timmins Conor']",pairing,1006,16.8,0,0,5,2,0.21,0.08,,71.4,71.7,Buffalo Sabres,223.723,0,0.0
+Kesselring-Metsa,"['Kesselring Michael', 'Metsa Zach']",pairing,1006,16.8,2,0,14,8,0.91,0.37,100.0,63.6,71.2,Buffalo Sabres,2615.383,2,7.16
+Kesselring-Stanley,"['Kesselring Michael', 'Stanley Logan']",pairing,1006,16.8,0,0,0,0,0.0,0.0,,,,Buffalo Sabres,3238.201,10,35.79
+Samuelsson-Stanley,"['Samuelsson Mattias', 'Stanley Logan']",pairing,980,16.3,0,0,1,3,0.11,0.1,,25.0,52.3,Buffalo Sabres,2556.247,6,22.04
+Byram-Stanley,"['Byram Bowen', 'Stanley Logan']",pairing,896,14.9,0,0,12,10,0.9,0.81,,54.5,52.7,Buffalo Sabres,3592.344,5,20.09
+Bryson-Byram,"['Bryson Jacob', 'Byram Bowen']",pairing,784,13.1,2,4,10,17,0.54,1.25,33.3,37.0,30.3,Buffalo Sabres,3458.526,2,9.18
+Bryson-Timmins,"['Bryson Jacob', 'Timmins Conor']",pairing,779,13.0,1,0,12,10,0.54,0.59,100.0,54.5,47.4,Buffalo Sabres,2803.055,8,36.97
+Dahlin-Stanley,"['Dahlin Rasmus', 'Stanley Logan']",pairing,717,11.9,3,1,5,11,0.47,0.69,75.0,31.2,40.9,Buffalo Sabres,4245.977,4,20.08
+Power-Schenn,"['Power Owen', 'Schenn Luke']",pairing,670,11.2,2,6,17,26,1.16,1.71,25.0,39.5,40.4,Buffalo Sabres,3006.264,7,37.61
+Byram-Komarov,"['Byram Bowen', 'Komarov Vsevolod']",pairing,646,10.8,1,0,2,2,0.16,0.13,100.0,50.0,55.7,Buffalo Sabres,1727.193,0,0.0
+Samuelsson-Schenn,"['Samuelsson Mattias', 'Schenn Luke']",pairing,359,6.0,0,0,0,0,0.0,0.0,,,,Buffalo Sabres,2053.917,0,0.0
+Kesselring-Timmins,"['Kesselring Michael', 'Timmins Conor']",pairing,314,5.2,1,0,11,11,0.78,0.51,100.0,50.0,60.3,Buffalo Sabres,2362.821,1,11.46
+Byram-Mrtka,"['Byram Bowen', 'Mrtka Radim']",pairing,292,4.9,2,0,2,0,0.07,0.0,100.0,100.0,100.0,Buffalo Sabres,1179.205,10,123.29
+Byram-Schenn,"['Byram Bowen', 'Schenn Luke']",pairing,261,4.3,2,0,4,3,0.2,0.27,100.0,57.1,42.3,Buffalo Sabres,2897.846,3,41.38
+Bryson-Mrtka,"['Bryson Jacob', 'Mrtka Radim']",pairing,250,4.2,0,0,0,0,0.0,0.0,,,,Buffalo Sabres,1253.409,0,0.0
+Metsa-Timmins,"['Metsa Zach', 'Timmins Conor']",pairing,248,4.1,0,2,0,2,0.0,0.14,0.0,0.0,0.0,Buffalo Sabres,2332.055,2,29.03
+Dahlin-Schenn,"['Dahlin Rasmus', 'Schenn Luke']",pairing,214,3.6,0,0,0,0,0.0,0.0,,,,Buffalo Sabres,3430.969,1,16.82
+Byram-Johnson,"['Byram Bowen', 'Johnson Ryan']",pairing,164,2.7,0,0,0,0,0.0,0.0,,,,Buffalo Sabres,285.709,0,0.0
+Andersson-Bahl,"['Andersson Rasmus', 'Bahl Kevin']",pairing,45071,751.2,44,78,563,671,31.37,39.35,36.1,45.6,44.4,Calgary Flames,3064.422,260,20.77
+Kuznetsov-Weegar,"['Kuznetsov Yan', 'Weegar MacKenzie']",pairing,38347,639.1,61,57,688,716,40.31,40.54,51.7,49.0,49.9,Calgary Flames,3441.688,291,27.32
+Bahl-Whitecloud,"['Bahl Kevin', 'Whitecloud Zach']",pairing,21211,353.5,25,18,250,265,16.23,15.13,58.1,48.5,51.8,Calgary Flames,9589.319,183,31.06
+Hanley-Weegar,"['Hanley Joel', 'Weegar MacKenzie']",pairing,12651,210.8,7,30,139,188,8.69,12.14,18.9,42.5,41.7,Calgary Flames,3955.466,75,21.34
+Hanley-Pachal,"['Hanley Joel', 'Pachal Brayden']",pairing,12156,202.6,5,6,158,124,8.91,6.85,45.5,56.0,56.6,Calgary Flames,1983.701,70,20.73
+Brzustewicz-Hanley,"['Brzustewicz Hunter', 'Hanley Joel']",pairing,11912,198.5,11,10,150,194,9.59,12.42,52.4,43.6,43.6,Calgary Flames,2633.731,101,30.52
+Hanley-Parekh,"['Hanley Joel', 'Parekh Zayne']",pairing,11911,198.5,18,27,163,210,10.75,13.45,40.0,43.7,44.4,Calgary Flames,2715.411,84,25.39
+Brzustewicz-Maatta,"['Brzustewicz Hunter', 'Maatta Olli']",pairing,11632,193.9,23,22,114,150,7.5,10.75,51.1,43.2,41.1,Calgary Flames,20178.147,110,34.04
+Kuznetsov-Whitecloud,"['Kuznetsov Yan', 'Whitecloud Zach']",pairing,7587,126.5,20,20,115,125,6.67,7.56,50.0,47.9,46.9,Calgary Flames,8230.965,57,27.05
+Bahl-Weegar,"['Bahl Kevin', 'Weegar MacKenzie']",pairing,6975,116.2,4,6,71,53,3.63,3.0,40.0,57.3,54.8,Calgary Flames,3974.95,46,23.74
+Bean-Pachal,"['Bean Jake', 'Pachal Brayden']",pairing,5679,94.7,7,9,106,94,6.25,5.48,43.8,53.0,53.3,Calgary Flames,1902.01,21,13.31
+Bean-Weegar,"['Bean Jake', 'Weegar MacKenzie']",pairing,4745,79.1,7,20,94,88,6.28,6.04,25.9,51.6,51.0,Calgary Flames,3638.103,36,27.31
+Pachal-Parekh,"['Pachal Brayden', 'Parekh Zayne']",pairing,4048,67.5,16,1,99,105,6.61,5.38,94.1,48.5,55.1,Calgary Flames,2335.14,17,15.12
+Kuznetsov-Parekh,"['Kuznetsov Yan', 'Parekh Zayne']",pairing,4025,67.1,4,4,64,58,3.89,3.71,50.0,52.5,51.2,Calgary Flames,2348.515,19,16.99
+Bahl-Maatta,"['Bahl Kevin', 'Maatta Olli']",pairing,3681,61.4,10,8,80,79,4.98,5.18,55.6,50.3,49.0,Calgary Flames,17949.544,38,37.16
+Brzustewicz-Kuznetsov,"['Brzustewicz Hunter', 'Kuznetsov Yan']",pairing,3275,54.6,4,6,52,66,3.13,4.43,40.0,44.1,41.4,Calgary Flames,2288.85,20,21.98
+Bahl-Parekh,"['Bahl Kevin', 'Parekh Zayne']",pairing,3003,50.0,0,0,26,32,1.37,1.68,,44.8,44.9,Calgary Flames,2704.254,14,16.78
+Maatta-Pachal,"['Maatta Olli', 'Pachal Brayden']",pairing,2995,49.9,2,3,55,61,2.95,3.82,40.0,47.4,43.6,Calgary Flames,15788.071,14,16.83
+Andersson-Kuznetsov,"['Andersson Rasmus', 'Kuznetsov Yan']",pairing,2862,47.7,0,3,10,23,0.63,1.39,0.0,30.3,31.3,Calgary Flames,2656.684,21,26.42
+Kuznetsov-Pachal,"['Kuznetsov Yan', 'Pachal Brayden']",pairing,2630,43.8,3,2,47,49,2.8,3.44,60.0,49.0,44.8,Calgary Flames,1744.013,14,19.16
+Bean-Hanley,"['Bean Jake', 'Hanley Joel']",pairing,2459,41.0,6,5,35,35,2.18,2.5,54.5,50.0,46.7,Calgary Flames,2148.608,12,17.57
+Maatta-Parekh,"['Maatta Olli', 'Parekh Zayne']",pairing,2447,40.8,0,2,20,18,1.02,1.19,0.0,52.6,46.1,Calgary Flames,20471.193,16,23.54
+Parekh-Whitecloud,"['Parekh Zayne', 'Whitecloud Zach']",pairing,2280,38.0,6,2,22,15,1.44,0.67,75.0,59.5,68.3,Calgary Flames,11423.639,11,17.37
+Bahl-Kuznetsov,"['Bahl Kevin', 'Kuznetsov Yan']",pairing,1939,32.3,0,0,10,28,0.69,1.72,,26.3,28.5,Calgary Flames,1952.391,17,31.56
+Andersson-Hanley,"['Andersson Rasmus', 'Hanley Joel']",pairing,1497,24.9,4,1,23,24,1.22,1.27,80.0,48.9,48.8,Calgary Flames,3061.071,8,19.24
+Bahl-Pachal,"['Bahl Kevin', 'Pachal Brayden']",pairing,1386,23.1,0,0,6,6,0.38,0.36,,50.0,51.4,Calgary Flames,2024.552,4,10.39
+Andersson-Bean,"['Andersson Rasmus', 'Bean Jake']",pairing,1280,21.3,2,1,8,18,0.63,1.02,66.7,30.8,38.2,Calgary Flames,2786.237,6,16.88
+Bean-Parekh,"['Bean Jake', 'Parekh Zayne']",pairing,1115,18.6,0,0,12,15,0.46,0.9,,44.4,33.7,Calgary Flames,2436.393,3,9.69
+Bahl-Brzustewicz,"['Bahl Kevin', 'Brzustewicz Hunter']",pairing,1112,18.5,0,2,13,9,0.51,0.55,0.0,59.1,48.1,Calgary Flames,2641.891,9,29.14
+Hanley-Kuznetsov,"['Hanley Joel', 'Kuznetsov Yan']",pairing,1111,18.5,2,4,9,5,0.54,0.4,33.3,64.3,57.3,Calgary Flames,1885.759,9,29.16
+Maatta-Whitecloud,"['Maatta Olli', 'Whitecloud Zach']",pairing,1074,17.9,0,0,0,0,0.0,0.0,,,,Calgary Flames,75742.417,17,56.98
+Parekh-Weegar,"['Parekh Zayne', 'Weegar MacKenzie']",pairing,988,16.5,4,3,17,16,0.77,0.89,57.1,51.5,46.5,Calgary Flames,4369.377,9,32.79
+Hanley-Whitecloud,"['Hanley Joel', 'Whitecloud Zach']",pairing,978,16.3,0,2,2,4,0.14,0.33,0.0,33.3,29.7,Calgary Flames,9293.426,7,25.77
+Andersson-Weegar,"['Andersson Rasmus', 'Weegar MacKenzie']",pairing,939,15.7,0,0,0,0,0.0,0.0,,,,Calgary Flames,5012.801,22,84.35
+Bahl-Hanley,"['Bahl Kevin', 'Hanley Joel']",pairing,793,13.2,2,6,10,18,0.53,1.56,25.0,35.7,25.4,Calgary Flames,2205.336,4,18.16
+Pachal-Wiebe,"['Pachal Brayden', 'Wiebe Abram']",pairing,759,12.7,1,0,2,5,0.06,0.53,100.0,28.6,10.1,Calgary Flames,1831.94,8,37.94
+Bahl-Bean,"['Bahl Kevin', 'Bean Jake']",pairing,695,11.6,1,0,2,0,0.07,0.0,100.0,100.0,100.0,Calgary Flames,2172.791,3,15.54
+Brzustewicz-Whitecloud,"['Brzustewicz Hunter', 'Whitecloud Zach']",pairing,658,11.0,0,0,11,5,0.41,0.16,,68.8,71.4,Calgary Flames,11155.97,5,27.36
+Hanley-Maatta,"['Hanley Joel', 'Maatta Olli']",pairing,658,11.0,0,0,1,6,0.04,0.47,,14.3,7.2,Calgary Flames,17652.774,6,32.83
+Kuznetsov-Maatta,"['Kuznetsov Yan', 'Maatta Olli']",pairing,635,10.6,0,0,0,5,0.0,0.19,,0.0,0.0,Calgary Flames,15481.203,1,5.67
+Parekh-Wiebe,"['Parekh Zayne', 'Wiebe Abram']",pairing,565,9.4,0,0,4,6,0.3,0.32,,40.0,47.7,Calgary Flames,2465.147,5,31.86
+Brzustewicz-Parekh,"['Brzustewicz Hunter', 'Parekh Zayne']",pairing,529,8.8,0,0,0,0,0.0,0.0,,,,Calgary Flames,2887.051,5,34.03
+Pachal-Solovyov,"['Pachal Brayden', 'Solovyov Ilya']",pairing,500,8.3,0,2,2,5,0.08,0.3,0.0,28.6,21.5,Calgary Flames,28708.092,0,0.0
+Andersson-Pachal,"['Andersson Rasmus', 'Pachal Brayden']",pairing,412,6.9,0,0,3,8,0.22,0.3,,27.3,43.1,Calgary Flames,2658.591,0,0.0
+Pachal-Weegar,"['Pachal Brayden', 'Weegar MacKenzie']",pairing,409,6.8,0,0,0,0,0.0,0.0,,,,Calgary Flames,3460.314,3,26.41
+Andersson-Parekh,"['Andersson Rasmus', 'Parekh Zayne']",pairing,396,6.6,0,1,2,6,0.06,0.21,0.0,25.0,21.7,Calgary Flames,3327.106,10,90.91
+Brzustewicz-Wiebe,"['Brzustewicz Hunter', 'Wiebe Abram']",pairing,394,6.6,0,0,0,0,0.0,0.0,,,,Calgary Flames,2403.029,2,18.27
+Andersson-Brzustewicz,"['Andersson Rasmus', 'Brzustewicz Hunter']",pairing,360,6.0,0,4,6,4,0.41,0.32,0.0,60.0,56.7,Calgary Flames,3315.353,7,70.0
+Brzustewicz-Pachal,"['Brzustewicz Hunter', 'Pachal Brayden']",pairing,327,5.5,0,0,0,0,0.0,0.0,,,,Calgary Flames,2296.118,0,0.0
+Brzustewicz-Weegar,"['Brzustewicz Hunter', 'Weegar MacKenzie']",pairing,273,4.5,0,0,0,0,0.0,0.0,,,,Calgary Flames,4341.886,9,118.68
+Pachal-Whitecloud,"['Pachal Brayden', 'Whitecloud Zach']",pairing,226,3.8,0,0,0,0,0.0,0.0,,,,Calgary Flames,8541.448,2,31.86
+Whitecloud-Wiebe,"['Whitecloud Zach', 'Wiebe Abram']",pairing,178,3.0,0,0,10,7,0.58,0.53,,58.8,52.5,Calgary Flames,8648.702,0,0.0
+Maatta-Wiebe,"['Maatta Olli', 'Wiebe Abram']",pairing,158,2.6,0,0,0,0,0.0,0.0,,,,Calgary Flames,16259.947,3,68.35
+Bean-Kuznetsov,"['Bean Jake', 'Kuznetsov Yan']",pairing,131,2.2,0,0,0,0,0.0,0.0,,,,Calgary Flames,1877.39,1,27.48
+Kuznetsov-Solovyov,"['Kuznetsov Yan', 'Solovyov Ilya']",pairing,116,1.9,0,0,2,0,0.08,0.0,,100.0,100.0,Calgary Flames,28001.262,0,0.0
+Miller-Walker,"[""Miller K'Andre"", 'Walker Sean']",pairing,75240,1254.0,125,91,1173,850,68.31,55.28,57.9,58.0,55.3,Carolina Hurricanes,2849.657,385,18.42
+Chatfield-Slavin,"['Chatfield Jalen', 'Slavin Jaccob']",pairing,51723,862.0,83,67,723,533,42.94,33.57,55.3,57.6,56.1,Carolina Hurricanes,1874.758,206,14.34
+Gostisbehere-Nikishin,"['Gostisbehere Shayne', 'Nikishin Alexander']",pairing,31533,525.5,43,30,488,336,28.68,22.28,58.9,59.2,56.3,Carolina Hurricanes,2763.459,160,18.27
+Nikishin-Walker,"['Nikishin Alexander', 'Walker Sean']",pairing,17337,288.9,21,21,219,145,12.28,10.02,50.0,60.2,55.1,Carolina Hurricanes,2888.709,113,23.46
+Chatfield-Gostisbehere,"['Chatfield Jalen', 'Gostisbehere Shayne']",pairing,16625,277.1,28,18,287,190,17.3,12.68,60.9,60.2,57.7,Carolina Hurricanes,2343.443,122,26.42
+Chatfield-Miller,"['Chatfield Jalen', ""Miller K'Andre""]",pairing,13267,221.1,27,21,221,126,13.02,8.18,56.2,63.7,61.4,Carolina Hurricanes,2064.456,80,21.71
+Nikishin-Reilly,"['Nikishin Alexander', 'Reilly Mike']",pairing,12619,210.3,24,19,199,151,11.49,9.33,55.8,56.9,55.2,Carolina Hurricanes,2548.277,46,13.12
+Gostisbehere-Walker,"['Gostisbehere Shayne', 'Walker Sean']",pairing,7486,124.8,9,8,109,103,6.7,6.21,52.9,51.4,51.9,Carolina Hurricanes,3196.177,55,26.45
+Chatfield-Nikishin,"['Chatfield Jalen', 'Nikishin Alexander']",pairing,5443,90.7,11,3,67,36,4.23,2.13,78.6,65.0,66.5,Carolina Hurricanes,2099.033,24,15.87
+Slavin-Walker,"['Slavin Jaccob', 'Walker Sean']",pairing,4043,67.4,6,7,32,31,2.22,2.79,46.2,50.8,44.3,Carolina Hurricanes,2616.118,9,8.01
+Gostisbehere-Miller,"['Gostisbehere Shayne', ""Miller K'Andre""]",pairing,3881,64.7,3,5,24,21,1.36,1.32,37.5,53.3,50.7,Carolina Hurricanes,2728.212,33,30.61
+Chatfield-Reilly,"['Chatfield Jalen', 'Reilly Mike']",pairing,3145,52.4,5,4,33,23,2.2,1.3,55.6,58.9,62.8,Carolina Hurricanes,2157.251,18,20.6
+Miller-Nikishin,"[""Miller K'Andre"", 'Nikishin Alexander']",pairing,3107,51.8,0,0,39,13,2.41,0.83,,75.0,74.3,Carolina Hurricanes,2443.015,6,6.95
+Chatfield-Walker,"['Chatfield Jalen', 'Walker Sean']",pairing,2809,46.8,6,0,31,35,1.8,2.38,100.0,47.0,43.1,Carolina Hurricanes,2447.937,8,10.25
+Nikishin-Slavin,"['Nikishin Alexander', 'Slavin Jaccob']",pairing,2372,39.5,7,1,46,25,2.95,1.22,87.5,64.8,70.8,Carolina Hurricanes,2225.651,7,10.62
+Gostisbehere-Slavin,"['Gostisbehere Shayne', 'Slavin Jaccob']",pairing,2344,39.1,6,3,34,23,2.18,1.23,66.7,59.6,64.0,Carolina Hurricanes,2511.608,17,26.11
+Gostisbehere-Reilly,"['Gostisbehere Shayne', 'Reilly Mike']",pairing,2302,38.4,1,1,5,4,0.34,0.2,50.0,55.6,62.9,Carolina Hurricanes,2829.062,6,9.38
+Reilly-Walker,"['Reilly Mike', 'Walker Sean']",pairing,2057,34.3,1,2,19,10,1.15,0.91,33.3,65.5,55.7,Carolina Hurricanes,2959.657,15,26.25
+Miller-Slavin,"[""Miller K'Andre"", 'Slavin Jaccob']",pairing,2047,34.1,1,0,3,3,0.14,0.06,100.0,50.0,70.0,Carolina Hurricanes,2181.07,7,12.31
+Miller-Reilly,"[""Miller K'Andre"", 'Reilly Mike']",pairing,1097,18.3,1,0,22,7,0.9,0.43,100.0,75.9,67.6,Carolina Hurricanes,2511.007,7,22.97
+Reilly-Slavin,"['Reilly Mike', 'Slavin Jaccob']",pairing,206,3.4,0,0,0,0,0.0,0.0,,,,Carolina Hurricanes,2295.89,1,17.48
+Crevier-Vlasic,"['Crevier Louis', 'Vlasic Alex']",pairing,46745,779.1,53,63,606,711,36.85,42.79,45.7,46.0,46.3,Chicago Blackhawks,3125.064,253,19.48
+Kaiser-Levshunov,"['Kaiser Wyatt', 'Levshunov Artyom']",pairing,26727,445.4,42,42,343,366,18.92,23.46,50.0,48.4,44.6,Chicago Blackhawks,3380.163,191,25.73
+Grzelcyk-Murphy,"['Grzelcyk Matt', 'Murphy Connor']",pairing,21800,363.3,15,34,219,267,14.61,17.81,30.6,45.1,45.1,Chicago Blackhawks,2950.562,186,30.72
+Kaiser-Rinzel,"['Kaiser Wyatt', 'Rinzel Sam']",pairing,21772,362.9,36,43,278,326,17.36,21.24,45.6,46.0,45.0,Chicago Blackhawks,3162.223,158,26.13
+Grzelcyk-Levshunov,"['Grzelcyk Matt', 'Levshunov Artyom']",pairing,21123,352.1,27,33,272,349,15.56,22.92,45.0,43.8,40.4,Chicago Blackhawks,2780.032,225,38.35
+Rinzel-Vlasic,"['Rinzel Sam', 'Vlasic Alex']",pairing,14085,234.8,21,33,168,237,10.07,15.52,38.9,41.5,39.4,Chicago Blackhawks,3446.648,49,12.52
+Crevier-Kaiser,"['Crevier Louis', 'Kaiser Wyatt']",pairing,13310,221.8,10,22,132,159,7.1,9.18,31.2,45.4,43.6,Chicago Blackhawks,2871.709,74,20.02
+Kaiser-Murphy,"['Kaiser Wyatt', 'Murphy Connor']",pairing,13059,217.7,10,11,127,148,6.91,9.66,47.6,46.2,41.7,Chicago Blackhawks,3674.578,112,30.88
+Levshunov-Vlasic,"['Levshunov Artyom', 'Vlasic Alex']",pairing,12541,209.0,24,22,175,183,10.5,11.89,52.2,48.9,46.9,Chicago Blackhawks,3681.698,80,22.96
+Grzelcyk-Rinzel,"['Grzelcyk Matt', 'Rinzel Sam']",pairing,10179,169.7,23,32,232,276,14.26,16.97,41.8,45.7,45.7,Chicago Blackhawks,2624.347,81,28.65
+Murphy-Vlasic,"['Murphy Connor', 'Vlasic Alex']",pairing,8164,136.1,5,3,36,55,2.41,3.34,62.5,39.6,41.9,Chicago Blackhawks,3995.29,78,34.39
+Del-Korchinski,"['Del Mastro Ethan', 'Korchinski Kevin']",pairing,6228,103.8,8,11,71,81,4.42,4.68,42.1,46.7,48.6,Chicago Blackhawks,1875.987,40,23.12
+Crevier-Grzelcyk,"['Crevier Louis', 'Grzelcyk Matt']",pairing,6175,102.9,11,13,72,81,4.86,4.92,45.8,47.1,49.7,Chicago Blackhawks,2333.327,49,28.57
+Del-Murphy,"['Del Mastro Ethan', 'Murphy Connor']",pairing,3552,59.2,1,5,20,51,0.8,2.75,16.7,28.2,22.6,Chicago Blackhawks,2770.273,2,2.03
+Del-Rinzel,"['Del Mastro Ethan', 'Rinzel Sam']",pairing,3055,50.9,2,6,46,47,2.26,2.81,25.0,49.5,44.6,Chicago Blackhawks,2450.988,11,12.96
+Crevier-Del,"['Crevier Louis', 'Del Mastro Ethan']",pairing,2862,47.7,4,2,45,38,2.16,2.59,66.7,54.2,45.5,Chicago Blackhawks,2186.565,16,20.13
+Grzelcyk-Kaiser,"['Grzelcyk Matt', 'Kaiser Wyatt']",pairing,1637,27.3,0,0,12,10,0.78,0.67,,54.5,53.9,Chicago Blackhawks,2920.108,16,35.19
+Crevier-Korchinski,"['Crevier Louis', 'Korchinski Kevin']",pairing,1389,23.1,4,5,15,26,0.82,1.6,44.4,36.6,33.8,Chicago Blackhawks,1964.989,4,10.37
+Del-Levshunov,"['Del Mastro Ethan', 'Levshunov Artyom']",pairing,1226,20.4,0,1,7,11,0.43,0.71,0.0,38.9,37.6,Chicago Blackhawks,2600.108,12,35.24
+Del-Grzelcyk,"['Del Mastro Ethan', 'Grzelcyk Matt']",pairing,1010,16.8,0,0,16,16,0.91,0.95,,50.0,49.0,Chicago Blackhawks,2199.268,5,17.82
+Murphy-Rinzel,"['Murphy Connor', 'Rinzel Sam']",pairing,962,16.0,2,7,33,43,2.22,2.8,22.2,43.4,44.2,Chicago Blackhawks,3299.786,6,22.45
+Kaiser-Korchinski,"['Kaiser Wyatt', 'Korchinski Kevin']",pairing,915,15.2,3,0,9,11,0.71,0.46,100.0,45.0,60.9,Chicago Blackhawks,2435.13,13,51.15
+Korchinski-Murphy,"['Korchinski Kevin', 'Murphy Connor']",pairing,815,13.6,0,2,7,11,0.47,0.79,0.0,38.9,37.2,Chicago Blackhawks,2523.812,4,17.67
+Kaiser-Vlasic,"['Kaiser Wyatt', 'Vlasic Alex']",pairing,767,12.8,0,1,4,13,0.17,0.89,0.0,23.5,16.5,Chicago Blackhawks,3884.152,6,28.16
+Korchinski-Rinzel,"['Korchinski Kevin', 'Rinzel Sam']",pairing,718,12.0,0,5,11,23,0.58,1.8,0.0,32.4,24.2,Chicago Blackhawks,2148.975,2,10.03
+Grzelcyk-Vlasic,"['Grzelcyk Matt', 'Vlasic Alex']",pairing,577,9.6,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,3174.694,6,37.44
+Del-Kaiser,"['Del Mastro Ethan', 'Kaiser Wyatt']",pairing,512,8.5,0,1,3,6,0.19,0.36,0.0,33.3,34.4,Chicago Blackhawks,2733.179,5,35.16
+Del-Vlasic,"['Del Mastro Ethan', 'Vlasic Alex']",pairing,503,8.4,0,0,2,0,0.06,0.0,,100.0,100.0,Chicago Blackhawks,2972.184,1,7.16
+Crevier-Rinzel,"['Crevier Louis', 'Rinzel Sam']",pairing,438,7.3,0,0,1,1,0.15,0.03,,50.0,84.6,Chicago Blackhawks,2558.496,2,16.44
+Crevier-Levshunov,"['Crevier Louis', 'Levshunov Artyom']",pairing,240,4.0,1,4,6,16,0.51,0.99,20.0,27.3,34.3,Chicago Blackhawks,2725.777,2,30.0
+Crevier-Murphy,"['Crevier Louis', 'Murphy Connor']",pairing,190,3.2,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,2937.46,0,0.0
+Korchinski-Levshunov,"['Korchinski Kevin', 'Levshunov Artyom']",pairing,187,3.1,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,2303.863,0,0.0
+Korchinski-Vlasic,"['Korchinski Kevin', 'Vlasic Alex']",pairing,187,3.1,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,2652.717,0,0.0
+Levshunov-Murphy,"['Levshunov Artyom', 'Murphy Connor']",pairing,150,2.5,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,3497.354,0,0.0
+Levshunov-Rinzel,"['Levshunov Artyom', 'Rinzel Sam']",pairing,141,2.4,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,2986.644,2,51.06
+Grzelcyk-Korchinski,"['Grzelcyk Matt', 'Korchinski Kevin']",pairing,121,2.0,0,0,0,0,0.0,0.0,,,,Chicago Blackhawks,2006.376,18,535.54
+Makar-Toews,"['Makar Cale', 'Toews Devon']",pairing,51128,852.1,84,62,818,641,47.35,38.67,57.5,56.1,55.0,Colorado Avalanche,4280.379,475,33.45
+Burns-Manson,"['Burns Brent', 'Manson Josh']",pairing,47846,797.4,69,47,641,504,38.49,29.84,59.5,56.0,56.3,Colorado Avalanche,3034.884,292,21.97
+Girard-Malinski,"['Girard Samuel', 'Malinski Sam']",pairing,21285,354.8,40,19,366,285,22.68,16.44,67.8,56.2,58.0,Colorado Avalanche,6226.12,216,36.53
+Malinski-Toews,"['Malinski Sam', 'Toews Devon']",pairing,16793,279.9,35,24,315,202,19.8,11.68,59.3,60.9,62.9,Colorado Avalanche,3377.15,173,37.09
+Kulak-Malinski,"['Kulak Brett', 'Malinski Sam']",pairing,16624,277.1,28,18,275,253,15.54,16.42,60.9,52.1,48.6,Colorado Avalanche,25723.195,108,23.39
+Makar-Malinski,"['Makar Cale', 'Malinski Sam']",pairing,10878,181.3,16,22,214,157,12.65,10.18,42.1,57.7,55.4,Colorado Avalanche,4304.667,113,37.4
+Kulak-Manson,"['Kulak Brett', 'Manson Josh']",pairing,7563,126.0,7,7,105,83,6.75,4.66,50.0,55.9,59.2,Colorado Avalanche,26041.917,43,20.47
+Kulak-Makar,"['Kulak Brett', 'Makar Cale']",pairing,7472,124.5,10,4,134,98,7.46,5.73,71.4,57.8,56.5,Colorado Avalanche,33337.741,55,26.5
+Burns-Kulak,"['Burns Brent', 'Kulak Brett']",pairing,7049,117.5,14,9,144,113,8.39,6.35,60.9,56.0,56.9,Colorado Avalanche,22049.835,22,11.24
+Burns-Malinski,"['Burns Brent', 'Malinski Sam']",pairing,6068,101.1,6,3,49,29,2.59,1.83,66.7,62.8,58.6,Colorado Avalanche,3002.243,47,27.88
+Burns-Toews,"['Burns Brent', 'Toews Devon']",pairing,6009,100.2,9,2,41,37,2.42,2.06,81.8,52.6,54.1,Colorado Avalanche,2959.198,51,30.55
+Blankenburg-Burns,"['Blankenburg Nick', 'Burns Brent']",pairing,5118,85.3,7,3,66,60,3.55,3.98,70.0,52.4,47.2,Colorado Avalanche,5668.131,29,20.4
+Malinski-Solovyov,"['Malinski Sam', 'Solovyov Ilya']",pairing,4402,73.4,8,4,67,28,3.53,1.58,66.7,70.5,69.1,Colorado Avalanche,40039.476,28,22.9
+Girard-Makar,"['Girard Samuel', 'Makar Cale']",pairing,3874,64.6,9,6,84,67,5.29,4.03,60.0,55.6,56.8,Colorado Avalanche,7816.048,44,40.89
+Girard-Manson,"['Girard Samuel', 'Manson Josh']",pairing,3721,62.0,4,6,65,51,3.75,3.14,40.0,56.0,54.5,Colorado Avalanche,6343.105,39,37.73
+Burns-Makar,"['Burns Brent', 'Makar Cale']",pairing,3673,61.2,12,1,40,24,2.56,0.96,92.3,62.5,72.6,Colorado Avalanche,3919.924,27,26.46
+Malinski-Manson,"['Malinski Sam', 'Manson Josh']",pairing,3667,61.1,1,1,16,18,1.02,1.23,50.0,47.1,45.2,Colorado Avalanche,3472.219,24,23.56
+Makar-Manson,"['Makar Cale', 'Manson Josh']",pairing,3251,54.2,2,0,20,9,1.2,0.53,100.0,69.0,69.4,Colorado Avalanche,4412.299,19,21.04
+Manson-Toews,"['Manson Josh', 'Toews Devon']",pairing,3110,51.8,2,0,3,0,0.12,0.0,100.0,100.0,100.0,Colorado Avalanche,3434.179,26,30.1
+Burns-Girard,"['Burns Brent', 'Girard Samuel']",pairing,2511,41.9,5,2,50,37,3.35,2.24,71.4,57.5,59.9,Colorado Avalanche,5505.762,27,38.71
+Ahcan-Malinski,"['Ahcan Jack', 'Malinski Sam']",pairing,2074,34.6,2,0,2,1,0.27,0.02,100.0,66.7,92.7,Colorado Avalanche,2636.752,19,32.98
+Blankenburg-Kulak,"['Blankenburg Nick', 'Kulak Brett']",pairing,1913,31.9,1,4,37,43,2.45,2.55,20.0,46.2,49.0,Colorado Avalanche,48562.329,14,26.35
+Kulak-Toews,"['Kulak Brett', 'Toews Devon']",pairing,1735,28.9,2,0,14,18,0.74,1.16,100.0,43.8,38.9,Colorado Avalanche,25378.412,7,14.52
+Ahcan-Girard,"['Ahcan Jack', 'Girard Samuel']",pairing,1323,22.1,1,3,54,33,2.62,1.86,25.0,62.1,58.5,Colorado Avalanche,4806.522,11,29.93
+Blankenburg-Malinski,"['Blankenburg Nick', 'Malinski Sam']",pairing,1301,21.7,5,2,30,24,1.73,0.98,71.4,55.6,63.9,Colorado Avalanche,6439.611,8,22.14
+Girard-Solovyov,"['Girard Samuel', 'Solovyov Ilya']",pairing,1284,21.4,6,4,32,25,2.22,1.54,60.0,56.1,59.0,Colorado Avalanche,73336.203,19,53.27
+Ahcan-Blankenburg,"['Ahcan Jack', 'Blankenburg Nick']",pairing,1245,20.8,1,2,17,16,1.13,0.83,33.3,51.5,57.6,Colorado Avalanche,4976.847,17,49.16
+Manson-Solovyov,"['Manson Josh', 'Solovyov Ilya']",pairing,1076,17.9,1,2,29,15,2.21,0.73,33.3,65.9,75.2,Colorado Avalanche,40545.961,2,6.69
+Ahcan-Manson,"['Ahcan Jack', 'Manson Josh']",pairing,1061,17.7,4,1,23,14,1.49,0.7,80.0,62.2,67.9,Colorado Avalanche,2687.956,6,20.36
+Blankenburg-Manson,"['Blankenburg Nick', 'Manson Josh']",pairing,857,14.3,0,0,0,1,0.0,0.04,,0.0,0.0,Colorado Avalanche,6554.37,5,21.0
+Blankenburg-Toews,"['Blankenburg Nick', 'Toews Devon']",pairing,772,12.9,0,0,7,4,0.43,0.2,,63.6,68.0,Colorado Avalanche,6374.815,4,18.65
+Girard-Toews,"['Girard Samuel', 'Toews Devon']",pairing,669,11.2,0,0,0,0,0.0,0.0,,,,Colorado Avalanche,6167.183,11,59.19
+Ahcan-Burns,"['Ahcan Jack', 'Burns Brent']",pairing,645,10.8,2,2,21,25,0.96,1.33,50.0,45.7,41.9,Colorado Avalanche,2338.713,0,0.0
+Burns-Solovyov,"['Burns Brent', 'Solovyov Ilya']",pairing,613,10.2,0,0,2,2,0.07,0.06,,50.0,52.6,Colorado Avalanche,34365.66,5,29.36
+Makar-Solovyov,"['Makar Cale', 'Solovyov Ilya']",pairing,397,6.6,0,0,3,2,0.14,0.27,,60.0,35.3,Colorado Avalanche,51825.976,8,72.54
+Ahcan-Makar,"['Ahcan Jack', 'Makar Cale']",pairing,387,6.5,0,0,2,1,0.12,0.07,,66.7,64.8,Colorado Avalanche,3299.538,3,27.91
+Blankenburg-Makar,"['Blankenburg Nick', 'Makar Cale']",pairing,325,5.4,1,1,23,14,1.12,0.88,50.0,62.2,56.1,Colorado Avalanche,8123.689,3,33.23
+Ahcan-Gagne,"['Ahcan Jack', 'Gagne Alex']",pairing,269,4.5,0,0,0,0,0.0,0.0,,,,Colorado Avalanche,,0,0.0
+Solovyov-Toews,"['Solovyov Ilya', 'Toews Devon']",pairing,157,2.6,0,0,0,0,0.0,0.0,,,,Colorado Avalanche,39509.191,0,0.0
+Ahcan-Kulak,"['Ahcan Jack', 'Kulak Brett']",pairing,93,1.6,0,0,0,0,0.0,0.0,,,,Colorado Avalanche,20003.567,0,0.0
+Provorov-Severson,"['Provorov Ivan', 'Severson Damon']",pairing,31506,525.1,43,37,450,420,23.89,24.46,53.8,51.7,49.4,Columbus Blue Jackets,3117.111,344,39.31
+Provorov-Werenski,"['Provorov Ivan', 'Werenski Zach']",pairing,24769,412.8,54,48,406,357,25.47,21.26,52.9,53.2,54.5,Columbus Blue Jackets,4698.84,278,40.41
+Severson-Werenski,"['Severson Damon', 'Werenski Zach']",pairing,24236,403.9,21,35,290,273,17.72,15.27,37.5,51.5,53.7,Columbus Blue Jackets,4104.489,281,41.74
+Mateychuk-Werenski,"['Mateychuk Denton', 'Werenski Zach']",pairing,21785,363.1,27,29,406,411,21.86,25.14,48.2,49.7,46.5,Columbus Blue Jackets,4585.154,230,38.01
+Mateychuk-Severson,"['Mateychuk Denton', 'Severson Damon']",pairing,21351,355.9,16,29,269,271,14.43,16.44,35.6,49.8,46.8,Columbus Blue Jackets,3085.89,178,30.01
+Fabbro-Werenski,"['Fabbro Dante', 'Werenski Zach']",pairing,20015,333.6,15,23,243,216,15.31,12.65,39.5,52.9,54.8,Columbus Blue Jackets,4096.408,136,24.46
+Mateychuk-Provorov,"['Mateychuk Denton', 'Provorov Ivan']",pairing,18171,302.9,31,27,345,350,20.35,20.85,53.4,49.6,49.4,Columbus Blue Jackets,3449.878,205,40.61
+Christiansen-Fabbro,"['Christiansen Jake', 'Fabbro Dante']",pairing,12220,203.7,27,27,241,249,13.38,14.81,50.0,49.2,47.5,Columbus Blue Jackets,2414.742,83,24.45
+Fabbro-Provorov,"['Fabbro Dante', 'Provorov Ivan']",pairing,11552,192.5,11,11,92,103,5.26,5.74,50.0,47.2,47.8,Columbus Blue Jackets,2974.619,88,27.42
+Gudbranson-Provorov,"['Gudbranson Erik', 'Provorov Ivan']",pairing,9256,154.3,15,11,118,153,7.14,8.67,57.7,43.5,45.2,Columbus Blue Jackets,2518.338,81,31.5
+Gudbranson-Mateychuk,"['Gudbranson Erik', 'Mateychuk Denton']",pairing,8437,140.6,9,17,91,102,5.68,6.04,34.6,47.2,48.5,Columbus Blue Jackets,2514.499,60,25.6
+Fabbro-Gudbranson,"['Fabbro Dante', 'Gudbranson Erik']",pairing,6790,113.2,11,7,78,106,4.41,7.05,61.1,42.4,38.5,Columbus Blue Jackets,2157.911,35,18.56
+Fabbro-Smith,"['Fabbro Dante', 'Smith Brendan']",pairing,6709,111.8,7,3,63,76,3.51,5.48,70.0,45.3,39.1,Columbus Blue Jackets,2066.224,49,26.29
+Fabbro-Mateychuk,"['Fabbro Dante', 'Mateychuk Denton']",pairing,5076,84.6,5,11,79,73,4.19,4.46,31.2,52.0,48.4,Columbus Blue Jackets,2971.279,41,29.08
+Christiansen-Gudbranson,"['Christiansen Jake', 'Gudbranson Erik']",pairing,4573,76.2,4,2,35,34,1.58,2.08,66.7,50.7,43.2,Columbus Blue Jackets,2043.615,32,25.19
+Provorov-Zamula,"['Provorov Ivan', 'Zamula Egor']",pairing,4533,75.5,5,17,48,59,3.11,3.43,22.7,44.9,47.5,Columbus Blue Jackets,13978.792,50,39.71
+Gudbranson-Werenski,"['Gudbranson Erik', 'Werenski Zach']",pairing,3266,54.4,7,3,54,46,2.87,3.1,70.0,54.0,48.0,Columbus Blue Jackets,3461.183,26,28.66
+Fabbro-Zamula,"['Fabbro Dante', 'Zamula Egor']",pairing,3009,50.1,11,3,56,59,3.73,3.37,78.6,48.7,52.5,Columbus Blue Jackets,11996.895,27,32.3
+Gudbranson-Zamula,"['Gudbranson Erik', 'Zamula Egor']",pairing,2985,49.8,2,3,32,30,1.77,1.12,40.0,51.6,61.3,Columbus Blue Jackets,10157.311,30,36.18
+Fabbro-Severson,"['Fabbro Dante', 'Severson Damon']",pairing,2374,39.6,0,2,4,7,0.18,0.45,0.0,36.4,28.9,Columbus Blue Jackets,2688.398,19,28.81
+Christiansen-Severson,"['Christiansen Jake', 'Severson Damon']",pairing,1774,29.6,0,0,7,2,0.36,0.09,,77.8,80.6,Columbus Blue Jackets,2510.521,23,46.67
+Christiansen-Zamula,"['Christiansen Jake', 'Zamula Egor']",pairing,1386,23.1,1,0,2,1,0.11,0.03,100.0,66.7,79.9,Columbus Blue Jackets,11323.235,11,28.57
+Christiansen-Mateychuk,"['Christiansen Jake', 'Mateychuk Denton']",pairing,1364,22.7,1,5,10,19,0.82,1.45,16.7,34.5,36.2,Columbus Blue Jackets,2783.024,5,13.2
+Christiansen-Smith,"['Christiansen Jake', 'Smith Brendan']",pairing,1334,22.2,0,0,16,25,1.14,1.34,,39.0,46.0,Columbus Blue Jackets,2014.758,16,43.18
+Severson-Zamula,"['Severson Damon', 'Zamula Egor']",pairing,1214,20.2,0,1,22,25,1.46,1.67,0.0,46.8,46.6,Columbus Blue Jackets,12588.953,15,44.48
+Hunt-Smith,"['Hunt Daemon', 'Smith Brendan']",pairing,991,16.5,1,0,4,0,0.2,0.0,100.0,100.0,100.0,Columbus Blue Jackets,9176.614,6,21.8
+Gudbranson-Severson,"['Gudbranson Erik', 'Severson Damon']",pairing,869,14.5,0,0,0,0,0.0,0.0,,,,Columbus Blue Jackets,2274.693,5,20.71
+Christiansen-Provorov,"['Christiansen Jake', 'Provorov Ivan']",pairing,852,14.2,2,3,8,8,0.57,0.67,40.0,50.0,46.0,Columbus Blue Jackets,2804.705,9,38.03
+Christiansen-Werenski,"['Christiansen Jake', 'Werenski Zach']",pairing,588,9.8,1,0,5,6,0.52,0.3,100.0,45.5,63.1,Columbus Blue Jackets,3736.636,4,24.49
+Werenski-Zamula,"['Werenski Zach', 'Zamula Egor']",pairing,578,9.6,0,0,6,6,0.2,0.42,,50.0,32.1,Columbus Blue Jackets,19018.774,11,68.51
+Severson-Smith,"['Severson Damon', 'Smith Brendan']",pairing,420,7.0,0,3,15,17,0.99,1.36,0.0,46.9,42.2,Columbus Blue Jackets,2264.762,0,0.0
+Mateychuk-Zamula,"['Mateychuk Denton', 'Zamula Egor']",pairing,411,6.8,0,0,0,0,0.0,0.0,,,,Columbus Blue Jackets,13928.96,6,52.55
+Provorov-Smith,"['Provorov Ivan', 'Smith Brendan']",pairing,349,5.8,0,0,0,0,0.0,0.0,,,,Columbus Blue Jackets,2444.535,0,0.0
+Smith-Werenski,"['Smith Brendan', 'Werenski Zach']",pairing,268,4.5,0,0,0,0,0.0,0.0,,,,Columbus Blue Jackets,3653.251,2,26.87
+Mateychuk-Smith,"['Mateychuk Denton', 'Smith Brendan']",pairing,225,3.8,0,0,0,0,0.0,0.0,,,,Columbus Blue Jackets,2484.052,0,0.0
+Heiskanen-Lindell,"['Heiskanen Miro', 'Lindell Esa']",pairing,68871,1147.8,122,112,981,1015,63.73,59.42,52.1,49.1,51.7,Dallas Stars,3661.754,544,28.44
+Harley-Lundkvist,"['Harley Thomas', 'Lundkvist Nils']",pairing,37626,627.1,41,44,374,357,24.88,22.56,48.2,51.2,52.4,Dallas Stars,3498.102,371,35.5
+Bichsel-Petrovic,"['Bichsel Lian', 'Petrovic Alexander']",pairing,19017,316.9,36,24,289,274,18.72,15.61,60.0,51.3,54.5,Dallas Stars,1976.992,122,23.1
+Harley-Lyubushkin,"['Harley Thomas', 'Lyubushkin Ilya']",pairing,16328,272.1,21,13,157,138,9.32,7.53,61.8,53.2,55.3,Dallas Stars,3141.582,139,30.65
+Bichsel-Myers,"['Bichsel Lian', 'Myers Tyler']",pairing,12186,203.1,20,14,142,151,9.72,8.65,58.8,48.5,52.9,Dallas Stars,4331.234,128,37.81
+Harley-Heiskanen,"['Harley Thomas', 'Heiskanen Miro']",pairing,11152,185.9,27,12,151,130,9.91,8.1,69.2,53.7,55.0,Dallas Stars,4512.638,132,42.61
+Bichsel-Lyubushkin,"['Bichsel Lian', 'Lyubushkin Ilya']",pairing,10774,179.6,18,24,150,160,9.77,9.41,42.9,48.4,50.9,Dallas Stars,1960.969,68,22.72
+Harley-Petrovic,"['Harley Thomas', 'Petrovic Alexander']",pairing,8822,147.0,15,13,111,109,6.43,6.7,53.6,50.5,49.0,Dallas Stars,3243.649,87,35.5
+Capobianco-Petrovic,"['Capobianco Kyle', 'Petrovic Alexander']",pairing,8064,134.4,11,15,76,126,4.06,7.62,42.3,37.6,34.8,Dallas Stars,2564.053,84,37.5
+Lindell-Lyubushkin,"['Lindell Esa', 'Lyubushkin Ilya']",pairing,7294,121.6,11,12,75,113,5.58,6.87,47.8,39.9,44.8,Dallas Stars,2534.217,45,22.21
+Harley-Lindell,"['Harley Thomas', 'Lindell Esa']",pairing,6866,114.4,4,2,16,29,0.88,1.67,66.7,35.6,34.5,Dallas Stars,3884.888,151,79.17
+Lyubushkin-Petrovic,"['Lyubushkin Ilya', 'Petrovic Alexander']",pairing,6207,103.5,7,2,33,33,2.54,2.01,77.8,50.0,55.8,Dallas Stars,2091.415,41,23.78
+Lindell-Lundkvist,"['Lindell Esa', 'Lundkvist Nils']",pairing,5756,95.9,12,11,130,119,8.39,6.67,52.2,52.2,55.7,Dallas Stars,2809.075,60,37.53
+Harley-Myers,"['Harley Thomas', 'Myers Tyler']",pairing,4055,67.6,6,3,44,26,2.8,1.58,66.7,62.9,63.9,Dallas Stars,7134.869,36,31.96
+Capobianco-Lyubushkin,"['Capobianco Kyle', 'Lyubushkin Ilya']",pairing,4010,66.8,2,4,30,23,1.69,1.51,33.3,56.6,52.9,Dallas Stars,2494.72,33,29.63
+Bichsel-Harley,"['Bichsel Lian', 'Harley Thomas']",pairing,3411,56.9,3,7,46,51,2.76,3.29,30.0,47.4,45.6,Dallas Stars,3091.026,28,29.55
+Capobianco-Lundkvist,"['Capobianco Kyle', 'Lundkvist Nils']",pairing,3406,56.8,5,4,17,22,1.12,1.45,55.6,43.6,43.5,Dallas Stars,2772.764,38,40.16
+Bichsel-Lundkvist,"['Bichsel Lian', 'Lundkvist Nils']",pairing,2975,49.6,4,6,49,29,3.16,1.68,40.0,62.8,65.3,Dallas Stars,2162.889,21,25.41
+Lindell-Petrovic,"['Lindell Esa', 'Petrovic Alexander']",pairing,2728,45.5,3,1,32,25,2.32,1.25,75.0,56.1,65.1,Dallas Stars,2587.098,13,17.16
+Lindell-Myers,"['Lindell Esa', 'Myers Tyler']",pairing,2503,41.7,1,1,21,17,1.1,1.17,50.0,55.3,48.4,Dallas Stars,5679.917,15,21.57
+Heiskanen-Petrovic,"['Heiskanen Miro', 'Petrovic Alexander']",pairing,2312,38.5,5,3,22,20,1.55,1.58,62.5,52.4,49.6,Dallas Stars,3029.997,23,35.81
+Heiskanen-Lundkvist,"['Heiskanen Miro', 'Lundkvist Nils']",pairing,2124,35.4,4,0,26,8,1.86,0.37,100.0,76.5,83.5,Dallas Stars,3285.011,31,52.54
+Bichsel-Heiskanen,"['Bichsel Lian', 'Heiskanen Miro']",pairing,2000,33.3,2,0,16,12,1.12,0.91,100.0,57.1,55.0,Dallas Stars,2851.669,9,16.2
+Bichsel-Lindell,"['Bichsel Lian', 'Lindell Esa']",pairing,1733,28.9,0,6,9,34,0.56,2.53,0.0,20.9,18.1,Dallas Stars,2426.085,16,33.24
+Capobianco-Heiskanen,"['Capobianco Kyle', 'Heiskanen Miro']",pairing,1549,25.8,2,9,12,28,0.88,1.49,18.2,30.0,37.2,Dallas Stars,3592.044,17,39.51
+Heiskanen-Lyubushkin,"['Heiskanen Miro', 'Lyubushkin Ilya']",pairing,1463,24.4,0,0,1,0,0.12,0.0,,100.0,100.0,Dallas Stars,2960.62,16,39.37
+Lundkvist-Petrovic,"['Lundkvist Nils', 'Petrovic Alexander']",pairing,1441,24.0,1,0,36,21,1.89,1.45,100.0,63.2,56.7,Dallas Stars,2313.485,13,32.48
+Lundkvist-Lyubushkin,"['Lundkvist Nils', 'Lyubushkin Ilya']",pairing,1255,20.9,1,0,10,14,0.63,0.63,100.0,41.7,50.2,Dallas Stars,2270.999,4,11.47
+Capobianco-Harley,"['Capobianco Kyle', 'Harley Thomas']",pairing,1227,20.4,1,0,9,9,0.71,0.59,100.0,50.0,54.5,Dallas Stars,3765.417,17,49.88
+Capobianco-Lindell,"['Capobianco Kyle', 'Lindell Esa']",pairing,963,16.1,0,0,0,0,0.0,0.0,,,,Dallas Stars,3085.258,17,63.55
+Heiskanen-Myers,"['Heiskanen Miro', 'Myers Tyler']",pairing,395,6.6,0,0,2,4,0.06,0.24,,33.3,19.1,Dallas Stars,6655.104,2,18.23
+Bichsel-Capobianco,"['Bichsel Lian', 'Capobianco Kyle']",pairing,351,5.8,0,0,0,0,0.0,0.0,,,,Dallas Stars,2427.778,2,20.51
+Lundkvist-Myers,"['Lundkvist Nils', 'Myers Tyler']",pairing,343,5.7,0,0,0,0,0.0,0.0,,,,Dallas Stars,5077.393,1,10.5
+Lyubushkin-Myers,"['Lyubushkin Ilya', 'Myers Tyler']",pairing,197,3.3,0,0,0,0,0.0,0.0,,,,Dallas Stars,4591.579,0,0.0
+Edvinsson-Seider,"['Edvinsson Simon', 'Seider Moritz']",pairing,25765,429.4,29,25,291,245,19.39,13.84,53.7,54.3,58.3,Detroit Red Wings,3485.593,186,25.99
+Bernard-Docker-Johansson,"['Bernard-Docker Jacob', 'Johansson Albert']",pairing,11466,191.1,18,15,159,143,9.67,8.85,54.5,52.6,52.2,Detroit Red Wings,2164.201,70,21.98
+Chiarot-Faulk,"['Chiarot Ben', 'Faulk Justin']",pairing,5866,97.8,11,4,78,60,4.58,3.78,73.3,56.5,54.8,Detroit Red Wings,3431.642,41,25.16
+Hamonic-Johansson,"['Hamonic Travis', 'Johansson Albert']",pairing,5191,86.5,5,6,58,63,3.91,3.98,45.5,47.9,49.6,Detroit Red Wings,2448.635,32,22.19
+Bernard-Docker-Chiarot,"['Bernard-Docker Jacob', 'Chiarot Ben']",pairing,3853,64.2,3,7,30,41,1.63,2.89,30.0,42.3,36.0,Detroit Red Wings,1911.319,21,19.62
+Chiarot-Seider,"['Chiarot Ben', 'Seider Moritz']",pairing,3558,59.3,4,3,33,35,2.43,2.12,57.1,48.5,53.4,Detroit Red Wings,2641.985,20,20.24
+Chiarot-Johansson,"['Chiarot Ben', 'Johansson Albert']",pairing,3312,55.2,4,4,20,36,1.14,1.58,50.0,35.7,41.9,Detroit Red Wings,2527.484,19,20.65
+Johansson-Seider,"['Johansson Albert', 'Seider Moritz']",pairing,2811,46.9,3,4,23,28,1.5,1.37,42.9,45.1,52.4,Detroit Red Wings,3033.519,25,32.02
+Bernard-Docker-Seider,"['Bernard-Docker Jacob', 'Seider Moritz']",pairing,2399,40.0,1,2,23,12,1.18,0.84,33.3,65.7,58.5,Detroit Red Wings,2289.097,15,22.51
+Edvinsson-Johansson,"['Edvinsson Simon', 'Johansson Albert']",pairing,1224,20.4,0,0,8,7,0.52,0.4,,53.3,56.6,Detroit Red Wings,3334.499,14,41.18
+Chiarot-Edvinsson,"['Chiarot Ben', 'Edvinsson Simon']",pairing,1002,16.7,0,0,1,1,0.06,0.08,,50.0,43.3,Detroit Red Wings,2895.122,3,10.78
+Chiarot-Hamonic,"['Chiarot Ben', 'Hamonic Travis']",pairing,728,12.1,1,2,1,5,0.15,0.33,33.3,16.7,30.4,Detroit Red Wings,2167.848,7,34.62
+Bernard-Docker-Edvinsson,"['Bernard-Docker Jacob', 'Edvinsson Simon']",pairing,351,5.8,0,0,1,1,0.09,0.05,,50.0,63.0,Detroit Red Wings,2521.571,1,10.26
+Faulk-Johansson,"['Faulk Justin', 'Johansson Albert']",pairing,238,4.0,0,0,2,3,0.05,0.15,,40.0,24.6,Detroit Red Wings,3950.313,2,30.25
+Edvinsson-Faulk,"['Edvinsson Simon', 'Faulk Justin']",pairing,217,3.6,0,0,0,0,0.0,0.0,,,,Detroit Red Wings,4527.411,1,16.59
+Hamonic-Seider,"['Hamonic Travis', 'Seider Moritz']",pairing,211,3.5,0,0,0,0,0.0,0.0,,,,Detroit Red Wings,2594.375,0,0.0
+Edvinsson-Hamonic,"['Edvinsson Simon', 'Hamonic Travis']",pairing,106,1.8,0,0,0,0,0.0,0.0,,,,Detroit Red Wings,2859.995,0,0.0
+Faulk-Seider,"['Faulk Justin', 'Seider Moritz']",pairing,106,1.8,0,0,0,0,0.0,0.0,,,,Detroit Red Wings,4130.848,1,33.96
+Bouchard-Ekholm,"['Bouchard Evan', 'Ekholm Mattias']",pairing,35734,595.6,57,52,460,481,28.86,27.38,52.3,48.9,51.3,Edmonton Oilers,4030.858,357,35.97
+Murphy-Nurse,"['Murphy Connor', 'Nurse Darnell']",pairing,12435,207.2,14,12,95,89,5.8,5.79,53.8,51.6,50.1,Edmonton Oilers,3003.66,84,24.32
+Nurse-Walman,"['Nurse Darnell', 'Walman Jake']",pairing,11670,194.5,20,15,155,139,8.86,8.21,57.1,52.7,51.9,Edmonton Oilers,2543.853,101,31.16
+Emberson-Walman,"['Emberson Ty', 'Walman Jake']",pairing,7012,116.9,3,9,43,59,2.71,3.62,25.0,42.2,42.8,Edmonton Oilers,2519.486,44,22.59
+Emberson-Stastney,"['Emberson Ty', 'Stastney Spencer']",pairing,6718,112.0,5,12,38,50,2.0,2.86,29.4,43.2,41.1,Edmonton Oilers,6079.972,66,35.37
+Emberson-Kulak,"['Emberson Ty', 'Kulak Brett']",pairing,4623,77.0,10,15,84,73,5.02,4.63,40.0,53.5,52.0,Edmonton Oilers,20739.655,34,26.48
+Emberson-Nurse,"['Emberson Ty', 'Nurse Darnell']",pairing,3928,65.5,2,6,48,58,3.17,3.62,25.0,45.3,46.7,Edmonton Oilers,2315.256,33,30.24
+Nurse-Stastney,"['Nurse Darnell', 'Stastney Spencer']",pairing,3702,61.7,4,7,37,40,2.17,2.52,36.4,48.1,46.3,Edmonton Oilers,6287.951,26,25.28
+Bouchard-Nurse,"['Bouchard Evan', 'Nurse Darnell']",pairing,2573,42.9,4,1,34,25,2.03,1.24,80.0,57.6,62.2,Edmonton Oilers,3242.281,15,20.99
+Stastney-Walman,"['Stastney Spencer', 'Walman Jake']",pairing,2298,38.3,0,2,8,11,0.45,0.9,0.0,42.1,33.2,Edmonton Oilers,6832.57,9,14.1
+Murphy-Walman,"['Murphy Connor', 'Walman Jake']",pairing,2107,35.1,4,5,39,34,2.45,1.85,44.4,53.4,57.0,Edmonton Oilers,3264.515,12,20.5
+Bouchard-Walman,"['Bouchard Evan', 'Walman Jake']",pairing,2102,35.0,3,1,14,19,0.78,1.27,75.0,42.4,38.2,Edmonton Oilers,3538.167,28,47.95
+Ekholm-Nurse,"['Ekholm Mattias', 'Nurse Darnell']",pairing,1589,26.5,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,2892.863,15,33.98
+Ekholm-Walman,"['Ekholm Mattias', 'Walman Jake']",pairing,1136,18.9,1,0,1,0,0.02,0.0,100.0,100.0,100.0,Edmonton Oilers,3151.465,13,41.2
+Kulak-Nurse,"['Kulak Brett', 'Nurse Darnell']",pairing,986,16.4,1,3,7,10,0.32,0.67,25.0,41.2,32.4,Edmonton Oilers,21244.575,5,18.26
+Kulak-Walman,"['Kulak Brett', 'Walman Jake']",pairing,618,10.3,2,1,8,6,0.37,0.26,66.7,57.1,58.6,Edmonton Oilers,23114.396,6,34.95
+Ekholm-Emberson,"['Ekholm Mattias', 'Emberson Ty']",pairing,612,10.2,1,0,7,8,0.56,0.46,100.0,46.7,54.9,Edmonton Oilers,2850.618,5,29.41
+Ekholm-Murphy,"['Ekholm Mattias', 'Murphy Connor']",pairing,525,8.8,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,3682.089,6,41.14
+Bouchard-Emberson,"['Bouchard Evan', 'Emberson Ty']",pairing,464,7.7,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,3235.125,1,7.76
+Bouchard-Stastney,"['Bouchard Evan', 'Stastney Spencer']",pairing,402,6.7,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,8819.555,2,17.91
+Ekholm-Kulak,"['Ekholm Mattias', 'Kulak Brett']",pairing,356,5.9,0,1,1,3,0.09,0.29,0.0,25.0,23.6,Edmonton Oilers,26140.608,4,40.45
+Bouchard-Kulak,"['Bouchard Evan', 'Kulak Brett']",pairing,321,5.3,0,0,2,2,0.15,0.1,,50.0,60.6,Edmonton Oilers,29699.063,6,67.29
+Ekholm-Stastney,"['Ekholm Mattias', 'Stastney Spencer']",pairing,231,3.9,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,7702.442,1,15.58
+Murphy-Stastney,"['Murphy Connor', 'Stastney Spencer']",pairing,147,2.5,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,7761.193,5,122.45
+Bouchard-Murphy,"['Bouchard Evan', 'Murphy Connor']",pairing,120,2.0,0,0,0,0,0.0,0.0,,,,Edmonton Oilers,4210.649,1,30.0
+Ekblad-Forsling,"['Ekblad Aaron', 'Forsling Gustav']",pairing,8873,147.9,26,31,224,256,13.47,16.46,45.6,46.7,45.0,Florida Panthers,2175.199,120,48.69
+Jones-Mikkola,"['Jones Seth', 'Mikkola Niko']",pairing,4877,81.3,18,20,159,144,8.87,8.72,47.4,52.5,50.4,Florida Panthers,2862.376,63,46.5
+Balinskis-Mikkola,"['Balinskis Uvis', 'Mikkola Niko']",pairing,3536,58.9,6,7,69,69,4.48,3.96,46.2,50.0,53.1,Florida Panthers,2692.011,31,31.56
+Balinskis-Petry,"['Balinskis Uvis', 'Petry Jeff']",pairing,2100,35.0,2,3,66,40,4.01,2.46,40.0,62.3,62.0,Florida Panthers,3565.263,42,72.0
+Petry-Sebrango,"['Petry Jeff', 'Sebrango Donovan']",pairing,1437,23.9,2,3,44,38,2.55,1.66,40.0,53.7,60.6,Florida Panthers,2769.311,36,90.19
+Mikkola-Petry,"['Mikkola Niko', 'Petry Jeff']",pairing,932,15.5,4,1,16,17,0.91,0.93,80.0,48.5,49.4,Florida Panthers,3188.665,13,50.21
+Balinskis-Sebrango,"['Balinskis Uvis', 'Sebrango Donovan']",pairing,851,14.2,3,5,30,31,1.47,1.96,37.5,49.2,42.9,Florida Panthers,2346.159,4,16.92
+Jones-Sebrango,"['Jones Seth', 'Sebrango Donovan']",pairing,567,9.4,2,2,29,22,1.67,1.28,50.0,56.9,56.5,Florida Panthers,2496.73,5,31.75
+Forsling-Petry,"['Forsling Gustav', 'Petry Jeff']",pairing,495,8.2,0,2,6,6,0.4,0.47,0.0,50.0,46.2,Florida Panthers,3070.74,3,21.82
+Forsling-Mikkola,"['Forsling Gustav', 'Mikkola Niko']",pairing,402,6.7,0,1,5,8,0.39,0.43,0.0,38.5,47.5,Florida Panthers,2334.462,6,53.73
+Balinskis-Ekblad,"['Balinskis Uvis', 'Ekblad Aaron']",pairing,350,5.8,0,1,10,8,0.41,0.66,0.0,55.6,38.2,Florida Panthers,2520.293,6,61.71
+Mikkola-Sebrango,"['Mikkola Niko', 'Sebrango Donovan']",pairing,324,5.4,1,3,9,12,0.61,0.68,25.0,42.9,47.3,Florida Panthers,2042.02,2,22.22
+Ekblad-Mikkola,"['Ekblad Aaron', 'Mikkola Niko']",pairing,315,5.2,0,0,3,1,0.24,0.14,,75.0,63.3,Florida Panthers,2247.344,8,91.43
+Balinskis-Forsling,"['Balinskis Uvis', 'Forsling Gustav']",pairing,259,4.3,0,0,2,3,0.11,0.11,,40.0,49.7,Florida Panthers,2581.263,2,27.8
+Forsling-Sebrango,"['Forsling Gustav', 'Sebrango Donovan']",pairing,214,3.6,1,1,1,1,0.14,0.07,50.0,50.0,67.2,Florida Panthers,2058.268,0,0.0
+Forsling-Jones,"['Forsling Gustav', 'Jones Seth']",pairing,199,3.3,0,0,5,3,0.32,0.14,,62.5,69.2,Florida Panthers,2741.756,2,36.18
+Jones-Petry,"['Jones Seth', 'Petry Jeff']",pairing,182,3.0,0,0,2,3,0.06,0.12,,40.0,32.0,Florida Panthers,3789.039,1,19.78
+Ekblad-Jones,"['Ekblad Aaron', 'Jones Seth']",pairing,110,1.8,0,1,4,2,0.26,0.15,0.0,66.7,63.6,Florida Panthers,2678.876,6,196.36
+Ekblad-Petry,"['Ekblad Aaron', 'Petry Jeff']",pairing,104,1.7,0,1,4,5,0.3,0.43,0.0,44.4,40.8,Florida Panthers,2989.497,10,346.15
+Clarke-Edmundson,"['Clarke Brandt', 'Edmundson Joel']",pairing,27588,459.8,16,24,221,272,13.03,15.34,40.0,44.8,45.9,Los Angeles Kings,3079.023,161,21.01
+Anderson-Doughty,"['Anderson Mikey', 'Doughty Drew']",pairing,25524,425.4,19,31,299,289,16.95,16.05,38.0,50.9,51.4,Los Angeles Kings,2826.182,201,28.35
+Ceci-Dumoulin,"['Ceci Cody', 'Dumoulin Brian']",pairing,21055,350.9,26,20,233,233,13.67,14.04,56.5,50.0,49.3,Los Angeles Kings,2627.549,176,30.09
+Anderson-Ceci,"['Anderson Mikey', 'Ceci Cody']",pairing,7457,124.3,5,9,79,86,4.02,5.51,35.7,47.9,42.2,Los Angeles Kings,2652.108,41,19.79
+Doughty-Dumoulin,"['Doughty Drew', 'Dumoulin Brian']",pairing,6676,111.3,7,5,60,41,3.94,2.44,58.3,59.4,61.7,Los Angeles Kings,2815.814,55,29.66
+Anderson-Edmundson,"['Anderson Mikey', 'Edmundson Joel']",pairing,3806,63.4,2,0,9,21,0.62,1.42,100.0,30.0,30.5,Los Angeles Kings,2350.289,30,28.38
+Clarke-Dumoulin,"['Clarke Brandt', 'Dumoulin Brian']",pairing,3758,62.6,2,0,40,46,2.16,2.35,100.0,46.5,47.9,Los Angeles Kings,3579.64,45,43.11
+Ceci-Moverare,"['Ceci Cody', 'Moverare Jacob']",pairing,2269,37.8,0,2,18,27,0.78,1.69,0.0,40.0,31.4,Los Angeles Kings,2357.105,27,42.84
+Clarke-Doughty,"['Clarke Brandt', 'Doughty Drew']",pairing,2208,36.8,3,4,29,29,1.68,1.34,42.9,50.0,55.6,Los Angeles Kings,3454.884,31,50.54
+Doughty-Edmundson,"['Doughty Drew', 'Edmundson Joel']",pairing,1446,24.1,0,0,1,0,0.06,0.0,,100.0,100.0,Los Angeles Kings,2397.76,8,19.92
+Ceci-Edmundson,"['Ceci Cody', 'Edmundson Joel']",pairing,1407,23.4,2,2,11,9,0.69,0.75,50.0,55.0,48.2,Los Angeles Kings,2201.473,15,38.38
+Anderson-Dumoulin,"['Anderson Mikey', 'Dumoulin Brian']",pairing,1403,23.4,0,3,14,14,0.89,0.9,0.0,50.0,49.7,Los Angeles Kings,2805.046,8,20.53
+Ceci-Clarke,"['Ceci Cody', 'Clarke Brandt']",pairing,1302,21.7,1,0,6,10,0.32,0.51,100.0,37.5,38.6,Los Angeles Kings,3353.865,6,16.59
+Anderson-Clarke,"['Anderson Mikey', 'Clarke Brandt']",pairing,966,16.1,1,0,3,1,0.21,0.02,100.0,75.0,92.7,Los Angeles Kings,3580.06,5,18.63
+Dumoulin-Moverare,"['Dumoulin Brian', 'Moverare Jacob']",pairing,831,13.8,0,1,3,2,0.13,0.24,0.0,60.0,35.6,Los Angeles Kings,2498.146,9,38.99
+Ceci-Doughty,"['Ceci Cody', 'Doughty Drew']",pairing,702,11.7,0,0,1,1,0.02,0.1,,50.0,14.7,Los Angeles Kings,2647.528,4,20.51
+Dumoulin-Edmundson,"['Dumoulin Brian', 'Edmundson Joel']",pairing,481,8.0,0,0,0,0,0.0,0.0,,,,Los Angeles Kings,2314.35,3,22.45
+Anderson-Moverare,"['Anderson Mikey', 'Moverare Jacob']",pairing,161,2.7,0,0,0,0,0.0,0.0,,,,Los Angeles Kings,2516.246,2,44.72
+Doughty-Moverare,"['Doughty Drew', 'Moverare Jacob']",pairing,156,2.6,0,0,0,0,0.0,0.0,,,,Los Angeles Kings,2492.993,2,46.15
+Clarke-Moverare,"['Clarke Brandt', 'Moverare Jacob']",pairing,142,2.4,0,0,2,3,0.13,0.1,,40.0,56.2,Los Angeles Kings,3142.852,1,25.35
+Faber-Hughes,"['Faber Brock', 'Hughes Quinn']",pairing,31592,526.5,41,44,418,400,24.34,23.6,48.2,51.1,50.8,Minnesota Wild,9199.434,289,32.93
+Middleton-Spurgeon,"['Middleton Jake', 'Spurgeon Jared']",pairing,18613,310.2,18,22,137,176,9.24,10.58,45.0,43.8,46.6,Minnesota Wild,1624.153,110,21.28
+Brodin-Faber,"['Brodin Jonas', 'Faber Brock']",pairing,17786,296.4,26,15,188,183,10.98,9.91,63.4,50.7,52.6,Minnesota Wild,2190.115,130,26.31
+Brodin-Spurgeon,"['Brodin Jonas', 'Spurgeon Jared']",pairing,12606,210.1,20,15,152,135,9.34,6.69,57.1,53.0,58.3,Minnesota Wild,1933.234,97,27.7
+Bogosian-Middleton,"['Bogosian Zach', 'Middleton Jake']",pairing,9567,159.4,8,8,98,109,6.11,6.19,50.0,47.3,49.7,Minnesota Wild,1134.596,62,23.33
+Bogosian-Buium,"['Bogosian Zach', 'Buium Zeev']",pairing,6691,111.5,10,6,82,91,4.59,5.52,62.5,47.4,45.4,Minnesota Wild,3267.158,39,20.98
+Hughes-Spurgeon,"['Hughes Quinn', 'Spurgeon Jared']",pairing,4039,67.3,2,5,28,45,1.57,2.73,28.6,38.4,36.5,Minnesota Wild,8895.193,38,33.87
+Buium-Faber,"['Buium Zeev', 'Faber Brock']",pairing,3865,64.4,1,2,45,32,2.92,2.02,33.3,58.4,59.2,Minnesota Wild,4715.114,22,20.49
+Faber-Middleton,"['Faber Brock', 'Middleton Jake']",pairing,3200,53.3,10,9,43,49,2.35,3.28,52.6,46.7,41.8,Minnesota Wild,1857.486,16,18.0
+Hunt-Jiricek,"['Hunt Daemon', 'Jiricek David']",pairing,3042,50.7,2,0,20,17,1.06,0.81,100.0,54.1,56.7,Minnesota Wild,5449.419,31,36.69
+Hunt-Spurgeon,"['Hunt Daemon', 'Spurgeon Jared']",pairing,2295,38.2,1,2,14,15,0.75,0.88,33.3,48.3,46.0,Minnesota Wild,8867.854,8,12.55
+Buium-Spurgeon,"['Buium Zeev', 'Spurgeon Jared']",pairing,2073,34.5,3,2,34,35,1.97,1.88,60.0,49.3,51.3,Minnesota Wild,4402.095,8,13.89
+Bogosian-Spurgeon,"['Bogosian Zach', 'Spurgeon Jared']",pairing,1977,33.0,2,1,11,29,0.57,1.88,66.7,27.5,23.2,Minnesota Wild,1023.272,10,18.21
+Buium-Jiricek,"['Buium Zeev', 'Jiricek David']",pairing,1956,32.6,3,2,41,26,2.71,1.24,60.0,61.2,68.6,Minnesota Wild,2998.254,7,12.88
+Kiersted-Spacek,"['Kiersted Matt', 'Spacek David']",pairing,1914,31.9,0,3,6,11,0.27,0.82,0.0,35.3,24.8,Minnesota Wild,202.619,0,0.0
+Faber-Spurgeon,"['Faber Brock', 'Spurgeon Jared']",pairing,1837,30.6,4,0,9,14,0.44,0.81,100.0,39.1,35.1,Minnesota Wild,1637.598,44,86.23
+Buium-Hunt,"['Buium Zeev', 'Hunt Daemon']",pairing,1804,30.1,1,1,8,3,0.36,0.08,50.0,72.7,81.6,Minnesota Wild,28424.434,7,13.97
+Brodin-Middleton,"['Brodin Jonas', 'Middleton Jake']",pairing,1611,26.9,1,1,17,14,0.86,0.92,50.0,54.8,48.2,Minnesota Wild,2166.421,8,17.88
+Middleton-Petry,"['Middleton Jake', 'Petry Jeff']",pairing,1599,26.6,0,2,14,12,0.81,0.81,0.0,53.8,50.0,Minnesota Wild,2776.911,8,18.01
+Bogosian-Hunt,"['Bogosian Zach', 'Hunt Daemon']",pairing,1446,24.1,2,2,13,18,1.1,1.14,50.0,41.9,49.1,Minnesota Wild,6014.707,1,2.49
+Bogosian-Hughes,"['Bogosian Zach', 'Hughes Quinn']",pairing,1358,22.6,0,1,4,10,0.3,0.7,0.0,28.6,30.5,Minnesota Wild,6799.139,7,18.56
+Jiricek-Lambos,"['Jiricek David', 'Lambos Carson']",pairing,1357,22.6,0,2,2,6,0.09,0.41,0.0,25.0,17.3,Minnesota Wild,474.258,2,5.31
+Jiricek-Middleton,"['Jiricek David', 'Middleton Jake']",pairing,1161,19.4,0,0,7,9,0.46,0.46,,43.8,49.9,Minnesota Wild,1032.436,7,21.71
+Hunt-Petry,"['Hunt Daemon', 'Petry Jeff']",pairing,1107,18.4,0,0,5,3,0.31,0.18,,62.5,63.9,Minnesota Wild,15173.785,0,0.0
+Brodin-Hunt,"['Brodin Jonas', 'Hunt Daemon']",pairing,980,16.3,1,0,5,14,0.26,0.78,100.0,26.3,25.3,Minnesota Wild,11810.512,12,44.08
+Bogosian-Lambos,"['Bogosian Zach', 'Lambos Carson']",pairing,967,16.1,0,0,0,2,0.0,0.11,,0.0,0.0,Minnesota Wild,517.447,0,0.0
+Gustafsson-Kiersted,"['Gustafsson Nyberg Viking', 'Kiersted Matt']",pairing,949,15.8,0,0,7,5,0.34,0.52,,58.3,39.3,Minnesota Wild,,5,18.97
+Hughes-Middleton,"['Hughes Quinn', 'Middleton Jake']",pairing,893,14.9,0,0,10,10,0.54,0.54,,50.0,50.3,Minnesota Wild,10220.892,2,8.06
+Kiersted-Spurgeon,"['Kiersted Matt', 'Spurgeon Jared']",pairing,879,14.7,0,1,1,2,0.02,0.17,0.0,33.3,9.6,Minnesota Wild,963.593,5,20.48
+Bogosian-Jiricek,"['Bogosian Zach', 'Jiricek David']",pairing,844,14.1,3,5,21,24,1.27,1.62,37.5,46.7,43.9,Minnesota Wild,631.071,0,0.0
+Brodin-Buium,"['Brodin Jonas', 'Buium Zeev']",pairing,835,13.9,0,1,1,6,0.15,0.28,0.0,14.3,34.5,Minnesota Wild,5891.157,2,8.62
+Bogosian-Faber,"['Bogosian Zach', 'Faber Brock']",pairing,683,11.4,0,0,0,0,0.0,0.0,,,,Minnesota Wild,1201.269,2,10.54
+Bogosian-Brodin,"['Bogosian Zach', 'Brodin Jonas']",pairing,669,11.2,1,2,6,16,0.36,0.91,33.3,27.3,28.4,Minnesota Wild,1363.046,8,43.05
+Brodin-Petry,"['Brodin Jonas', 'Petry Jeff']",pairing,649,10.8,0,0,1,5,0.03,0.25,,16.7,10.5,Minnesota Wild,3304.537,6,33.28
+Brodin-Hughes,"['Brodin Jonas', 'Hughes Quinn']",pairing,469,7.8,1,0,1,0,0.11,0.0,100.0,100.0,100.0,Minnesota Wild,11923.937,4,30.7
+Faber-Hunt,"['Faber Brock', 'Hunt Daemon']",pairing,433,7.2,0,0,3,2,0.14,0.09,,60.0,62.2,Minnesota Wild,10441.643,3,24.94
+Hunt-Spacek,"['Hunt Daemon', 'Spacek David']",pairing,432,7.2,1,0,1,6,0.1,0.23,100.0,14.3,29.4,Minnesota Wild,2401.805,6,50.0
+Hughes-Jiricek,"['Hughes Quinn', 'Jiricek David']",pairing,412,6.9,0,0,0,0,0.0,0.0,,,,Minnesota Wild,6263.982,5,43.69
+Hunt-Middleton,"['Hunt Daemon', 'Middleton Jake']",pairing,401,6.7,0,0,2,2,0.04,0.09,,50.0,30.5,Minnesota Wild,9823.615,1,8.98
+Buium-Middleton,"['Buium Zeev', 'Middleton Jake']",pairing,394,6.6,0,0,0,0,0.0,0.0,,,,Minnesota Wild,5011.38,3,27.41
+Bogosian-Petry,"['Bogosian Zach', 'Petry Jeff']",pairing,362,6.0,0,0,2,6,0.09,0.54,,25.0,14.9,Minnesota Wild,1750.777,0,0.0
+Hughes-Hunt,"['Hughes Quinn', 'Hunt Daemon']",pairing,299,5.0,0,0,1,0,0.03,0.0,,100.0,100.0,Minnesota Wild,59284.957,4,48.16
+Hughes-Petry,"['Hughes Quinn', 'Petry Jeff']",pairing,167,2.8,0,0,0,0,0.0,0.0,,,,Minnesota Wild,15170.025,0,0.0
+Hughes-Spacek,"['Hughes Quinn', 'Spacek David']",pairing,155,2.6,0,0,5,3,0.16,0.15,,62.5,51.4,Minnesota Wild,1490.337,1,23.23
+Jiricek-Spurgeon,"['Jiricek David', 'Spurgeon Jared']",pairing,129,2.1,0,0,0,0,0.0,0.0,,,,Minnesota Wild,932.637,0,0.0
+Middleton-Spacek,"['Middleton Jake', 'Spacek David']",pairing,113,1.9,1,0,7,0,0.42,0.0,100.0,100.0,100.0,Minnesota Wild,400.302,3,95.58
+Faber-Jiricek,"['Faber Brock', 'Jiricek David']",pairing,110,1.8,0,0,0,0,0.0,0.0,,,,Minnesota Wild,1100.648,0,0.0
+Faber-Petry,"['Faber Brock', 'Petry Jeff']",pairing,94,1.6,0,0,0,0,0.0,0.0,,,,Minnesota Wild,2796.119,1,38.3
+Dobson-Matheson,"['Dobson Noah', 'Matheson Mike']",pairing,26604,443.4,22,29,232,271,13.71,16.68,43.1,46.1,45.1,Montreal Canadiens,1370.167,156,21.11
+Dobson-Hutson,"['Dobson Noah', 'Hutson Lane']",pairing,13928,232.1,18,14,133,139,7.69,8.61,56.2,48.9,47.2,Montreal Canadiens,1886.609,82,21.19
+Hutson-Struble,"['Hutson Lane', 'Struble Jayden']",pairing,10919,182.0,16,17,124,131,7.81,7.8,48.5,48.6,50.0,Montreal Canadiens,1697.728,62,20.44
+Carrier-Hutson,"['Carrier Alexandre', 'Hutson Lane']",pairing,10687,178.1,10,15,77,115,4.88,7.61,40.0,40.1,39.1,Montreal Canadiens,1712.934,94,31.66
+Carrier-Guhle,"['Carrier Alexandre', 'Guhle Kaiden']",pairing,10052,167.5,10,9,109,102,6.53,6.4,52.6,51.7,50.5,Montreal Canadiens,808.853,20,7.16
+Carrier-Matheson,"['Carrier Alexandre', 'Matheson Mike']",pairing,9944,165.7,19,22,138,151,8.13,8.73,46.3,47.8,48.2,Montreal Canadiens,1223.559,40,14.48
+Carrier-Xhekaj,"['Carrier Alexandre', 'Xhekaj Arber']",pairing,6931,115.5,5,8,49,67,3.23,4.05,38.5,42.2,44.3,Montreal Canadiens,1504.136,50,25.97
+Guhle-Matheson,"['Guhle Kaiden', 'Matheson Mike']",pairing,5929,98.8,3,3,48,43,2.45,2.71,50.0,52.7,47.5,Montreal Canadiens,904.78,33,20.04
+Guhle-Hutson,"['Guhle Kaiden', 'Hutson Lane']",pairing,5119,85.3,7,8,46,48,2.67,2.71,46.7,48.9,49.7,Montreal Canadiens,1263.203,13,9.14
+Dobson-Guhle,"['Dobson Noah', 'Guhle Kaiden']",pairing,3004,50.1,2,0,21,20,1.09,1.29,100.0,51.2,45.9,Montreal Canadiens,907.755,4,4.79
+Struble-Xhekaj,"['Struble Jayden', 'Xhekaj Arber']",pairing,2852,47.5,7,2,37,36,2.17,2.1,77.8,50.7,50.8,Montreal Canadiens,1470.328,25,31.56
+Carrier-Struble,"['Carrier Alexandre', 'Struble Jayden']",pairing,2780,46.3,6,3,33,38,2.18,1.99,66.7,46.5,52.3,Montreal Canadiens,1073.786,15,19.42
+Hutson-Matheson,"['Hutson Lane', 'Matheson Mike']",pairing,2740,45.7,2,0,20,17,1.09,1.0,100.0,54.1,52.2,Montreal Canadiens,1902.21,12,15.77
+Engstrom-Xhekaj,"['Engstrom Adam', 'Xhekaj Arber']",pairing,2643,44.0,5,2,27,42,1.63,2.16,71.4,39.1,43.1,Montreal Canadiens,2224.015,24,32.69
+Guhle-Xhekaj,"['Guhle Kaiden', 'Xhekaj Arber']",pairing,2377,39.6,3,4,26,33,1.57,2.05,42.9,44.1,43.3,Montreal Canadiens,1114.977,4,6.06
+Hutson-Xhekaj,"['Hutson Lane', 'Xhekaj Arber']",pairing,2186,36.4,4,3,21,20,1.17,1.26,57.1,51.2,48.2,Montreal Canadiens,2410.102,8,13.17
+Dobson-Struble,"['Dobson Noah', 'Struble Jayden']",pairing,1467,24.4,0,1,6,7,0.49,0.41,0.0,46.2,54.6,Montreal Canadiens,1212.29,8,19.63
+Engstrom-Struble,"['Engstrom Adam', 'Struble Jayden']",pairing,1355,22.6,1,0,11,13,0.66,0.84,100.0,45.8,44.3,Montreal Canadiens,1591.871,6,15.94
+Engstrom-Hutson,"['Engstrom Adam', 'Hutson Lane']",pairing,1125,18.8,2,0,10,6,0.46,0.28,100.0,62.5,62.5,Montreal Canadiens,2564.305,10,32.0
+Carrier-Dobson,"['Carrier Alexandre', 'Dobson Noah']",pairing,1089,18.1,1,0,4,9,0.18,0.56,100.0,30.8,24.4,Montreal Canadiens,1228.801,4,13.22
+Dobson-Engstrom,"['Dobson Noah', 'Engstrom Adam']",pairing,946,15.8,0,3,10,10,0.39,0.72,0.0,50.0,35.4,Montreal Canadiens,1831.955,6,22.83
+Matheson-Struble,"['Matheson Mike', 'Struble Jayden']",pairing,832,13.9,0,0,1,5,0.04,0.42,,16.7,7.9,Montreal Canadiens,1203.927,1,4.33
+Matheson-Xhekaj,"['Matheson Mike', 'Xhekaj Arber']",pairing,708,11.8,1,0,1,0,0.06,0.0,100.0,100.0,100.0,Montreal Canadiens,1690.734,4,20.34
+Dobson-Xhekaj,"['Dobson Noah', 'Xhekaj Arber']",pairing,657,10.9,0,0,0,0,0.0,0.0,,,,Montreal Canadiens,1709.238,3,16.44
+Guhle-Struble,"['Guhle Kaiden', 'Struble Jayden']",pairing,541,9.0,0,0,5,1,0.22,0.06,,83.3,79.1,Montreal Canadiens,795.104,1,6.65
+Engstrom-Matheson,"['Engstrom Adam', 'Matheson Mike']",pairing,101,1.7,0,0,0,0,0.0,0.0,,,,Montreal Canadiens,1819.816,0,0.0
+Perbix-Skjei,"['Perbix Nick', 'Skjei Brady']",pairing,13214,220.2,10,8,140,145,8.54,8.0,55.6,49.1,51.6,Nashville Predators,3317.664,87,23.7
+Josi-Skjei,"['Josi Roman', 'Skjei Brady']",pairing,12121,202.0,12,15,130,157,7.46,10.06,44.4,45.3,42.6,Nashville Predators,4043.481,101,30.0
+Blankenburg-Hague,"['Blankenburg Nick', 'Hague Nicolas']",pairing,7845,130.8,7,11,74,80,4.09,5.41,38.9,48.1,43.0,Nashville Predators,6346.103,49,22.49
+Hague-Josi,"['Hague Nicolas', 'Josi Roman']",pairing,6132,102.2,8,6,67,55,4.58,3.49,57.1,54.9,56.8,Nashville Predators,4150.794,34,19.96
+Skjei-Wilsby,"['Skjei Brady', 'Wilsby Adam']",pairing,5576,92.9,6,10,62,67,3.47,3.68,37.5,48.1,48.5,Nashville Predators,3479.799,39,25.18
+Hague-Perbix,"['Hague Nicolas', 'Perbix Nick']",pairing,4946,82.4,10,6,61,59,3.19,3.1,62.5,50.8,50.7,Nashville Predators,3230.37,41,29.84
+Barron-Stastney,"['Barron Justin', 'Stastney Spencer']",pairing,4682,78.0,4,5,53,48,2.84,2.98,44.4,52.5,48.8,Nashville Predators,8809.929,43,33.06
+Josi-Perbix,"['Josi Roman', 'Perbix Nick']",pairing,4376,72.9,3,3,53,50,3.77,3.56,50.0,51.5,51.4,Nashville Predators,4064.206,27,22.21
+Josi-Wilsby,"['Josi Roman', 'Wilsby Adam']",pairing,3759,62.6,4,3,42,27,2.89,1.78,57.1,60.9,61.9,Nashville Predators,4194.749,28,26.82
+Barron-Wilsby,"['Barron Justin', 'Wilsby Adam']",pairing,3670,61.2,10,3,45,41,3.0,2.48,76.9,52.3,54.7,Nashville Predators,4078.368,37,36.29
+Blankenburg-Stastney,"['Blankenburg Nick', 'Stastney Spencer']",pairing,3655,60.9,3,7,40,47,2.12,2.86,30.0,46.0,42.5,Nashville Predators,14384.593,29,28.56
+Hague-Wilsby,"['Hague Nicolas', 'Wilsby Adam']",pairing,2992,49.9,3,2,34,45,1.74,2.94,60.0,43.0,37.2,Nashville Predators,3432.076,22,26.47
+Barron-Hague,"['Barron Justin', 'Hague Nicolas']",pairing,2763,46.0,3,4,32,38,2.0,2.42,42.9,45.7,45.3,Nashville Predators,3886.653,12,15.64
+Blankenburg-Josi,"['Blankenburg Nick', 'Josi Roman']",pairing,2080,34.7,3,4,26,37,1.42,2.14,42.9,41.3,39.8,Nashville Predators,7632.706,33,57.12
+Perbix-Wilsby,"['Perbix Nick', 'Wilsby Adam']",pairing,1842,30.7,4,2,19,17,1.49,1.0,66.7,52.8,59.8,Nashville Predators,3444.132,19,37.13
+Barron-Blankenburg,"['Barron Justin', 'Blankenburg Nick']",pairing,1256,20.9,0,3,10,17,0.58,0.94,0.0,37.0,38.3,Nashville Predators,7482.831,9,25.8
+Barron-Josi,"['Barron Justin', 'Josi Roman']",pairing,1162,19.4,2,1,10,12,0.44,0.82,66.7,45.5,35.0,Nashville Predators,4719.409,7,21.69
+Barron-Skjei,"['Barron Justin', 'Skjei Brady']",pairing,1157,19.3,1,0,5,5,0.33,0.22,100.0,50.0,60.2,Nashville Predators,3929.395,11,34.23
+Stastney-Wilsby,"['Stastney Spencer', 'Wilsby Adam']",pairing,1074,17.9,1,1,6,16,0.4,0.98,50.0,27.3,29.0,Nashville Predators,7779.609,9,30.17
+Hague-Skjei,"['Hague Nicolas', 'Skjei Brady']",pairing,869,14.5,0,0,8,4,0.58,0.21,,66.7,73.6,Nashville Predators,3305.203,7,29.0
+Hague-Stastney,"['Hague Nicolas', 'Stastney Spencer']",pairing,729,12.2,0,1,1,3,0.07,0.28,0.0,25.0,19.8,Nashville Predators,7147.045,8,39.51
+Blankenburg-Wilsby,"['Blankenburg Nick', 'Wilsby Adam']",pairing,611,10.2,2,1,5,5,0.37,0.36,66.7,50.0,50.6,Nashville Predators,6631.052,11,64.81
+Blankenburg-Perbix,"['Blankenburg Nick', 'Perbix Nick']",pairing,581,9.7,0,0,0,7,0.0,0.39,,0.0,0.0,Nashville Predators,6340.706,4,24.78
+Blankenburg-Skjei,"['Blankenburg Nick', 'Skjei Brady']",pairing,548,9.1,2,1,4,2,0.34,0.14,66.7,66.7,70.0,Nashville Predators,6389.177,12,78.83
+Barron-Perbix,"['Barron Justin', 'Perbix Nick']",pairing,449,7.5,0,0,2,0,0.08,0.0,,100.0,100.0,Nashville Predators,3893.378,1,8.02
+Skjei-Stastney,"['Skjei Brady', 'Stastney Spencer']",pairing,344,5.7,0,0,1,0,0.02,0.0,,100.0,100.0,Nashville Predators,7492.033,4,41.86
+Perbix-Stastney,"['Perbix Nick', 'Stastney Spencer']",pairing,251,4.2,0,0,0,0,0.0,0.0,,,,Nashville Predators,7322.718,0,0.0
+Josi-Stastney,"['Josi Roman', 'Stastney Spencer']",pairing,188,3.1,0,0,0,3,0.0,0.23,,0.0,0.0,Nashville Predators,9407.49,3,57.45
+Hamilton-Siegenthaler,"['Hamilton Dougie', 'Siegenthaler Jonas']",pairing,21413,356.9,20,25,221,221,12.93,12.94,44.4,50.0,50.0,New Jersey Devils,3078.866,145,24.38
+Dillon-Nemec,"['Dillon Brenden', 'Nemec Simon']",pairing,13039,217.3,12,19,147,137,9.62,8.71,38.7,51.8,52.5,New Jersey Devils,2103.896,96,26.51
+Hughes-Pesce,"['Hughes Luke', 'Pesce Brett']",pairing,7978,133.0,8,12,85,101,5.57,6.63,40.0,45.7,45.7,New Jersey Devils,3564.781,52,23.46
+Dillon-Hughes,"['Dillon Brenden', 'Hughes Luke']",pairing,6068,101.1,4,6,61,74,3.42,4.4,40.0,45.2,43.7,New Jersey Devils,2676.608,57,33.82
+Hughes-Nemec,"['Hughes Luke', 'Nemec Simon']",pairing,4843,80.7,4,5,40,33,2.32,2.05,44.4,54.8,53.1,New Jersey Devils,3493.784,50,37.17
+Hughes-Kovacevic,"['Hughes Luke', 'Kovacevic Johnathan']",pairing,4223,70.4,1,4,36,44,2.09,2.28,20.0,45.0,47.8,New Jersey Devils,3599.39,30,25.57
+Kovacevic-Siegenthaler,"['Kovacevic Johnathan', 'Siegenthaler Jonas']",pairing,3545,59.1,3,3,23,27,1.25,1.87,50.0,46.0,40.1,New Jersey Devils,2842.077,27,27.42
+Nemec-Siegenthaler,"['Nemec Simon', 'Siegenthaler Jonas']",pairing,3354,55.9,1,2,35,35,1.95,2.27,33.3,50.0,46.2,New Jersey Devils,3078.412,24,25.76
+Cholowski-Nemec,"['Cholowski Dennis', 'Nemec Simon']",pairing,2194,36.6,1,0,31,20,1.8,1.34,100.0,60.8,57.4,New Jersey Devils,2621.705,9,14.77
+Hamilton-Hughes,"['Hamilton Dougie', 'Hughes Luke']",pairing,1997,33.3,5,4,17,11,0.97,0.83,55.6,60.7,53.7,New Jersey Devils,3642.785,24,43.26
+Dillon-Hamilton,"['Dillon Brenden', 'Hamilton Dougie']",pairing,1849,30.8,0,2,18,20,1.24,1.16,0.0,47.4,51.6,New Jersey Devils,2133.279,14,27.26
+Hamilton-Nemec,"['Hamilton Dougie', 'Nemec Simon']",pairing,1628,27.1,0,0,8,6,0.43,0.36,,57.1,54.4,New Jersey Devils,2874.852,11,24.32
+Dillon-Pesce,"['Dillon Brenden', 'Pesce Brett']",pairing,1547,25.8,0,2,4,12,0.27,0.99,0.0,25.0,21.5,New Jersey Devils,2022.459,5,11.64
+Kovacevic-Pesce,"['Kovacevic Johnathan', 'Pesce Brett']",pairing,1337,22.3,0,0,9,16,0.44,0.91,,36.0,32.5,New Jersey Devils,2604.299,6,16.16
+Nemec-Pesce,"['Nemec Simon', 'Pesce Brett']",pairing,1328,22.1,2,2,6,13,0.43,0.83,50.0,31.6,33.9,New Jersey Devils,2784.864,7,18.98
+Pesce-Siegenthaler,"['Pesce Brett', 'Siegenthaler Jonas']",pairing,1251,20.9,4,0,11,15,0.9,1.04,100.0,42.3,46.4,New Jersey Devils,2871.703,6,17.27
+Dillon-Kovacevic,"['Dillon Brenden', 'Kovacevic Johnathan']",pairing,1158,19.3,0,0,4,4,0.15,0.28,,50.0,34.1,New Jersey Devils,2015.571,10,31.09
+Hamilton-Pesce,"['Hamilton Dougie', 'Pesce Brett']",pairing,1087,18.1,0,0,11,6,0.72,0.54,,64.7,57.1,New Jersey Devils,2798.476,13,43.05
+Cholowski-Kovacevic,"['Cholowski Dennis', 'Kovacevic Johnathan']",pairing,981,16.4,0,1,14,8,0.62,0.63,0.0,63.6,49.3,New Jersey Devils,2355.899,9,33.03
+Dillon-Siegenthaler,"['Dillon Brenden', 'Siegenthaler Jonas']",pairing,953,15.9,0,1,14,8,1.1,0.43,0.0,63.6,72.1,New Jersey Devils,2220.234,2,7.56
+Cholowski-Hamilton,"['Cholowski Dennis', 'Hamilton Dougie']",pairing,737,12.3,0,2,2,4,0.07,0.3,0.0,33.3,19.8,New Jersey Devils,2596.459,6,29.31
+Cholowski-Dillon,"['Cholowski Dennis', 'Dillon Brenden']",pairing,737,12.3,0,0,17,2,1.0,0.13,,89.5,88.3,New Jersey Devils,1863.777,7,34.19
+Hughes-Siegenthaler,"['Hughes Luke', 'Siegenthaler Jonas']",pairing,645,10.8,0,0,0,0,0.0,0.0,,,,New Jersey Devils,3953.141,12,66.98
+Cholowski-Hughes,"['Cholowski Dennis', 'Hughes Luke']",pairing,313,5.2,0,0,1,0,0.1,0.0,,100.0,100.0,New Jersey Devils,3388.798,0,0.0
+Hamilton-Kovacevic,"['Hamilton Dougie', 'Kovacevic Johnathan']",pairing,187,3.1,0,0,0,0,0.0,0.0,,,,New Jersey Devils,2796.857,3,57.75
+Kovacevic-Nemec,"['Kovacevic Johnathan', 'Nemec Simon']",pairing,185,3.1,0,0,0,0,0.0,0.0,,,,New Jersey Devils,2800.326,1,19.46
+Cholowski-Siegenthaler,"['Cholowski Dennis', 'Siegenthaler Jonas']",pairing,147,2.5,0,0,0,0,0.0,0.0,,,,New Jersey Devils,2602.362,0,0.0
+Pulock-Schaefer,"['Pulock Ryan', 'Schaefer Matthew']",pairing,15195,253.2,16,16,180,170,10.52,10.08,50.0,51.4,51.1,New York Islanders,4809.271,156,36.96
+DeAngelo-Pelech,"['DeAngelo Tony', 'Pelech Adam']",pairing,12819,213.7,9,16,137,137,7.81,8.56,36.0,50.0,47.7,New York Islanders,3860.806,128,35.95
+Pelech-Pulock,"['Pelech Adam', 'Pulock Ryan']",pairing,8601,143.3,8,15,113,82,6.76,4.54,34.8,57.9,59.8,New York Islanders,3587.352,66,27.62
+Mayfield-Schaefer,"['Mayfield Scott', 'Schaefer Matthew']",pairing,7557,126.0,8,6,91,70,5.72,3.69,57.1,56.5,60.8,New York Islanders,4218.516,72,34.3
+Pelech-Schaefer,"['Pelech Adam', 'Schaefer Matthew']",pairing,4716,78.6,2,5,40,47,2.39,2.95,28.6,46.0,44.7,New York Islanders,5262.136,36,27.48
+Boqvist-Mayfield,"['Boqvist Adam', 'Mayfield Scott']",pairing,4315,71.9,7,5,61,61,3.6,3.74,58.3,50.0,49.0,New York Islanders,2058.896,30,25.03
+Mayfield-Soucy,"['Mayfield Scott', 'Soucy Carson']",pairing,4126,68.8,10,6,59,38,3.94,2.36,62.5,60.8,62.6,New York Islanders,3563.763,20,17.45
+DeAngelo-Romanov,"['DeAngelo Tony', 'Romanov Alexander']",pairing,3768,62.8,1,6,45,46,2.55,2.77,14.3,49.5,48.0,New York Islanders,3066.129,41,39.17
+Pelech-Soucy,"['Pelech Adam', 'Soucy Carson']",pairing,3372,56.2,3,3,31,28,1.8,1.71,50.0,52.5,51.3,New York Islanders,4572.011,39,41.64
+DeAngelo-Schaefer,"['DeAngelo Tony', 'Schaefer Matthew']",pairing,2546,42.4,0,5,34,34,1.95,2.14,0.0,50.0,47.7,New York Islanders,4806.04,43,60.8
+Mayfield-Romanov,"['Mayfield Scott', 'Romanov Alexander']",pairing,2470,41.2,3,5,33,21,1.52,1.66,37.5,61.1,47.8,New York Islanders,2571.067,13,18.95
+Mayfield-Pelech,"['Mayfield Scott', 'Pelech Adam']",pairing,2043,34.0,1,0,8,7,0.69,0.31,100.0,53.3,68.9,New York Islanders,3049.842,7,12.33
+DeAngelo-Soucy,"['DeAngelo Tony', 'Soucy Carson']",pairing,1778,29.6,2,1,18,26,1.26,1.85,66.7,40.9,40.6,New York Islanders,4800.941,12,24.3
+Boqvist-Schaefer,"['Boqvist Adam', 'Schaefer Matthew']",pairing,1509,25.1,5,2,31,23,1.42,1.53,71.4,57.4,48.1,New York Islanders,3375.834,15,35.79
+DeAngelo-Mayfield,"['DeAngelo Tony', 'Mayfield Scott']",pairing,1289,21.5,0,0,0,0,0.0,0.0,,,,New York Islanders,3087.477,9,25.14
+Schaefer-Soucy,"['Schaefer Matthew', 'Soucy Carson']",pairing,1168,19.5,0,1,1,1,0.05,0.04,0.0,50.0,51.8,New York Islanders,6598.823,8,24.66
+Boqvist-DeAngelo,"['Boqvist Adam', 'DeAngelo Tony']",pairing,1104,18.4,1,2,14,13,0.76,0.74,33.3,51.9,50.7,New York Islanders,2492.759,13,42.39
+DeAngelo-Pulock,"['DeAngelo Tony', 'Pulock Ryan']",pairing,821,13.7,0,0,2,1,0.07,0.07,,66.7,49.4,New York Islanders,3535.764,4,17.54
+Boqvist-Pelech,"['Boqvist Adam', 'Pelech Adam']",pairing,646,10.8,0,2,4,6,0.37,0.45,0.0,40.0,45.0,New York Islanders,2593.388,9,50.15
+Mayfield-Pulock,"['Mayfield Scott', 'Pulock Ryan']",pairing,622,10.4,0,0,1,2,0.07,0.08,,33.3,45.8,New York Islanders,2833.783,2,11.58
+Pulock-Soucy,"['Pulock Ryan', 'Soucy Carson']",pairing,376,6.3,0,0,1,0,0.03,0.0,,100.0,100.0,New York Islanders,4274.63,3,28.72
+Boqvist-Soucy,"['Boqvist Adam', 'Soucy Carson']",pairing,327,5.5,0,0,0,1,0.0,0.02,,0.0,0.0,New York Islanders,3144.938,4,44.04
+Boqvist-Pulock,"['Boqvist Adam', 'Pulock Ryan']",pairing,243,4.0,0,0,0,0,0.0,0.0,,,,New York Islanders,2389.28,2,29.63
+Pulock-Romanov,"['Pulock Ryan', 'Romanov Alexander']",pairing,210,3.5,0,0,0,0,0.0,0.0,,,,New York Islanders,2970.279,1,17.14
+Boqvist-Romanov,"['Boqvist Adam', 'Romanov Alexander']",pairing,198,3.3,1,2,2,8,0.17,0.37,33.3,20.0,31.6,New York Islanders,2111.664,1,18.18
+Romanov-Schaefer,"['Romanov Alexander', 'Schaefer Matthew']",pairing,189,3.1,0,0,1,1,0.09,0.03,,50.0,74.3,New York Islanders,4142.99,3,57.14
+Borgen-Robertson,"['Borgen Will', 'Robertson Matthew']",pairing,4708,78.5,14,14,174,198,10.14,12.22,50.0,46.8,45.4,New York Rangers,1614.783,60,45.88
+Gavrikov-Schneider,"['Gavrikov Vladislav', 'Schneider Braden']",pairing,4465,74.4,14,19,193,168,11.43,10.07,42.4,53.5,53.2,New York Rangers,2062.122,116,93.53
+Fox-Gavrikov,"['Fox Adam', 'Gavrikov Vladislav']",pairing,3186,53.1,12,16,122,172,7.65,10.27,42.9,41.5,42.7,New York Rangers,2036.63,134,151.41
+Robertson-Schneider,"['Robertson Matthew', 'Schneider Braden']",pairing,2601,43.4,17,16,123,124,7.08,6.79,51.5,49.8,51.1,New York Rangers,1860.802,45,62.28
+Borgen-Vaakanainen,"['Borgen Will', 'Vaakanainen Urho']",pairing,849,14.2,4,9,36,45,2.64,2.4,30.8,44.4,52.4,New York Rangers,1336.412,14,59.36
+Fortescue-Schneider,"['Fortescue Drew', 'Schneider Braden']",pairing,787,13.1,2,5,33,46,2.16,2.91,28.6,41.8,42.6,New York Rangers,3334.907,19,86.91
+Iorio-Vaakanainen,"['Iorio Vincent', 'Vaakanainen Urho']",pairing,631,10.5,0,6,27,30,1.4,1.78,0.0,47.4,44.0,New York Rangers,16794.205,2,11.41
+Borgen-Schneider,"['Borgen Will', 'Schneider Braden']",pairing,390,6.5,0,1,6,12,0.26,0.57,0.0,33.3,31.1,New York Rangers,2077.187,19,175.38
+Gavrikov-Robertson,"['Gavrikov Vladislav', 'Robertson Matthew']",pairing,277,4.6,1,2,5,8,0.31,0.47,33.3,38.5,39.7,New York Rangers,1602.07,6,77.98
+Borgen-Soucy,"['Borgen Will', 'Soucy Carson']",pairing,175,2.9,0,0,0,2,0.0,0.12,,0.0,0.0,New York Rangers,3104.754,24,493.71
+Robertson-Vaakanainen,"['Robertson Matthew', 'Vaakanainen Urho']",pairing,166,2.8,0,1,0,7,0.0,0.37,0.0,0.0,0.0,New York Rangers,1203.984,10,216.87
+Schneider-Vaakanainen,"['Schneider Braden', 'Vaakanainen Urho']",pairing,162,2.7,1,1,5,1,0.35,0.13,50.0,83.3,72.6,New York Rangers,1540.882,9,200.0
+Iorio-Robertson,"['Iorio Vincent', 'Robertson Matthew']",pairing,156,2.6,0,0,2,4,0.09,0.19,,33.3,30.7,New York Rangers,19898.284,5,115.38
+Borgen-Gavrikov,"['Borgen Will', 'Gavrikov Vladislav']",pairing,148,2.5,0,0,3,7,0.09,0.51,,30.0,15.1,New York Rangers,1788.997,5,121.62
+Gavrikov-Vaakanainen,"['Gavrikov Vladislav', 'Vaakanainen Urho']",pairing,148,2.5,1,0,3,2,0.21,0.1,100.0,60.0,67.1,New York Rangers,1327.492,1,24.32
+Fox-Schneider,"['Fox Adam', 'Schneider Braden']",pairing,129,2.1,0,0,2,4,0.22,0.17,,33.3,56.8,New York Rangers,2367.541,5,139.53
+Fox-Robertson,"['Fox Adam', 'Robertson Matthew']",pairing,104,1.7,1,0,5,3,0.35,0.21,100.0,62.5,62.2,New York Rangers,1802.447,3,103.85
+Sanderson-Zub,"['Sanderson Jake', 'Zub Artem']",pairing,17935,298.9,24,10,187,158,12.26,8.11,70.6,54.2,60.2,Ottawa Senators,4080.792,151,30.31
+Kleven-Spence,"['Kleven Tyler', 'Spence Jordan']",pairing,11818,197.0,11,18,140,154,9.17,9.09,37.9,47.6,50.2,Ottawa Senators,3139.787,90,27.42
+Chabot-Jensen,"['Chabot Thomas', 'Jensen Nick']",pairing,8005,133.4,16,13,125,122,8.35,7.21,55.2,50.6,53.7,Ottawa Senators,4024.339,65,29.23
+Chabot-Spence,"['Chabot Thomas', 'Spence Jordan']",pairing,6707,111.8,13,10,87,57,5.83,3.11,56.5,60.4,65.2,Ottawa Senators,4438.637,93,49.92
+Jensen-Matinpalo,"['Jensen Nick', 'Matinpalo Nikolas']",pairing,5494,91.6,9,4,77,61,5.27,2.99,69.2,55.8,63.8,Ottawa Senators,2313.889,45,29.49
+Kleven-Matinpalo,"['Kleven Tyler', 'Matinpalo Nikolas']",pairing,3443,57.4,5,6,44,62,2.83,3.82,45.5,41.5,42.6,Ottawa Senators,2469.045,34,35.55
+Sanderson-Spence,"['Sanderson Jake', 'Spence Jordan']",pairing,2918,48.6,6,3,32,25,2.15,1.62,66.7,56.1,57.1,Ottawa Senators,4766.107,43,53.05
+Chabot-Zub,"['Chabot Thomas', 'Zub Artem']",pairing,2774,46.2,3,3,30,28,2.01,1.52,50.0,51.7,57.0,Ottawa Senators,3818.697,22,28.55
+Kleven-Zub,"['Kleven Tyler', 'Zub Artem']",pairing,2639,44.0,6,3,48,29,2.91,1.84,66.7,62.3,61.3,Ottawa Senators,2579.056,25,34.1
+Gilbert-Matinpalo,"['Gilbert Dennis', 'Matinpalo Nikolas']",pairing,2224,37.1,1,3,21,9,1.32,0.51,25.0,70.0,72.2,Ottawa Senators,,9,14.57
+Matinpalo-Sanderson,"['Matinpalo Nikolas', 'Sanderson Jake']",pairing,1801,30.0,4,4,26,30,1.49,1.79,50.0,46.4,45.5,Ottawa Senators,3854.229,6,11.99
+Matinpalo-Spence,"['Matinpalo Nikolas', 'Spence Jordan']",pairing,1611,26.9,0,1,14,16,0.99,0.78,0.0,46.7,56.0,Ottawa Senators,2577.134,11,24.58
+Jensen-Kleven,"['Jensen Nick', 'Kleven Tyler']",pairing,1507,25.1,2,1,5,12,0.46,0.59,66.7,29.4,43.9,Ottawa Senators,2816.45,14,33.44
+Chabot-Matinpalo,"['Chabot Thomas', 'Matinpalo Nikolas']",pairing,1137,18.9,1,0,11,13,0.52,0.75,100.0,45.8,41.1,Ottawa Senators,3601.132,5,15.83
+Spence-Zub,"['Spence Jordan', 'Zub Artem']",pairing,1137,18.9,1,4,8,15,0.46,0.9,20.0,34.8,33.8,Ottawa Senators,2715.752,8,25.33
+Crotty-Thomson,"['Crotty Cameron', 'Thomson Lassi']",pairing,936,15.6,2,3,20,21,1.24,1.1,40.0,48.8,53.0,Ottawa Senators,1779.622,3,11.54
+Jensen-Sanderson,"['Jensen Nick', 'Sanderson Jake']",pairing,832,13.9,2,2,13,5,0.86,0.22,50.0,72.2,79.9,Ottawa Senators,4316.378,5,21.63
+Matinpalo-Zub,"['Matinpalo Nikolas', 'Zub Artem']",pairing,796,13.3,0,0,13,9,0.83,0.58,,59.1,58.8,Ottawa Senators,2125.564,5,22.61
+Chabot-Sanderson,"['Chabot Thomas', 'Sanderson Jake']",pairing,750,12.5,0,4,9,14,0.52,1.01,0.0,39.1,34.1,Ottawa Senators,6515.671,6,28.8
+Spence-Thomson,"['Spence Jordan', 'Thomson Lassi']",pairing,693,11.6,0,2,5,10,0.19,0.91,0.0,33.3,17.7,Ottawa Senators,2868.078,4,20.78
+Spence-Yakemchuk,"['Spence Jordan', 'Yakemchuk Carter']",pairing,555,9.2,2,2,10,15,0.65,0.9,50.0,40.0,41.8,Ottawa Senators,3533.464,3,19.46
+Gilbert-Spence,"['Gilbert Dennis', 'Spence Jordan']",pairing,543,9.1,0,1,15,12,0.91,0.97,0.0,55.6,48.3,Ottawa Senators,,5,33.15
+Sanderson-Thomson,"['Sanderson Jake', 'Thomson Lassi']",pairing,501,8.3,0,0,5,4,0.33,0.23,,55.6,58.8,Ottawa Senators,4320.82,1,7.19
+Crotty-Matinpalo,"['Crotty Cameron', 'Matinpalo Nikolas']",pairing,457,7.6,2,1,11,5,0.76,0.37,66.7,68.8,67.4,Ottawa Senators,1602.713,2,15.75
+Chabot-Yakemchuk,"['Chabot Thomas', 'Yakemchuk Carter']",pairing,427,7.1,1,1,5,11,0.24,0.7,50.0,31.2,25.8,Ottawa Senators,4854.882,1,8.43
+Kleven-Yakemchuk,"['Kleven Tyler', 'Yakemchuk Carter']",pairing,370,6.2,0,1,6,3,0.27,0.23,0.0,66.7,54.0,Ottawa Senators,3464.112,5,48.65
+Matinpalo-Thomson,"['Matinpalo Nikolas', 'Thomson Lassi']",pairing,315,5.2,1,0,4,5,0.21,0.34,100.0,44.4,38.3,Ottawa Senators,2235.595,0,0.0
+Crotty-Kleven,"['Crotty Cameron', 'Kleven Tyler']",pairing,274,4.6,0,0,4,6,0.17,0.35,,40.0,32.5,Ottawa Senators,1951.574,1,13.14
+Crotty-Spence,"['Crotty Cameron', 'Spence Jordan']",pairing,247,4.1,0,0,1,2,0.02,0.2,,33.3,10.0,Ottawa Senators,2007.709,2,29.15
+Gilbert-Thomson,"['Gilbert Dennis', 'Thomson Lassi']",pairing,203,3.4,1,2,6,6,0.31,0.4,33.3,50.0,43.6,Ottawa Senators,,0,0.0
+Chabot-Gilbert,"['Chabot Thomas', 'Gilbert Dennis']",pairing,161,2.7,0,0,3,2,0.19,0.07,,60.0,72.1,Ottawa Senators,,0,0.0
+Chabot-Thomson,"['Chabot Thomas', 'Thomson Lassi']",pairing,154,2.6,0,0,0,0,0.0,0.0,,,,Ottawa Senators,4046.694,1,23.38
+Jensen-Spence,"['Jensen Nick', 'Spence Jordan']",pairing,141,2.4,0,0,0,0,0.0,0.0,,,,Ottawa Senators,2904.97,0,0.0
+Jensen-Zub,"['Jensen Nick', 'Zub Artem']",pairing,134,2.2,0,0,0,0,0.0,0.0,,,,Ottawa Senators,2432.205,1,26.87
+Chabot-Crotty,"['Chabot Thomas', 'Crotty Cameron']",pairing,112,1.9,0,0,0,0,0.0,0.0,,,,Ottawa Senators,2776.057,1,32.14
+Gilbert-Sanderson,"['Gilbert Dennis', 'Sanderson Jake']",pairing,105,1.8,0,0,0,2,0.0,0.14,,0.0,0.0,Ottawa Senators,,0,0.0
+Thomson-Zub,"['Thomson Lassi', 'Zub Artem']",pairing,93,1.6,0,0,0,0,0.0,0.0,,,,Ottawa Senators,2324.996,0,0.0
+Sanheim-York,"['Sanheim Travis', 'York Cam']",pairing,8648,144.1,20,28,189,204,12.53,12.11,41.7,48.1,50.8,Philadelphia Flyers,2520.971,122,50.79
+Andrae-Drysdale,"['Andrae Emil', 'Drysdale Jamie']",pairing,5537,92.3,13,12,123,143,7.6,8.93,52.0,46.2,46.0,Philadelphia Flyers,2201.261,76,49.41
+Drysdale-Seeler,"['Drysdale Jamie', 'Seeler Nick']",pairing,5165,86.1,6,10,109,120,7.77,6.37,37.5,47.6,54.9,Philadelphia Flyers,1621.657,43,29.97
+Sanheim-Seeler,"['Sanheim Travis', 'Seeler Nick']",pairing,3916,65.3,13,13,118,132,7.04,7.73,50.0,47.2,47.7,Philadelphia Flyers,1846.46,22,20.22
+Drysdale-York,"['Drysdale Jamie', 'York Cam']",pairing,3467,57.8,8,6,89,93,5.4,5.39,57.1,48.9,50.1,Philadelphia Flyers,2237.38,115,119.41
+Ristolainen-Sanheim,"['Ristolainen Rasmus', 'Sanheim Travis']",pairing,3159,52.6,8,14,91,85,5.9,5.21,36.4,51.7,53.1,Philadelphia Flyers,3038.398,129,147.01
+Drysdale-Sanheim,"['Drysdale Jamie', 'Sanheim Travis']",pairing,1954,32.6,5,4,33,37,2.15,2.26,55.6,47.1,48.7,Philadelphia Flyers,2404.88,23,42.37
+Ristolainen-Seeler,"['Ristolainen Rasmus', 'Seeler Nick']",pairing,1832,30.5,5,4,36,35,1.95,1.91,55.6,50.7,50.5,Philadelphia Flyers,2061.698,10,19.65
+Juulsen-Seeler,"['Juulsen Noah', 'Seeler Nick']",pairing,1794,29.9,3,4,23,35,1.24,2.3,42.9,39.7,35.1,Philadelphia Flyers,1722.179,33,66.22
+Andrae-Seeler,"['Andrae Emil', 'Seeler Nick']",pairing,1621,27.0,7,1,46,40,3.64,2.06,87.5,53.5,63.9,Philadelphia Flyers,1658.578,38,84.39
+Drysdale-Zamula,"['Drysdale Jamie', 'Zamula Egor']",pairing,1518,25.3,3,2,32,33,1.93,1.71,60.0,49.2,53.0,Philadelphia Flyers,11076.426,1,2.37
+Juulsen-Zamula,"['Juulsen Noah', 'Zamula Egor']",pairing,1483,24.7,4,1,60,39,3.9,1.93,80.0,60.6,67.0,Philadelphia Flyers,12092.158,15,36.41
+Ristolainen-York,"['Ristolainen Rasmus', 'York Cam']",pairing,1152,19.2,2,2,26,24,1.65,1.4,50.0,52.0,54.1,Philadelphia Flyers,2829.332,9,28.12
+Andrae-Juulsen,"['Andrae Emil', 'Juulsen Noah']",pairing,1043,17.4,1,2,15,14,0.73,1.01,33.3,51.7,42.0,Philadelphia Flyers,2438.014,17,58.68
+Grans-Seeler,"['Grans Helge', 'Seeler Nick']",pairing,896,14.9,3,1,30,26,1.92,1.59,75.0,53.6,54.7,Philadelphia Flyers,,0,0.0
+Seeler-Zamula,"['Seeler Nick', 'Zamula Egor']",pairing,640,10.7,1,1,12,8,0.82,0.46,50.0,60.0,64.2,Philadelphia Flyers,8017.907,2,11.25
+Seeler-York,"['Seeler Nick', 'York Cam']",pairing,391,6.5,0,0,3,3,0.33,0.18,,50.0,65.0,Philadelphia Flyers,1685.761,5,46.04
+Drysdale-Ristolainen,"['Drysdale Jamie', 'Ristolainen Rasmus']",pairing,306,5.1,2,2,9,6,0.73,0.38,50.0,60.0,65.9,Philadelphia Flyers,2699.993,2,23.53
+Sanheim-Zamula,"['Sanheim Travis', 'Zamula Egor']",pairing,255,4.2,0,1,7,6,0.35,0.53,0.0,53.8,39.7,Philadelphia Flyers,12526.116,0,0.0
+Andrae-Sanheim,"['Andrae Emil', 'Sanheim Travis']",pairing,247,4.1,0,0,1,2,0.03,0.06,,33.3,35.5,Philadelphia Flyers,2480.27,10,145.75
+Drysdale-Juulsen,"['Drysdale Jamie', 'Juulsen Noah']",pairing,243,4.0,1,0,3,1,0.17,0.02,100.0,75.0,88.4,Philadelphia Flyers,2372.212,5,74.07
+York-Zamula,"['York Cam', 'Zamula Egor']",pairing,203,3.4,0,1,0,1,0.0,0.03,0.0,0.0,0.0,Philadelphia Flyers,11568.328,0,0.0
+Juulsen-York,"['Juulsen Noah', 'York Cam']",pairing,197,3.3,0,0,0,0,0.0,0.0,,,,Philadelphia Flyers,2478.001,6,109.64
+Andrae-Ristolainen,"['Andrae Emil', 'Ristolainen Rasmus']",pairing,195,3.2,0,0,1,7,0.07,0.48,,12.5,12.7,Philadelphia Flyers,2783.655,5,92.31
+Andrae-York,"['Andrae Emil', 'York Cam']",pairing,189,3.1,1,0,1,3,0.03,0.18,100.0,25.0,12.6,Philadelphia Flyers,2304.749,7,133.33
+Karlsson-Wotherspoon,"['Karlsson Erik', 'Wotherspoon Parker']",pairing,68523,1142.0,119,110,1010,1021,66.24,61.58,52.0,49.7,51.8,Pittsburgh Penguins,4305.788,649,34.1
+Letang-Shea,"['Letang Kris', 'Shea Ryan']",pairing,31290,521.5,49,34,405,401,27.27,24.08,59.0,50.2,53.1,Pittsburgh Penguins,3347.616,245,28.19
+Girard-Letang,"['Girard Samuel', 'Letang Kris']",pairing,21485,358.1,34,39,320,309,21.51,19.78,46.6,50.9,52.1,Pittsburgh Penguins,6512.879,189,31.67
+Clifton-Shea,"['Clifton Connor', 'Shea Ryan']",pairing,20571,342.9,53,57,413,410,23.79,25.62,48.2,50.2,48.1,Pittsburgh Penguins,2427.486,137,23.98
+Kulak-Letang,"['Kulak Brett', 'Letang Kris']",pairing,16964,282.7,30,18,230,215,15.53,12.78,62.5,51.7,54.9,Pittsburgh Penguins,27217.8,130,27.59
+Shea-St.,"['Shea Ryan', 'St. Ivany Jack']",pairing,9103,151.7,7,11,100,88,6.0,5.54,38.9,53.2,52.0,Pittsburgh Penguins,2698.02,66,26.1
+Clifton-Graves,"['Clifton Connor', 'Graves Ryan']",pairing,8804,146.7,15,11,170,120,11.15,7.69,57.7,58.6,59.2,Pittsburgh Penguins,2086.081,72,29.44
+Clifton-Solovyov,"['Clifton Connor', 'Solovyov Ilya']",pairing,5702,95.0,10,10,100,74,6.33,4.25,50.0,57.5,59.8,Pittsburgh Penguins,30805.134,31,19.57
+Shea-Wotherspoon,"['Shea Ryan', 'Wotherspoon Parker']",pairing,4888,81.5,22,17,146,131,9.13,7.28,56.4,52.7,55.7,Pittsburgh Penguins,3029.828,44,32.41
+Letang-Wotherspoon,"['Letang Kris', 'Wotherspoon Parker']",pairing,4446,74.1,4,4,18,15,1.68,1.15,50.0,54.5,59.3,Pittsburgh Penguins,3575.246,51,41.3
+Karlsson-Shea,"['Karlsson Erik', 'Shea Ryan']",pairing,3967,66.1,2,10,13,25,0.9,1.73,16.7,34.2,34.2,Pittsburgh Penguins,4021.063,31,28.13
+Kulak-Shea,"['Kulak Brett', 'Shea Ryan']",pairing,3862,64.4,3,6,36,53,2.67,2.73,33.3,40.4,49.4,Pittsburgh Penguins,23335.419,36,33.56
+Karlsson-Letang,"['Karlsson Erik', 'Letang Kris']",pairing,3559,59.3,1,1,27,22,1.34,1.09,50.0,55.1,55.3,Pittsburgh Penguins,4421.782,86,86.99
+St.-Wotherspoon,"['St. Ivany Jack', 'Wotherspoon Parker']",pairing,2952,49.2,6,3,31,41,1.98,3.06,66.7,43.1,39.3,Pittsburgh Penguins,2861.446,25,30.49
+Kulak-St.,"['Kulak Brett', 'St. Ivany Jack']",pairing,2438,40.6,8,6,79,86,3.88,4.89,57.1,47.9,44.3,Pittsburgh Penguins,21961.384,12,17.72
+Clifton-Wotherspoon,"['Clifton Connor', 'Wotherspoon Parker']",pairing,2366,39.4,0,2,6,4,0.41,0.24,0.0,60.0,62.7,Pittsburgh Penguins,2566.389,13,19.78
+Shea-Solovyov,"['Shea Ryan', 'Solovyov Ilya']",pairing,2206,36.8,2,1,27,21,1.61,1.58,66.7,56.2,50.6,Pittsburgh Penguins,36360.788,19,31.01
+Girard-Karlsson,"['Girard Samuel', 'Karlsson Erik']",pairing,1822,30.4,0,1,16,2,1.24,0.1,0.0,88.9,92.8,Pittsburgh Penguins,7741.617,10,19.76
+Graves-Solovyov,"['Graves Ryan', 'Solovyov Ilya']",pairing,1660,27.7,0,7,16,31,0.75,2.02,0.0,34.0,27.2,Pittsburgh Penguins,31287.258,14,30.36
+Kulak-Wotherspoon,"['Kulak Brett', 'Wotherspoon Parker']",pairing,1560,26.0,0,1,7,10,0.52,0.81,0.0,41.2,38.8,Pittsburgh Penguins,24683.108,9,20.77
+Karlsson-Kulak,"['Karlsson Erik', 'Kulak Brett']",pairing,1275,21.2,0,0,6,10,0.23,0.48,,37.5,32.5,Pittsburgh Penguins,32679.085,5,14.12
+Clifton-Girard,"['Clifton Connor', 'Girard Samuel']",pairing,1260,21.0,1,0,21,10,0.87,0.44,100.0,67.7,66.1,Pittsburgh Penguins,4911.333,6,17.14
+Clifton-Kulak,"['Clifton Connor', 'Kulak Brett']",pairing,1141,19.0,9,10,58,52,3.75,3.22,47.4,52.7,53.8,Pittsburgh Penguins,19769.5,6,18.93
+Girard-St.,"['Girard Samuel', 'St. Ivany Jack']",pairing,1124,18.7,4,0,25,14,1.49,0.93,100.0,64.1,61.6,Pittsburgh Penguins,5393.486,15,48.04
+Solovyov-St.,"['Solovyov Ilya', 'St. Ivany Jack']",pairing,1114,18.6,6,2,40,12,3.37,0.59,75.0,76.9,85.2,Pittsburgh Penguins,34204.312,11,35.55
+Livanavage-St.,"['Livanavage Jake', 'St. Ivany Jack']",pairing,1049,17.5,1,0,9,16,0.59,1.04,100.0,36.0,36.2,Pittsburgh Penguins,2058.312,6,20.59
+Graves-St.,"['Graves Ryan', 'St. Ivany Jack']",pairing,983,16.4,0,0,14,16,1.01,0.73,,46.7,57.9,Pittsburgh Penguins,2330.013,4,14.65
+Girard-Wotherspoon,"['Girard Samuel', 'Wotherspoon Parker']",pairing,928,15.5,2,1,24,18,1.46,1.07,66.7,57.1,57.6,Pittsburgh Penguins,6176.69,10,38.79
+Graves-Shea,"['Graves Ryan', 'Shea Ryan']",pairing,912,15.2,2,0,10,11,0.68,0.5,100.0,47.6,57.8,Pittsburgh Penguins,2462.991,5,19.74
+Girard-Solovyov,"['Girard Samuel', 'Solovyov Ilya']",pairing,806,13.4,1,1,15,9,1.06,0.41,50.0,62.5,71.9,Pittsburgh Penguins,73336.203,19,84.86
+Letang-Solovyov,"['Letang Kris', 'Solovyov Ilya']",pairing,551,9.2,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,42346.369,3,19.6
+Clifton-Karlsson,"['Clifton Connor', 'Karlsson Erik']",pairing,527,8.8,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,3409.498,5,34.16
+Girard-Shea,"['Girard Samuel', 'Shea Ryan']",pairing,487,8.1,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,5794.087,5,36.96
+Clifton-Letang,"['Clifton Connor', 'Letang Kris']",pairing,482,8.0,0,0,17,8,0.67,0.35,,68.0,66.0,Pittsburgh Penguins,2837.956,2,14.94
+Karlsson-Solovyov,"['Karlsson Erik', 'Solovyov Ilya']",pairing,415,6.9,0,2,4,5,0.34,0.32,0.0,44.4,51.6,Pittsburgh Penguins,50822.883,3,26.02
+Graves-Letang,"['Graves Ryan', 'Letang Kris']",pairing,293,4.9,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,2922.467,3,36.86
+Clifton-St.,"['Clifton Connor', 'St. Ivany Jack']",pairing,227,3.8,0,1,16,12,0.73,0.56,0.0,57.1,56.3,Pittsburgh Penguins,2286.151,1,15.86
+Graves-Wotherspoon,"['Graves Ryan', 'Wotherspoon Parker']",pairing,224,3.7,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,2595.51,3,48.21
+Solovyov-Wotherspoon,"['Solovyov Ilya', 'Wotherspoon Parker']",pairing,165,2.8,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,38473.228,0,0.0
+Graves-Karlsson,"['Graves Ryan', 'Karlsson Erik']",pairing,156,2.6,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,3524.69,0,0.0
+Kulak-Solovyov,"['Kulak Brett', 'Solovyov Ilya']",pairing,151,2.5,0,0,0,0,0.0,0.0,,,,Pittsburgh Penguins,296083.075,1,23.84
+Klingberg-Orlov,"['Klingberg John', 'Orlov Dmitry']",pairing,31080,518.0,43,56,423,485,26.41,29.98,43.4,46.6,46.8,San Jose Sharks,3985.038,214,24.79
+Ferraro-Mukhamadullin,"['Ferraro Mario', 'Mukhamadullin Shakir']",pairing,29312,488.5,39,27,310,307,19.36,17.93,59.1,50.2,51.9,San Jose Sharks,2811.093,166,20.39
+Desharnais-Dickinson,"['Desharnais Vincent', 'Dickinson Sam']",pairing,22904,381.7,31,27,234,267,15.0,16.56,53.4,46.7,47.5,San Jose Sharks,2902.703,160,25.15
+Liljegren-Orlov,"['Liljegren Timothy', 'Orlov Dmitry']",pairing,21032,350.5,30,36,260,294,16.11,17.41,45.5,46.9,48.1,San Jose Sharks,3679.731,142,24.31
+Dickinson-Leddy,"['Dickinson Sam', 'Leddy Nick']",pairing,17050,284.2,21,49,305,372,19.38,23.68,30.0,45.1,45.0,San Jose Sharks,2847.758,121,25.55
+Ferraro-Liljegren,"['Ferraro Mario', 'Liljegren Timothy']",pairing,14503,241.7,17,25,196,257,10.48,15.03,40.5,43.3,41.1,San Jose Sharks,2808.915,103,25.57
+Ferraro-Klingberg,"['Ferraro Mario', 'Klingberg John']",pairing,14226,237.1,20,29,184,232,12.12,12.87,40.8,44.2,48.5,San Jose Sharks,3090.037,114,28.85
+Desharnais-Orlov,"['Desharnais Vincent', 'Orlov Dmitry']",pairing,10797,179.9,10,25,137,181,8.85,9.84,28.6,43.1,47.3,San Jose Sharks,3033.823,71,23.67
+Mukhamadullin-Orlov,"['Mukhamadullin Shakir', 'Orlov Dmitry']",pairing,7160,119.3,9,12,72,91,4.85,6.15,42.9,44.2,44.1,San Jose Sharks,3798.458,48,24.13
+Dickinson-Iorio,"['Dickinson Sam', 'Iorio Vincent']",pairing,6940,115.7,21,18,150,171,10.15,10.93,53.8,46.7,48.1,San Jose Sharks,31886.369,39,20.23
+Desharnais-Ferraro,"['Desharnais Vincent', 'Ferraro Mario']",pairing,6485,108.1,15,16,107,96,7.45,5.56,48.4,52.7,57.3,San Jose Sharks,2209.383,50,27.76
+Ferraro-Iorio,"['Ferraro Mario', 'Iorio Vincent']",pairing,5943,99.0,11,12,63,75,4.16,4.33,47.8,45.7,49.0,San Jose Sharks,25131.705,55,33.32
+Ferraro-Orlov,"['Ferraro Mario', 'Orlov Dmitry']",pairing,5746,95.8,10,5,54,64,3.87,3.72,66.7,45.8,51.0,San Jose Sharks,2978.167,39,24.43
+Dickinson-Ferraro,"['Dickinson Sam', 'Ferraro Mario']",pairing,5573,92.9,6,6,33,56,2.13,3.36,50.0,37.1,38.8,San Jose Sharks,2821.572,43,27.78
+Dickinson-Liljegren,"['Dickinson Sam', 'Liljegren Timothy']",pairing,4527,75.5,11,6,54,57,3.24,3.17,64.7,48.6,50.6,San Jose Sharks,3595.311,34,27.04
+Dickinson-Klingberg,"['Dickinson Sam', 'Klingberg John']",pairing,4508,75.1,8,7,65,73,4.25,4.07,53.3,47.1,51.1,San Jose Sharks,3921.385,44,35.14
+Dickinson-Orlov,"['Dickinson Sam', 'Orlov Dmitry']",pairing,4007,66.8,5,7,33,35,2.11,1.8,41.7,48.5,53.9,San Jose Sharks,3769.189,25,22.46
+Desharnais-Mukhamadullin,"['Desharnais Vincent', 'Mukhamadullin Shakir']",pairing,3604,60.1,2,1,24,33,1.61,1.69,66.7,42.1,48.8,San Jose Sharks,2900.2,21,20.98
+Leddy-Orlov,"['Leddy Nick', 'Orlov Dmitry']",pairing,3135,52.2,4,2,50,75,2.65,5.02,66.7,40.0,34.5,San Jose Sharks,2901.752,29,33.3
+Ferraro-Leddy,"['Ferraro Mario', 'Leddy Nick']",pairing,3112,51.9,2,4,35,43,2.26,2.97,33.3,44.9,43.2,San Jose Sharks,2236.816,26,30.08
+Klingberg-Leddy,"['Klingberg John', 'Leddy Nick']",pairing,2852,47.5,7,8,63,56,3.64,3.1,46.7,52.9,54.0,San Jose Sharks,3023.899,16,20.2
+Dickinson-Mukhamadullin,"['Dickinson Sam', 'Mukhamadullin Shakir']",pairing,2526,42.1,0,2,3,12,0.05,0.43,0.0,20.0,9.7,San Jose Sharks,3660.211,18,25.65
+Liljegren-Mukhamadullin,"['Liljegren Timothy', 'Mukhamadullin Shakir']",pairing,1855,30.9,3,3,20,24,1.89,1.37,50.0,45.5,58.0,San Jose Sharks,3613.747,20,38.81
+Desharnais-Leddy,"['Desharnais Vincent', 'Leddy Nick']",pairing,1835,30.6,1,9,24,38,1.9,2.78,10.0,38.7,40.6,San Jose Sharks,2284.624,9,17.66
+Leddy-Liljegren,"['Leddy Nick', 'Liljegren Timothy']",pairing,1823,30.4,5,2,26,38,1.72,1.91,71.4,40.6,47.4,San Jose Sharks,2786.805,17,33.57
+Iorio-Leddy,"['Iorio Vincent', 'Leddy Nick']",pairing,1728,28.8,1,0,9,15,0.62,0.89,100.0,37.5,41.2,San Jose Sharks,24585.362,13,27.08
+Leddy-Mukhamadullin,"['Leddy Nick', 'Mukhamadullin Shakir']",pairing,1709,28.5,1,3,14,38,1.03,2.73,25.0,26.9,27.4,San Jose Sharks,2865.914,8,16.85
+Iorio-Orlov,"['Iorio Vincent', 'Orlov Dmitry']",pairing,1462,24.4,3,0,9,17,0.59,0.78,100.0,34.6,43.0,San Jose Sharks,32398.179,11,27.09
+Iorio-Mukhamadullin,"['Iorio Vincent', 'Mukhamadullin Shakir']",pairing,1431,23.9,3,4,18,33,1.61,2.14,42.9,35.3,42.9,San Jose Sharks,32115.284,15,37.74
+Klingberg-Mukhamadullin,"['Klingberg John', 'Mukhamadullin Shakir']",pairing,1335,22.2,5,0,12,4,1.07,0.2,100.0,75.0,84.2,San Jose Sharks,3949.34,13,35.06
+Desharnais-Klingberg,"['Desharnais Vincent', 'Klingberg John']",pairing,635,10.6,0,0,0,0,0.0,0.0,,,,San Jose Sharks,3151.572,5,28.35
+Klingberg-Liljegren,"['Klingberg John', 'Liljegren Timothy']",pairing,601,10.0,0,0,0,0,0.0,0.0,,,,San Jose Sharks,3832.499,6,35.94
+Desharnais-Liljegren,"['Desharnais Vincent', 'Liljegren Timothy']",pairing,499,8.3,0,0,0,0,0.0,0.0,,,,San Jose Sharks,2875.802,1,7.21
+Iorio-Liljegren,"['Iorio Vincent', 'Liljegren Timothy']",pairing,467,7.8,3,0,20,15,1.49,0.79,100.0,57.1,65.4,San Jose Sharks,31160.928,4,30.84
+Desharnais-Iorio,"['Desharnais Vincent', 'Iorio Vincent']",pairing,312,5.2,0,0,0,0,0.0,0.0,,,,San Jose Sharks,25629.746,1,11.54
+Iorio-Klingberg,"['Iorio Vincent', 'Klingberg John']",pairing,252,4.2,0,0,0,0,0.0,0.0,,,,San Jose Sharks,33774.095,1,14.29
+Dunn-Larsson,"['Dunn Vince', 'Larsson Adam']",pairing,28002,466.7,28,41,347,400,20.65,22.98,40.6,46.5,47.3,Seattle Kraken,2614.93,188,24.17
+Lindgren-Montour,"['Lindgren Ryan', 'Montour Brandon']",pairing,14322,238.7,14,12,142,167,8.29,9.59,53.8,46.0,46.3,Seattle Kraken,3197.838,117,29.41
+Evans-Oleksiak,"['Evans Ryker', 'Oleksiak Jamie']",pairing,13000,216.7,10,12,134,174,8.49,9.84,45.5,43.5,46.3,Seattle Kraken,2942.488,87,24.09
+Montour-Oleksiak,"['Montour Brandon', 'Oleksiak Jamie']",pairing,4812,80.2,1,3,24,44,1.31,2.35,25.0,35.3,35.9,Seattle Kraken,3816.659,37,27.68
+Lindgren-Oleksiak,"['Lindgren Ryan', 'Oleksiak Jamie']",pairing,4755,79.2,0,4,31,40,1.82,2.31,0.0,43.7,44.0,Seattle Kraken,2415.997,17,12.87
+Fleury-Lindgren,"['Fleury Cale', 'Lindgren Ryan']",pairing,4173,69.5,5,5,34,29,2.38,1.66,50.0,54.0,58.9,Seattle Kraken,1844.949,29,25.02
+Evans-Montour,"['Evans Ryker', 'Montour Brandon']",pairing,3005,50.1,3,3,19,32,1.18,1.61,50.0,37.3,42.2,Seattle Kraken,3768.152,34,40.73
+Evans-Larsson,"['Evans Ryker', 'Larsson Adam']",pairing,2365,39.4,1,2,11,27,0.91,1.3,33.3,28.9,41.2,Seattle Kraken,2277.429,13,19.79
+Evans-Lindgren,"['Evans Ryker', 'Lindgren Ryan']",pairing,2208,36.8,1,1,6,17,0.45,0.93,50.0,26.1,32.5,Seattle Kraken,2378.172,12,19.57
+Dunn-Montour,"['Dunn Vince', 'Montour Brandon']",pairing,2015,33.6,2,0,22,24,1.33,1.17,100.0,47.8,53.0,Seattle Kraken,4247.626,30,53.6
+Larsson-Lindgren,"['Larsson Adam', 'Lindgren Ryan']",pairing,2001,33.4,6,2,17,15,0.96,0.61,75.0,53.1,61.1,Seattle Kraken,1849.293,16,28.79
+Evans-Fleury,"['Evans Ryker', 'Fleury Cale']",pairing,1797,29.9,1,1,16,22,0.81,1.35,50.0,42.1,37.6,Seattle Kraken,2243.91,0,0.0
+Larsson-Oleksiak,"['Larsson Adam', 'Oleksiak Jamie']",pairing,1566,26.1,1,1,10,4,0.66,0.26,50.0,71.4,71.9,Seattle Kraken,2311.446,6,13.79
+Dunn-Fleury,"['Dunn Vince', 'Fleury Cale']",pairing,1121,18.7,0,0,4,6,0.17,0.44,,40.0,28.0,Seattle Kraken,2563.365,9,28.9
+Larsson-Montour,"['Larsson Adam', 'Montour Brandon']",pairing,964,16.1,0,0,7,4,0.39,0.23,,63.6,63.1,Seattle Kraken,2991.422,9,33.61
+Dunn-Oleksiak,"['Dunn Vince', 'Oleksiak Jamie']",pairing,843,14.1,0,1,3,8,0.17,0.53,0.0,27.3,24.3,Seattle Kraken,3363.298,1,4.27
+Dunn-Evans,"['Dunn Vince', 'Evans Ryker']",pairing,728,12.1,2,1,6,10,0.37,0.52,66.7,37.5,41.6,Seattle Kraken,3317.154,11,54.4
+Dunn-Lindgren,"['Dunn Vince', 'Lindgren Ryan']",pairing,492,8.2,0,0,1,0,0.02,0.0,,100.0,100.0,Seattle Kraken,2753.983,2,14.63
+Fleury-Oleksiak,"['Fleury Cale', 'Oleksiak Jamie']",pairing,487,8.1,1,0,2,3,0.09,0.23,100.0,40.0,26.9,Seattle Kraken,2276.138,2,14.78
+Fleury-Larsson,"['Fleury Cale', 'Larsson Adam']",pairing,238,4.0,1,0,6,13,0.27,0.59,100.0,31.6,31.4,Seattle Kraken,1763.45,3,45.38
+Fleury-Montour,"['Fleury Cale', 'Montour Brandon']",pairing,143,2.4,0,1,0,2,0.0,0.14,0.0,0.0,0.0,Seattle Kraken,2905.947,0,0.0
+Broberg-Parayko,"['Broberg Philip', 'Parayko Colton']",pairing,15766,262.8,17,22,151,155,9.45,9.44,43.6,49.3,50.0,St. Louis Blues,3928.146,87,19.87
+Broberg-Mailloux,"['Broberg Philip', 'Mailloux Logan']",pairing,13826,230.4,12,19,133,126,7.97,7.57,38.7,51.4,51.3,St. Louis Blues,2958.228,82,21.35
+Fowler-Parayko,"['Fowler Cam', 'Parayko Colton']",pairing,9843,164.1,6,9,81,102,5.36,6.2,40.0,44.3,46.4,St. Louis Blues,3401.6,77,28.16
+Fowler-Mailloux,"['Fowler Cam', 'Mailloux Logan']",pairing,9389,156.5,11,9,99,127,5.89,7.08,55.0,43.8,45.4,St. Louis Blues,2490.855,83,31.82
+Faulk-Tucker,"['Faulk Justin', 'Tucker Tyler']",pairing,8970,149.5,9,9,81,92,4.77,4.68,50.0,46.8,50.5,St. Louis Blues,3856.649,66,26.49
+Faulk-Fowler,"['Faulk Justin', 'Fowler Cam']",pairing,6470,107.8,8,7,60,64,3.55,3.58,53.3,48.4,49.8,St. Louis Blues,4243.884,69,38.39
+Fowler-Tucker,"['Fowler Cam', 'Tucker Tyler']",pairing,5733,95.5,4,1,46,43,2.35,2.79,80.0,51.7,45.7,St. Louis Blues,3054.377,48,30.14
+Broberg-Faulk,"['Broberg Philip', 'Faulk Justin']",pairing,5167,86.1,5,6,29,72,1.49,3.91,45.5,28.7,27.6,St. Louis Blues,4929.508,13,9.06
+Mailloux-Tucker,"['Mailloux Logan', 'Tucker Tyler']",pairing,2874,47.9,0,5,16,24,1.01,1.33,0.0,40.0,43.1,St. Louis Blues,2290.644,6,7.52
+Parayko-Tucker,"['Parayko Colton', 'Tucker Tyler']",pairing,1603,26.7,3,0,25,19,1.72,0.94,100.0,56.8,64.6,St. Louis Blues,3081.635,13,29.2
+Fowler-Holl,"['Fowler Cam', 'Holl Justin']",pairing,1373,22.9,0,1,12,8,0.71,0.47,0.0,60.0,60.6,St. Louis Blues,2883.022,12,31.46
+Broberg-Fowler,"['Broberg Philip', 'Fowler Cam']",pairing,1198,20.0,0,0,2,0,0.13,0.0,,100.0,100.0,St. Louis Blues,3912.987,14,42.07
+Broberg-Tucker,"['Broberg Philip', 'Tucker Tyler']",pairing,1090,18.2,0,0,4,3,0.17,0.2,,57.1,46.0,St. Louis Blues,3526.755,6,19.82
+Faulk-Parayko,"['Faulk Justin', 'Parayko Colton']",pairing,839,14.0,1,0,2,6,0.18,0.38,100.0,25.0,32.9,St. Louis Blues,4295.197,10,42.91
+Mailloux-Parayko,"['Mailloux Logan', 'Parayko Colton']",pairing,753,12.6,0,0,3,3,0.22,0.17,,50.0,56.3,St. Louis Blues,2550.787,4,19.12
+Holl-Tucker,"['Holl Justin', 'Tucker Tyler']",pairing,503,8.4,0,0,1,0,0.08,0.0,,100.0,100.0,St. Louis Blues,2582.325,10,71.57
+Faulk-Mailloux,"['Faulk Justin', 'Mailloux Logan']",pairing,279,4.7,0,0,0,0,0.0,0.0,,,,St. Louis Blues,3166.626,6,77.42
+Broberg-Holl,"['Broberg Philip', 'Holl Justin']",pairing,218,3.6,1,0,1,0,0.04,0.0,100.0,100.0,100.0,St. Louis Blues,3258.47,2,33.03
+Cernak-McDonagh,"['Cernak Erik', 'McDonagh Ryan']",pairing,11876,197.9,25,12,132,109,8.73,6.52,67.6,54.8,57.2,Tampa Bay Lightning,2862.773,107,32.44
+Carlile-Hedman,"['Carlile Declan', 'Hedman Victor']",pairing,1940,32.3,3,1,17,11,1.05,0.65,75.0,60.7,61.8,Tampa Bay Lightning,3116.014,20,37.11
+Lilleberg-Raddysh,"['Lilleberg Emil', 'Raddysh Darren']",pairing,1444,24.1,3,2,13,12,0.87,0.68,60.0,52.0,56.1,Tampa Bay Lightning,2462.507,10,24.93
+Cernak-Hedman,"['Cernak Erik', 'Hedman Victor']",pairing,1354,22.6,1,0,10,16,0.55,0.91,100.0,38.5,37.8,Tampa Bay Lightning,3261.999,13,34.56
+McDonagh-Raddysh,"['McDonagh Ryan', 'Raddysh Darren']",pairing,1059,17.6,3,3,9,10,0.67,0.67,50.0,47.4,50.1,Tampa Bay Lightning,3544.538,9,30.59
+Hedman-Raddysh,"['Hedman Victor', 'Raddysh Darren']",pairing,834,13.9,0,0,2,3,0.14,0.3,,40.0,31.8,Tampa Bay Lightning,3967.301,11,47.48
+Carlile-Raddysh,"['Carlile Declan', 'Raddysh Darren']",pairing,522,8.7,1,0,5,6,0.36,0.22,100.0,45.5,61.7,Tampa Bay Lightning,3433.498,8,55.17
+Lilleberg-McDonagh,"['Lilleberg Emil', 'McDonagh Ryan']",pairing,422,7.0,0,0,3,2,0.14,0.15,,60.0,48.4,Tampa Bay Lightning,1942.109,4,34.12
+Carlile-McDonagh,"['Carlile Declan', 'McDonagh Ryan']",pairing,335,5.6,0,0,0,0,0.0,0.0,,,,Tampa Bay Lightning,2745.251,3,32.24
+Carlile-Cernak,"['Carlile Declan', 'Cernak Erik']",pairing,322,5.4,0,0,0,0,0.0,0.0,,,,Tampa Bay Lightning,2790.354,1,11.18
+Hedman-Lilleberg,"['Hedman Victor', 'Lilleberg Emil']",pairing,220,3.7,0,1,5,3,0.17,0.19,0.0,62.5,48.0,Tampa Bay Lightning,2220.472,4,65.45
+Cernak-Lilleberg,"['Cernak Erik', 'Lilleberg Emil']",pairing,195,3.2,0,0,1,1,0.06,0.02,,50.0,75.3,Tampa Bay Lightning,1972.88,2,36.92
+Hedman-McDonagh,"['Hedman Victor', 'McDonagh Ryan']",pairing,126,2.1,0,0,0,0,0.0,0.0,,,,Tampa Bay Lightning,3207.779,6,171.43
+Cernak-Raddysh,"['Cernak Erik', 'Raddysh Darren']",pairing,91,1.5,0,0,0,0,0.0,0.0,,,,Tampa Bay Lightning,3606.734,0,0.0
+Carlo-Rielly,"['Carlo Brandon', 'Rielly Morgan']",pairing,6186,103.1,9,11,90,120,6.16,6.68,45.0,42.9,48.0,Toronto Maple Leafs,3156.811,51,29.68
+Benoit-McCabe,"['Benoit Simon', 'McCabe Jake']",pairing,5092,84.9,6,8,63,90,3.58,5.34,42.9,41.2,40.2,Toronto Maple Leafs,2843.637,56,39.59
+Carlo-McCabe,"['Carlo Brandon', 'McCabe Jake']",pairing,5072,84.5,14,8,92,107,5.89,6.24,63.6,46.2,48.6,Toronto Maple Leafs,2871.031,58,41.17
+Benoit-Stecher,"['Benoit Simon', 'Stecher Troy']",pairing,3744,62.4,16,13,82,94,5.71,5.96,55.2,46.6,49.0,Toronto Maple Leafs,21260.421,36,34.62
+McCabe-Stecher,"['McCabe Jake', 'Stecher Troy']",pairing,3276,54.6,7,13,61,67,3.84,4.62,35.0,47.7,45.4,Toronto Maple Leafs,26367.131,63,69.23
+Benoit-Myers,"['Benoit Simon', 'Myers Philippe']",pairing,3187,53.1,5,9,50,53,2.95,3.45,35.7,48.5,46.1,Toronto Maple Leafs,2159.598,25,28.24
+Myers-Rielly,"['Myers Philippe', 'Rielly Morgan']",pairing,2811,46.9,4,1,37,44,2.33,2.65,80.0,45.7,46.7,Toronto Maple Leafs,2855.144,26,33.3
+Rielly-Stecher,"['Rielly Morgan', 'Stecher Troy']",pairing,1761,29.4,1,1,28,29,1.69,2.01,50.0,49.1,45.6,Toronto Maple Leafs,27384.492,17,34.75
+McCabe-Rielly,"['McCabe Jake', 'Rielly Morgan']",pairing,1236,20.6,0,1,1,4,0.03,0.19,0.0,20.0,14.9,Toronto Maple Leafs,3730.079,15,43.69
+McCabe-Tanev,"['McCabe Jake', 'Tanev Chris']",pairing,887,14.8,2,1,13,9,0.87,0.39,66.7,59.1,69.1,Toronto Maple Leafs,,9,36.53
+Benoit-Carlo,"['Benoit Simon', 'Carlo Brandon']",pairing,663,11.1,1,1,11,7,0.59,0.53,50.0,61.1,52.9,Toronto Maple Leafs,2349.912,2,10.86
+Benoit-Rielly,"['Benoit Simon', 'Rielly Morgan']",pairing,649,10.8,0,1,7,5,0.34,0.32,0.0,58.3,51.5,Toronto Maple Leafs,2989.209,4,22.19
+McCabe-Myers,"['McCabe Jake', 'Myers Philippe']",pairing,591,9.8,2,3,10,15,0.74,0.86,40.0,40.0,46.3,Toronto Maple Leafs,2653.844,9,54.82
+Carlo-Stecher,"['Carlo Brandon', 'Stecher Troy']",pairing,222,3.7,0,0,0,0,0.0,0.0,,,,Toronto Maple Leafs,21966.486,2,32.43
+Carlo-Myers,"['Carlo Brandon', 'Myers Philippe']",pairing,200,3.3,1,0,7,2,0.42,0.07,100.0,77.8,85.7,Toronto Maple Leafs,2158.159,3,54.0
+Myers-Stecher,"['Myers Philippe', 'Stecher Troy']",pairing,107,1.8,0,0,0,0,0.0,0.0,,,,Toronto Maple Leafs,20077.764,1,33.64
+Marino-Schmidt,"['Marino John', 'Schmidt Nate']",pairing,23304,388.4,25,24,284,231,16.61,13.97,51.0,55.1,54.3,Utah Mammoth,3420.27,264,40.78
+Cole-DeSimone,"['Cole Ian', 'DeSimone Nick']",pairing,7191,119.8,7,6,61,60,3.45,3.34,53.8,50.4,50.9,Utah Mammoth,3332.793,51,25.53
+Cole-Durzi,"['Cole Ian', 'Durzi Sean']",pairing,5039,84.0,6,1,42,24,2.53,1.21,85.7,63.6,67.7,Utah Mammoth,3706.236,44,31.43
+Cole-Maatta,"['Cole Ian', 'Maatta Olli']",pairing,4127,68.8,2,7,41,57,2.05,3.45,22.2,41.8,37.3,Utah Mammoth,21566.051,26,22.68
+Durzi-Schmidt,"['Durzi Sean', 'Schmidt Nate']",pairing,3361,56.0,6,2,29,27,1.2,1.46,75.0,51.8,45.3,Utah Mammoth,3846.485,37,39.63
+Cole-Marino,"['Cole Ian', 'Marino John']",pairing,2607,43.5,1,2,14,11,0.77,0.59,33.3,56.0,56.7,Utah Mammoth,3283.264,18,24.86
+Durzi-Weegar,"['Durzi Sean', 'Weegar MacKenzie']",pairing,2439,40.6,0,2,12,14,0.81,0.9,0.0,46.2,47.5,Utah Mammoth,5062.42,14,20.66
+Cole-Schmidt,"['Cole Ian', 'Schmidt Nate']",pairing,2048,34.1,0,5,11,17,0.53,1.08,0.0,39.3,33.0,Utah Mammoth,3477.154,16,28.12
+Cole-Lamoureux,"['Cole Ian', 'Lamoureux Maveric']",pairing,1653,27.6,0,1,17,8,0.72,0.49,0.0,68.0,59.4,Utah Mammoth,1791.126,17,37.02
+Durzi-Marino,"['Durzi Sean', 'Marino John']",pairing,1331,22.2,0,0,3,2,0.11,0.22,,60.0,32.7,Utah Mammoth,3569.399,19,51.39
+Maatta-Marino,"['Maatta Olli', 'Marino John']",pairing,832,13.9,0,2,7,7,0.39,0.53,0.0,50.0,42.5,Utah Mammoth,21170.535,13,56.25
+Schmidt-Weegar,"['Schmidt Nate', 'Weegar MacKenzie']",pairing,775,12.9,0,1,9,5,0.28,0.31,0.0,64.3,47.5,Utah Mammoth,4922.57,8,37.16
+DeSimone-Durzi,"['DeSimone Nick', 'Durzi Sean']",pairing,608,10.1,1,1,8,10,0.43,0.65,50.0,44.4,39.8,Utah Mammoth,3537.559,5,29.61
+DeSimone-Schmidt,"['DeSimone Nick', 'Schmidt Nate']",pairing,588,9.8,0,1,3,4,0.24,0.25,0.0,42.9,48.8,Utah Mammoth,3464.051,9,55.1
+Maatta-Schmidt,"['Maatta Olli', 'Schmidt Nate']",pairing,563,9.4,0,0,4,3,0.36,0.19,,57.1,65.5,Utah Mammoth,22491.787,8,51.15
+Cole-Weegar,"['Cole Ian', 'Weegar MacKenzie']",pairing,561,9.3,0,0,2,1,0.07,0.03,,66.7,65.6,Utah Mammoth,4732.621,5,32.09
+DeSimone-Maatta,"['DeSimone Nick', 'Maatta Olli']",pairing,474,7.9,1,1,6,7,0.3,0.39,50.0,46.2,43.5,Utah Mammoth,21398.075,8,60.76
+Lamoureux-Szuber,"['Lamoureux Maveric', 'Szuber Maksymilian']",pairing,415,6.9,1,0,2,3,0.06,0.21,100.0,40.0,22.0,Utah Mammoth,,0,0.0
+DeSimone-Marino,"['DeSimone Nick', 'Marino John']",pairing,390,6.5,1,0,5,1,0.29,0.07,100.0,83.3,80.3,Utah Mammoth,3228.531,4,36.92
+Durzi-Maatta,"['Durzi Sean', 'Maatta Olli']",pairing,261,4.3,0,0,0,0,0.0,0.0,,,,Utah Mammoth,23728.582,2,27.59
+Marino-Weegar,"['Marino John', 'Weegar MacKenzie']",pairing,261,4.3,0,0,1,1,0.06,0.02,,50.0,72.2,Utah Mammoth,4597.577,2,27.59
+Hronek-Pettersson,"['Hronek Filip', 'Pettersson Elias']",pairing,16222,270.4,27,28,210,207,13.03,12.2,49.1,50.4,51.6,Vancouver Canucks,3006.935,190,42.16
+Pettersson-Willander,"['Pettersson Marcus', 'Willander Tom']",pairing,14546,242.4,11,17,120,151,7.14,9.36,39.3,44.3,43.3,Vancouver Canucks,2167.577,80,19.8
+Hronek-Hughes,"['Hronek Filip', 'Hughes Quinn']",pairing,11185,186.4,21,25,169,167,10.7,10.04,45.7,50.3,51.6,Vancouver Canucks,13149.896,141,45.38
+Myers-Pettersson,"['Myers Tyler', 'Pettersson Marcus']",pairing,9610,160.2,13,8,118,107,7.53,6.66,61.9,52.4,53.0,Vancouver Canucks,4984.598,61,22.85
+Pettersson-Pettersson,"['Pettersson Elias', 'Pettersson Marcus']",pairing,9527,158.8,8,12,97,99,5.89,6.48,40.0,49.5,47.6,Vancouver Canucks,2722.157,45,17.0
+Hronek-Pettersson,"['Hronek Filip', 'Pettersson Marcus']",pairing,8720,145.3,9,19,78,91,4.57,5.85,32.1,46.2,43.9,Vancouver Canucks,2856.328,70,28.9
+Myers-Pettersson,"['Myers Tyler', 'Pettersson Elias']",pairing,8686,144.8,8,14,111,127,6.9,7.98,36.4,46.6,46.4,Vancouver Canucks,5592.517,59,24.45
+Pettersson-Willander,"['Pettersson Elias', 'Willander Tom']",pairing,8347,139.1,10,15,90,104,5.48,7.45,40.0,46.4,42.4,Vancouver Canucks,2249.329,76,32.78
+Buium-Hronek,"['Buium Zeev', 'Hronek Filip']",pairing,6969,116.2,4,9,43,65,2.69,4.45,30.8,39.8,37.7,Vancouver Canucks,6552.562,85,43.91
+Hughes-Pettersson,"['Hughes Quinn', 'Pettersson Elias']",pairing,5912,98.5,13,13,101,86,6.84,4.84,50.0,54.0,58.6,Vancouver Canucks,10914.384,150,91.34
+Buium-Pettersson,"['Buium Zeev', 'Pettersson Elias']",pairing,4382,73.0,3,12,61,68,3.26,4.26,20.0,47.3,43.4,Vancouver Canucks,5685.958,52,42.72
+Mancini-Pettersson,"['Mancini Victor', 'Pettersson Elias']",pairing,3021,50.4,3,4,34,39,1.68,2.03,42.9,46.6,45.2,Vancouver Canucks,1978.553,14,16.68
+Hughes-Myers,"['Hughes Quinn', 'Myers Tyler']",pairing,2965,49.4,2,3,31,27,1.63,1.46,40.0,53.4,52.6,Vancouver Canucks,25013.296,26,31.57
+Joseph-Myers,"['Joseph Pierre-Olivier', 'Myers Tyler']",pairing,2467,41.1,1,4,15,21,0.96,1.2,20.0,41.7,44.5,Vancouver Canucks,4904.239,14,20.43
+Buium-Myers,"['Buium Zeev', 'Myers Tyler']",pairing,2388,39.8,0,2,35,46,2.09,2.98,0.0,43.2,41.2,Vancouver Canucks,12148.302,12,18.09
+Joseph-Pettersson,"['Joseph Pierre-Olivier', 'Pettersson Elias']",pairing,2372,39.5,2,3,23,17,1.02,0.99,40.0,57.5,50.8,Vancouver Canucks,2677.169,8,12.14
+Buium-Joseph,"['Buium Zeev', 'Joseph Pierre-Olivier']",pairing,2315,38.6,5,3,38,30,2.33,2.01,62.5,55.9,53.6,Vancouver Canucks,5816.165,15,23.33
+Buium-Mancini,"['Buium Zeev', 'Mancini Victor']",pairing,2131,35.5,2,2,31,30,1.56,1.68,50.0,50.8,48.1,Vancouver Canucks,4300.121,11,18.58
+Hughes-Willander,"['Hughes Quinn', 'Willander Tom']",pairing,1900,31.7,5,4,37,24,2.09,1.4,55.6,60.7,59.9,Vancouver Canucks,9784.302,16,30.32
+Buium-Willander,"['Buium Zeev', 'Willander Tom']",pairing,1553,25.9,2,2,11,13,0.69,1.04,50.0,45.8,40.0,Vancouver Canucks,4905.268,23,53.32
+Mancini-Pettersson,"['Mancini Victor', 'Pettersson Marcus']",pairing,1284,21.4,0,0,9,3,0.42,0.27,,75.0,61.3,Vancouver Canucks,1782.351,8,22.43
+Joseph-Willander,"['Joseph Pierre-Olivier', 'Willander Tom']",pairing,1187,19.8,2,3,11,6,0.84,0.58,40.0,64.7,58.9,Vancouver Canucks,2132.193,8,24.26
+Hughes-Mancini,"['Hughes Quinn', 'Mancini Victor']",pairing,888,14.8,1,3,10,14,0.72,1.03,25.0,41.7,41.3,Vancouver Canucks,8817.333,7,28.38
+Mancini-Willander,"['Mancini Victor', 'Willander Tom']",pairing,839,14.0,2,0,9,13,0.53,0.58,100.0,40.9,47.5,Vancouver Canucks,1582.323,3,12.87
+Forbort-Pettersson,"['Forbort Derek', 'Pettersson Elias']",pairing,768,12.8,0,0,11,7,0.8,0.26,,61.1,75.3,Vancouver Canucks,,0,0.0
+Hronek-Myers,"['Hronek Filip', 'Myers Tyler']",pairing,702,11.7,1,1,6,3,0.41,0.21,50.0,66.7,66.3,Vancouver Canucks,5860.805,5,25.64
+Joseph-Mancini,"['Joseph Pierre-Olivier', 'Mancini Victor']",pairing,612,10.2,1,1,7,6,0.25,0.33,50.0,53.8,42.5,Vancouver Canucks,1753.566,7,41.18
+Joseph-Pettersson,"['Joseph Pierre-Olivier', 'Pettersson Marcus']",pairing,587,9.8,0,0,4,3,0.12,0.11,,57.1,51.7,Vancouver Canucks,2392.144,3,18.4
+Hronek-Joseph,"['Hronek Filip', 'Joseph Pierre-Olivier']",pairing,577,9.6,1,0,3,0,0.12,0.0,100.0,100.0,100.0,Vancouver Canucks,2809.804,4,24.96
+Hronek-Willander,"['Hronek Filip', 'Willander Tom']",pairing,548,9.1,2,1,11,13,0.65,0.95,66.7,45.8,40.8,Vancouver Canucks,2471.49,22,144.53
+Forbort-Mancini,"['Forbort Derek', 'Mancini Victor']",pairing,427,7.1,0,0,0,0,0.0,0.0,,,,Vancouver Canucks,,0,0.0
+Hronek-Mancini,"['Hronek Filip', 'Mancini Victor']",pairing,367,6.1,0,0,3,6,0.08,0.28,,33.3,21.2,Vancouver Canucks,2086.717,2,19.62
+Hughes-Pettersson,"['Hughes Quinn', 'Pettersson Marcus']",pairing,242,4.0,0,0,2,1,0.16,0.03,,66.7,83.6,Vancouver Canucks,12166.564,3,44.63
+Myers-Willander,"['Myers Tyler', 'Willander Tom']",pairing,193,3.2,0,0,3,0,0.22,0.0,,100.0,100.0,Vancouver Canucks,4448.423,2,37.31
+Buium-Pettersson,"['Buium Zeev', 'Pettersson Marcus']",pairing,193,3.2,0,0,0,0,0.0,0.0,,,,Vancouver Canucks,5913.786,1,18.65
+Forbort-Myers,"['Forbort Derek', 'Myers Tyler']",pairing,142,2.4,0,0,5,2,0.29,0.08,,71.4,79.2,Vancouver Canucks,,0,0.0
+Hughes-Joseph,"['Hughes Quinn', 'Joseph Pierre-Olivier']",pairing,135,2.2,0,0,0,0,0.0,0.0,,,,Vancouver Canucks,11963.842,0,0.0
+McNabb-Theodore,"['McNabb Brayden', 'Theodore Shea']",pairing,35475,591.2,41,29,308,294,19.91,16.22,58.6,51.2,55.1,Vegas Golden Knights,1215.933,192,19.48
+Andersson-Hanifin,"['Andersson Rasmus', 'Hanifin Noah']",pairing,25336,422.3,27,16,209,207,12.89,11.42,62.8,50.2,53.0,Vegas Golden Knights,2488.603,104,14.78
+Korczak-Lauzon,"['Korczak Kaedan', 'Lauzon Jeremy']",pairing,15497,258.3,24,20,186,153,11.3,8.09,54.5,54.9,58.3,Vegas Golden Knights,1697.837,83,19.28
+Hutton-Korczak,"['Hutton Ben', 'Korczak Kaedan']",pairing,9221,153.7,12,12,110,101,7.12,5.88,50.0,52.1,54.8,Vegas Golden Knights,2255.482,56,21.86
+Hanifin-Whitecloud,"['Hanifin Noah', 'Whitecloud Zach']",pairing,9135,152.2,13,17,123,108,7.17,5.49,43.3,53.2,56.6,Vegas Golden Knights,8207.594,110,43.35
+Lauzon-Theodore,"['Lauzon Jeremy', 'Theodore Shea']",pairing,5164,86.1,7,2,59,44,3.61,2.54,77.8,57.3,58.7,Vegas Golden Knights,1424.828,35,24.4
+Korczak-McNabb,"['Korczak Kaedan', 'McNabb Brayden']",pairing,5053,84.2,5,6,36,38,2.37,2.34,45.5,48.6,50.4,Vegas Golden Knights,1425.038,42,29.92
+Hanifin-Hutton,"['Hanifin Noah', 'Hutton Ben']",pairing,4409,73.5,12,6,99,81,6.8,4.81,66.7,55.0,58.6,Vegas Golden Knights,1944.153,33,26.94
+Hutton-Whitecloud,"['Hutton Ben', 'Whitecloud Zach']",pairing,4282,71.4,5,7,57,60,3.82,3.78,41.7,48.7,50.3,Vegas Golden Knights,9700.109,31,26.06
+Hanifin-Korczak,"['Hanifin Noah', 'Korczak Kaedan']",pairing,4280,71.3,5,4,39,51,2.35,2.93,55.6,43.3,44.5,Vegas Golden Knights,1898.797,42,35.33
+Coghlan-Hutton,"['Coghlan Dylan', 'Hutton Ben']",pairing,4235,70.6,4,4,35,30,2.25,1.51,50.0,53.8,59.8,Vegas Golden Knights,622.104,15,12.75
+Andersson-Lauzon,"['Andersson Rasmus', 'Lauzon Jeremy']",pairing,3739,62.3,7,5,26,24,1.24,1.56,58.3,52.0,44.3,Vegas Golden Knights,2311.303,8,7.7
+Lauzon-Whitecloud,"['Lauzon Jeremy', 'Whitecloud Zach']",pairing,3188,53.1,1,5,28,26,1.63,1.66,16.7,51.9,49.5,Vegas Golden Knights,7292.645,20,22.58
+Coghlan-Theodore,"['Coghlan Dylan', 'Theodore Shea']",pairing,2636,43.9,4,3,19,28,1.4,1.54,57.1,40.4,47.6,Vegas Golden Knights,510.681,0,0.0
+Hanifin-Theodore,"['Hanifin Noah', 'Theodore Shea']",pairing,1866,31.1,1,1,3,3,0.17,0.25,50.0,50.0,41.3,Vegas Golden Knights,1558.19,17,32.8
+Coghlan-Lauzon,"['Coghlan Dylan', 'Lauzon Jeremy']",pairing,1865,31.1,0,1,8,9,0.52,0.48,0.0,47.1,51.6,Vegas Golden Knights,467.517,0,0.0
+Coghlan-Hanifin,"['Coghlan Dylan', 'Hanifin Noah']",pairing,1843,30.7,1,2,14,16,0.79,0.89,33.3,46.7,46.9,Vegas Golden Knights,527.226,1,1.95
+Andersson-Theodore,"['Andersson Rasmus', 'Theodore Shea']",pairing,1765,29.4,0,1,12,12,0.76,0.79,0.0,50.0,49.0,Vegas Golden Knights,2416.943,21,42.83
+Coghlan-Korczak,"['Coghlan Dylan', 'Korczak Kaedan']",pairing,1558,26.0,0,0,1,0,0.15,0.0,,100.0,100.0,Vegas Golden Knights,604.4,0,0.0
+Hutton-Theodore,"['Hutton Ben', 'Theodore Shea']",pairing,1444,24.1,0,0,4,4,0.13,0.21,,50.0,38.5,Vegas Golden Knights,1884.464,7,17.45
+Megna-Whitecloud,"['Megna Jaycob', 'Whitecloud Zach']",pairing,943,15.7,1,3,21,31,1.27,1.67,25.0,40.4,43.2,Vegas Golden Knights,7417.588,6,22.91
+Korczak-Theodore,"['Korczak Kaedan', 'Theodore Shea']",pairing,695,11.6,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,1840.079,2,10.36
+Hanifin-McNabb,"['Hanifin Noah', 'McNabb Brayden']",pairing,686,11.4,0,0,0,1,0.0,0.07,,0.0,0.0,Vegas Golden Knights,1256.083,0,0.0
+Hutton-Lauzon,"['Hutton Ben', 'Lauzon Jeremy']",pairing,599,10.0,1,0,11,10,0.64,0.36,100.0,52.4,64.4,Vegas Golden Knights,1745.406,2,12.02
+Lauzon-McNabb,"['Lauzon Jeremy', 'McNabb Brayden']",pairing,512,8.5,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,1101.889,4,28.12
+Hanifin-Lauzon,"['Hanifin Noah', 'Lauzon Jeremy']",pairing,446,7.4,0,0,2,0,0.26,0.0,,100.0,100.0,Vegas Golden Knights,1470.365,1,8.07
+McNabb-Whitecloud,"['McNabb Brayden', 'Whitecloud Zach']",pairing,419,7.0,2,0,7,5,0.34,0.31,100.0,58.3,52.2,Vegas Golden Knights,6091.499,1,8.59
+Coghlan-Davies,"['Coghlan Dylan', 'Davies Jeremy']",pairing,385,6.4,0,0,0,1,0.0,0.03,,0.0,0.0,Vegas Golden Knights,,9,84.16
+Andersson-McNabb,"['Andersson Rasmus', 'McNabb Brayden']",pairing,352,5.9,0,0,0,1,0.0,0.12,,0.0,0.0,Vegas Golden Knights,1994.609,0,0.0
+Korczak-Whitecloud,"['Korczak Kaedan', 'Whitecloud Zach']",pairing,281,4.7,1,0,4,3,0.43,0.12,100.0,57.1,78.4,Vegas Golden Knights,9427.179,0,0.0
+Theodore-Whitecloud,"['Theodore Shea', 'Whitecloud Zach']",pairing,241,4.0,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,7950.936,1,14.94
+Andersson-Coghlan,"['Andersson Rasmus', 'Coghlan Dylan']",pairing,240,4.0,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,832.245,0,0.0
+Andersson-Hutton,"['Andersson Rasmus', 'Hutton Ben']",pairing,227,3.8,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,3047.681,0,0.0
+Coghlan-McNabb,"['Coghlan Dylan', 'McNabb Brayden']",pairing,205,3.4,0,0,0,1,0.0,0.02,,0.0,0.0,Vegas Golden Knights,389.917,0,0.0
+Andersson-Korczak,"['Andersson Rasmus', 'Korczak Kaedan']",pairing,177,3.0,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,2983.367,0,0.0
+Hutton-McNabb,"['Hutton Ben', 'McNabb Brayden']",pairing,160,2.7,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,1469.417,0,0.0
+Hutton-Megna,"['Hutton Ben', 'Megna Jaycob']",pairing,124,2.1,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,1788.998,0,0.0
+Korczak-Megna,"['Korczak Kaedan', 'Megna Jaycob']",pairing,104,1.7,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,1735.081,0,0.0
+Coghlan-Megna,"['Coghlan Dylan', 'Megna Jaycob']",pairing,98,1.6,0,0,0,0,0.0,0.0,,,,Vegas Golden Knights,474.815,1,36.73
+Chychrun-Roy,"['Chychrun Jakob', 'Roy Matt']",pairing,14042,234.0,15,4,124,103,7.8,6.01,78.9,54.6,56.5,Washington Capitals,3699.58,131,33.58
+Chychrun-van,"['Chychrun Jakob', 'van Riemsdyk Trevor']",pairing,7864,131.1,9,6,86,82,5.06,4.49,60.0,51.2,53.0,Washington Capitals,3215.463,50,22.89
+Sandin-van,"['Sandin Rasmus', 'van Riemsdyk Trevor']",pairing,5607,93.5,6,3,71,72,4.3,3.93,66.7,49.7,52.2,Washington Capitals,3243.836,35,22.47
+Roy-Sandin,"['Roy Matt', 'Sandin Rasmus']",pairing,5591,93.2,9,2,68,54,4.06,3.15,81.8,55.7,56.4,Washington Capitals,3740.31,49,31.55
+Carlson-Chychrun,"['Carlson John', 'Chychrun Jakob']",pairing,4177,69.6,5,6,35,43,2.2,2.7,45.5,44.9,44.8,Washington Capitals,9773.698,81,69.81
+Hutson-Roy,"['Hutson Cole', 'Roy Matt']",pairing,3773,62.9,4,4,41,44,2.57,2.83,50.0,48.2,47.6,Washington Capitals,3132.993,20,19.08
+Chisholm-van,"['Chisholm Declan', 'van Riemsdyk Trevor']",pairing,3596,59.9,4,3,27,35,1.88,2.1,57.1,43.5,47.2,Washington Capitals,1976.113,26,26.03
+Carlson-Sandin,"['Carlson John', 'Sandin Rasmus']",pairing,3249,54.1,1,1,38,32,2.05,2.04,50.0,54.3,50.2,Washington Capitals,9862.323,31,34.35
+Chychrun-Sandin,"['Chychrun Jakob', 'Sandin Rasmus']",pairing,2476,41.3,2,1,35,24,2.0,1.02,66.7,59.3,66.2,Washington Capitals,4437.234,23,33.44
+Chisholm-Sandin,"['Chisholm Declan', 'Sandin Rasmus']",pairing,2392,39.9,1,1,11,23,0.79,1.67,50.0,32.4,32.0,Washington Capitals,2745.334,24,36.12
+Chychrun-Liljegren,"['Chychrun Jakob', 'Liljegren Timothy']",pairing,1954,32.6,2,2,31,36,1.94,2.17,50.0,46.3,47.2,Washington Capitals,3952.333,8,14.74
+McIlrath-Sandin,"['McIlrath Dylan', 'Sandin Rasmus']",pairing,1640,27.3,3,2,27,24,1.53,1.46,60.0,52.9,51.2,Washington Capitals,2447.263,12,26.34
+Carlson-Chisholm,"['Carlson John', 'Chisholm Declan']",pairing,1430,23.8,2,0,18,9,1.0,0.5,100.0,66.7,66.6,Washington Capitals,5981.419,12,30.21
+Chisholm-Chychrun,"['Chisholm Declan', 'Chychrun Jakob']",pairing,1334,22.2,2,0,6,4,0.47,0.32,100.0,60.0,59.0,Washington Capitals,2715.279,7,18.89
+Chisholm-Roy,"['Chisholm Declan', 'Roy Matt']",pairing,1049,17.5,0,1,6,6,0.47,0.31,0.0,50.0,60.5,Washington Capitals,2188.278,10,34.32
+Chisholm-McIlrath,"['Chisholm Declan', 'McIlrath Dylan']",pairing,1020,17.0,2,0,10,17,0.58,0.77,100.0,37.0,42.9,Washington Capitals,1326.585,7,24.71
+McIlrath-Roy,"['McIlrath Dylan', 'Roy Matt']",pairing,909,15.2,0,3,6,14,0.22,0.92,0.0,30.0,19.2,Washington Capitals,1812.757,7,27.72
+Carlson-Roy,"['Carlson John', 'Roy Matt']",pairing,831,13.8,1,0,11,8,0.66,0.43,100.0,57.9,60.9,Washington Capitals,8151.369,3,13.0
+Roy-van,"['Roy Matt', 'van Riemsdyk Trevor']",pairing,600,10.0,1,0,5,4,0.36,0.16,100.0,55.6,69.0,Washington Capitals,2692.739,4,24.0
+Chychrun-McIlrath,"['Chychrun Jakob', 'McIlrath Dylan']",pairing,381,6.3,0,0,0,0,0.0,0.0,,,,Washington Capitals,2411.277,5,47.24
+Hutson-Sandin,"['Hutson Cole', 'Sandin Rasmus']",pairing,333,5.5,0,0,0,0,0.0,0.0,,,,Washington Capitals,3742.008,0,0.0
+Hutson-van,"['Hutson Cole', 'van Riemsdyk Trevor']",pairing,269,4.5,0,1,5,8,0.31,0.32,0.0,38.5,49.2,Washington Capitals,2713.391,2,26.77
+Iorio-McIlrath,"['Iorio Vincent', 'McIlrath Dylan']",pairing,242,4.0,1,2,4,4,0.25,0.15,33.3,50.0,62.5,Washington Capitals,18762.104,0,0.0
+McIlrath-van,"['McIlrath Dylan', 'van Riemsdyk Trevor']",pairing,236,3.9,3,1,5,5,0.39,0.32,75.0,50.0,54.5,Washington Capitals,1743.327,1,15.25
+Carlson-van,"['Carlson John', 'van Riemsdyk Trevor']",pairing,230,3.8,0,0,2,1,0.16,0.02,,66.7,89.0,Washington Capitals,7137.34,2,31.3
+Chychrun-Hutson,"['Chychrun Jakob', 'Hutson Cole']",pairing,152,2.5,0,0,1,1,0.06,0.04,,50.0,63.1,Washington Capitals,3711.059,2,47.37
+Hutson-Liljegren,"['Hutson Cole', 'Liljegren Timothy']",pairing,130,2.2,0,0,2,2,0.03,0.05,,50.0,42.8,Washington Capitals,3339.319,0,0.0
+Liljegren-Sandin,"['Liljegren Timothy', 'Sandin Rasmus']",pairing,107,1.8,0,0,0,0,0.0,0.0,,,,Washington Capitals,3990.212,1,33.64
+Chisholm-Iorio,"['Chisholm Declan', 'Iorio Vincent']",pairing,94,1.6,0,0,0,0,0.0,0.0,,,,Washington Capitals,21329.834,0,0.0
+DeMelo-Morrissey,"['DeMelo Dylan', 'Morrissey Josh']",pairing,63296,1054.9,105,108,955,1056,55.59,62.74,49.3,47.5,47.0,Winnipeg Jets,2573.322,617,35.09
+Pionk-Samberg,"['Pionk Neal', 'Samberg Dylan']",pairing,24843,414.1,39,43,333,331,19.73,20.76,47.6,50.2,48.7,Winnipeg Jets,3188.907,280,40.57
+Salomonsson-Samberg,"['Salomonsson Elias', 'Samberg Dylan']",pairing,21997,366.6,22,29,250,259,14.96,14.25,43.1,49.1,51.2,Winnipeg Jets,2652.338,235,38.46
+Schenn-Stanley,"['Schenn Luke', 'Stanley Logan']",pairing,16206,270.1,19,23,213,238,12.36,15.05,45.2,47.2,45.1,Winnipeg Jets,3150.93,140,31.1
+Pionk-Stanley,"['Pionk Neal', 'Stanley Logan']",pairing,13362,222.7,27,21,216,247,14.06,14.34,56.2,46.7,49.5,Winnipeg Jets,3352.257,121,32.6
+DeMelo-Samberg,"['DeMelo Dylan', 'Samberg Dylan']",pairing,11141,185.7,12,10,129,118,7.19,7.0,54.5,52.2,50.7,Winnipeg Jets,3042.542,125,40.39
+Morrissey-Pionk,"['Morrissey Josh', 'Pionk Neal']",pairing,10097,168.3,9,18,141,138,8.55,8.65,33.3,50.5,49.7,Winnipeg Jets,2666.031,119,42.43
+DeMelo-Stanley,"['DeMelo Dylan', 'Stanley Logan']",pairing,7876,131.3,17,17,128,135,7.62,9.0,50.0,48.7,45.8,Winnipeg Jets,3208.946,67,30.62
+Bryson-Fleury,"['Bryson Jacob', 'Fleury Haydn']",pairing,6652,110.9,10,14,110,100,5.57,5.91,41.7,52.4,48.5,Winnipeg Jets,2609.792,71,38.42
+Fleury-Schenn,"['Fleury Haydn', 'Schenn Luke']",pairing,6288,104.8,6,15,106,105,7.23,7.04,28.6,50.2,50.6,Winnipeg Jets,2151.113,34,19.47
+Miller-Stanley,"['Miller Colin', 'Stanley Logan']",pairing,5274,87.9,13,5,102,89,6.37,4.78,72.2,53.4,57.1,Winnipeg Jets,3125.736,58,39.59
+Fleury-Pionk,"['Fleury Haydn', 'Pionk Neal']",pairing,4091,68.2,0,6,31,31,1.43,1.75,0.0,50.0,45.0,Winnipeg Jets,2282.469,36,31.68
+Samberg-Schenn,"['Samberg Dylan', 'Schenn Luke']",pairing,3921,65.3,2,8,40,24,2.45,1.91,20.0,62.5,56.1,Winnipeg Jets,2979.194,42,38.56
+Morrissey-Stanley,"['Morrissey Josh', 'Stanley Logan']",pairing,3889,64.8,8,9,60,74,3.59,4.34,47.1,44.8,45.3,Winnipeg Jets,3159.307,30,27.77
+Morrissey-Salomonsson,"['Morrissey Josh', 'Salomonsson Elias']",pairing,3163,52.7,5,7,38,48,1.72,2.72,41.7,44.2,38.7,Winnipeg Jets,2223.239,49,55.77
+DeMelo-Fleury,"['DeMelo Dylan', 'Fleury Haydn']",pairing,3124,52.1,0,0,12,7,0.67,0.25,,63.2,72.6,Winnipeg Jets,2188.048,31,35.72
+Miller-Samberg,"['Miller Colin', 'Samberg Dylan']",pairing,2741,45.7,2,0,13,25,0.57,0.9,100.0,34.2,38.9,Winnipeg Jets,2971.776,40,52.54
+Morrissey-Samberg,"['Morrissey Josh', 'Samberg Dylan']",pairing,2708,45.1,1,1,2,2,0.15,0.12,50.0,50.0,55.9,Winnipeg Jets,3015.877,22,29.25
+Morrissey-Schenn,"['Morrissey Josh', 'Schenn Luke']",pairing,2687,44.8,2,3,34,38,1.9,1.96,40.0,47.2,49.2,Winnipeg Jets,2544.471,17,22.78
+Samberg-Stanley,"['Samberg Dylan', 'Stanley Logan']",pairing,2686,44.8,2,6,40,41,1.93,2.53,25.0,49.4,43.3,Winnipeg Jets,3714.458,23,30.83
+Salomonsson-Stanley,"['Salomonsson Elias', 'Stanley Logan']",pairing,2468,41.1,4,4,37,56,2.43,3.54,50.0,39.8,40.8,Winnipeg Jets,2790.265,15,21.88
+DeMelo-Pionk,"['DeMelo Dylan', 'Pionk Neal']",pairing,1893,31.6,1,1,3,3,0.35,0.23,50.0,50.0,60.5,Winnipeg Jets,2735.062,19,36.13
+Fleury-Salomonsson,"['Fleury Haydn', 'Salomonsson Elias']",pairing,1842,30.7,0,0,9,17,0.66,0.91,,34.6,42.3,Winnipeg Jets,1900.44,11,21.5
+Fleury-Miller,"['Fleury Haydn', 'Miller Colin']",pairing,1818,30.3,2,2,47,38,2.51,2.51,50.0,55.3,50.0,Winnipeg Jets,2128.755,10,19.8
+Heinola-Schenn,"['Heinola Ville', 'Schenn Luke']",pairing,1812,30.2,1,9,58,49,2.86,2.97,10.0,54.2,49.1,Winnipeg Jets,2480.411,6,11.92
+Fleury-Morrissey,"['Fleury Haydn', 'Morrissey Josh']",pairing,1608,26.8,3,0,4,5,0.18,0.34,100.0,44.4,35.5,Winnipeg Jets,2147.786,8,17.91
+Fleury-Stanley,"['Fleury Haydn', 'Stanley Logan']",pairing,1216,20.3,4,2,19,27,1.24,1.63,66.7,41.3,43.2,Winnipeg Jets,2677.426,3,8.88
+DeMelo-Schenn,"['DeMelo Dylan', 'Schenn Luke']",pairing,1216,20.3,0,2,10,19,0.91,0.87,0.0,34.5,51.1,Winnipeg Jets,2578.268,8,23.68
+Bryson-Samberg,"['Bryson Jacob', 'Samberg Dylan']",pairing,1171,19.5,0,0,6,6,0.48,0.37,,50.0,56.4,Winnipeg Jets,3639.45,9,27.67
+Miller-Morrissey,"['Miller Colin', 'Morrissey Josh']",pairing,1072,17.9,0,1,6,9,0.35,0.42,0.0,40.0,45.1,Winnipeg Jets,2489.372,10,33.58
+Fleury-Samberg,"['Fleury Haydn', 'Samberg Dylan']",pairing,997,16.6,0,0,5,6,0.2,0.5,,45.5,28.3,Winnipeg Jets,2538.254,11,39.72
+Bryson-Salomonsson,"['Bryson Jacob', 'Salomonsson Elias']",pairing,940,15.7,1,3,19,30,1.42,1.59,25.0,38.8,47.1,Winnipeg Jets,2711.947,5,19.15
+Bryson-Morrissey,"['Bryson Jacob', 'Morrissey Josh']",pairing,898,15.0,4,2,16,8,0.99,0.41,66.7,66.7,70.6,Winnipeg Jets,3056.597,5,20.04
+Heinola-Stanley,"['Heinola Ville', 'Stanley Logan']",pairing,858,14.3,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,3088.625,0,0.0
+Bryson-DeMelo,"['Bryson Jacob', 'DeMelo Dylan']",pairing,774,12.9,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,3127.448,10,46.51
+Pionk-Schenn,"['Pionk Neal', 'Schenn Luke']",pairing,708,11.8,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2696.541,1,5.08
+Fleury-Heinola,"['Fleury Haydn', 'Heinola Ville']",pairing,693,11.6,0,0,1,5,0.06,0.17,,16.7,24.8,Winnipeg Jets,2107.254,7,36.36
+Miller-Schenn,"['Miller Colin', 'Schenn Luke']",pairing,553,9.2,1,0,5,1,0.23,0.06,100.0,83.3,78.9,Winnipeg Jets,2513.837,1,6.51
+Heinola-Miller,"['Heinola Ville', 'Miller Colin']",pairing,466,7.8,0,1,2,7,0.08,0.61,0.0,22.2,12.0,Winnipeg Jets,2459.572,7,54.08
+DeMelo-Salomonsson,"['DeMelo Dylan', 'Salomonsson Elias']",pairing,430,7.2,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2277.345,4,33.49
+Heinola-Samberg,"['Heinola Ville', 'Samberg Dylan']",pairing,420,7.0,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2924.493,5,42.86
+DeMelo-Miller,"['DeMelo Dylan', 'Miller Colin']",pairing,399,6.7,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2550.923,5,45.11
+Bryson-Heinola,"['Bryson Jacob', 'Heinola Ville']",pairing,257,4.3,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,3014.554,2,28.02
+Bryson-Pionk,"['Bryson Jacob', 'Pionk Neal']",pairing,239,4.0,0,0,8,0,0.41,0.0,,100.0,100.0,Winnipeg Jets,3255.568,1,15.06
+Heinola-Salomonsson,"['Heinola Ville', 'Salomonsson Elias']",pairing,224,3.7,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2195.628,1,16.07
+DeMelo-Heinola,"['DeMelo Dylan', 'Heinola Ville']",pairing,220,3.7,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2525.56,5,81.82
+Salomonsson-Schenn,"['Salomonsson Elias', 'Schenn Luke']",pairing,192,3.2,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2243.892,0,0.0
+Pionk-Salomonsson,"['Pionk Neal', 'Salomonsson Elias']",pairing,178,3.0,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2369.348,1,20.22
+Heinola-Morrissey,"['Heinola Ville', 'Morrissey Josh']",pairing,116,1.9,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2485.241,2,62.07
+Miller-Pionk,"['Miller Colin', 'Pionk Neal']",pairing,114,1.9,0,0,0,0,0.0,0.0,,,,Winnipeg Jets,2653.492,0,0.0

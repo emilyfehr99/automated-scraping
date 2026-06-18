@@ -130,7 +130,13 @@ def _team_search_roots(team: str) -> list[Path]:
     tri = _norm_tri(team)
     full = NHL_TEAM_SEARCH.get(tri, "")
     nickname = full.split()[-1] if full else team
+    from .leagues import player_cards_work_root
+
+    work = player_cards_work_root()
     roots = [
+        work / full / "Instat_API_Downloads",
+        work / full,
+        work / "Playoff Profiles",
         Path.home() / "Desktop" / "My Analytics Work" / "Playoff Profiles",
         Path.home() / "Desktop" / "My Analytics Work" / full,
         Path.home() / "Desktop" / full,
