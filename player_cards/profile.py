@@ -107,10 +107,7 @@ def _player_pbp_teams(player_id: int | None, team: str, *, league: str) -> list[
     if cfg.uses_nhl_api and player_id:
         log_teams = fetch_player_season_teams(player_id, nhl_season=MUG_SEASON)
         if log_teams:
-            teams = list(log_teams.keys())
-            if tri not in teams:
-                teams.append(tri)
-            return sorted(set(teams))
+            return sorted(log_teams.keys())
     return [tri]
 
 
