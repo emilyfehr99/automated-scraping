@@ -22,13 +22,12 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
         if not src.is_file():
             continue
         if first:
-            backup = sqlite3.connect(f"file:{src.resolve()}?mode=ro", uri=True)
+            backup = sqlite3.connect(src)
             backup.backup(main)
             backup.close()
             first = False
         else:
-            uri = f"file:{src.resolve()}?mode=ro"
-            main.execute("ATTACH DATABASE ? AS shard", (uri,))
+            main.execute("ATTACH DATABASE ? AS shard", (str(src.resolve()),))
             for table in ("player_profiles", "team_builds"):
                 main.execute(
                     f"INSERT OR REPLACE INTO {table} SELECT * FROM shard.{table}"
