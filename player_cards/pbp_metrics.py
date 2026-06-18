@@ -279,3 +279,49 @@ def aggregate_player_pbp(
         "goals": int(totals.get("Goals", 0)),
         "source": "instat_api",
     }
+
+
+def aggregate_player_pbp_multi(
+    player_name: str,
+    teams: list[tuple[str, list[Path], int | None]],
+) -> dict[str, Any] | None:
+    """Merge PBP across teams for players traded mid-season."""
+    totals: dict[str, float] = {}
+    all_shots: list[dict[str, Any]] = []
+    all_game_files: list[dict[str, Any]] = []
+    games_played = 0
+    team_games = 0
+
+    for team_abbrev, files, team_game_count in teams:
+        if not files:
+            continue
+        agg = aggregate_player_pbp(
+            player_name,
+            team_abbrev,
+            files=files,
+            team_games=team_game_count,
+        )
+        if not agg:
+            continue
+        games_played += int(agg.get("games_played") or 0)
+        tg = int(agg.get("games") or 0)
+        team_games += tg
+        all_shots.extend(agg.get("shots") or [])
+        all_game_files.extend(agg.get("game_files") or [])
+        for key, rate in (agg.get("per_game") or {}).items():
+            totals[key] = totals.get(key, 0) + float(rate) * tg
+
+    if games_played == 0 or team_games == 0:
+        return None
+
+    per_game = {k: round(v / team_games, 2) for k, v in totals.items()}
+    return {
+        "games": team_games,
+        "games_played": games_played,
+        "game_files": all_game_files,
+        "per_game": per_game,
+        "shots": all_shots,
+        "xg_total": round(sum(s["xg"] for s in all_shots), 2),
+        "goals": int(totals.get("Goals", 0)),
+        "source": "instat_api",
+    }

@@ -170,3 +170,23 @@ def fetch_nhl_bio(player_name: str, team: str | None = None) -> dict[str, Any]:
         "birth_city": _text(landing.get("birthCity")),
         "birth_country": landing.get("birthCountry", ""),
     }
+
+
+def fetch_player_season_teams(
+    player_id: int,
+    *,
+    nhl_season: str = MUG_SEASON,
+) -> dict[str, int]:
+    """Regular-season games played per NHL team abbrev (handles mid-season trades)."""
+    resp = httpx.get(
+        f"{NHL_API}/player/{player_id}/game-log/{nhl_season}/2",
+        timeout=20.0,
+        headers={"User-Agent": "PlayerCards/1.0"},
+    )
+    resp.raise_for_status()
+    counts: dict[str, int] = {}
+    for game in resp.json().get("gameLog") or []:
+        tri = str(game.get("teamAbbrev") or "").upper()
+        if tri:
+            counts[tri] = counts.get(tri, 0) + 1
+    return counts

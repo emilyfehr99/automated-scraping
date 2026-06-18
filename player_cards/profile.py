@@ -19,10 +19,10 @@ from .html_renderer import write_player_card_html
 from .instat_pbp_fetch import ensure_team_pbp_files, team_pbp_dir, try_fast_pbp_cache
 from .instat_source import discover_team_pbp_files
 from .leagues import get_league, team_full_name
-from .nhl_bio import fetch_nhl_bio
-from .nhl_instat import instat_season_id
+from .nhl_bio import MUG_SEASON, fetch_nhl_bio, fetch_player_season_teams
+from .nhl_instat import instat_season_id as resolve_instat_season_id
 from .pbp_display import _pbp_values, build_pbp_display_profile, compute_team_metric_percentiles
-from .pbp_metrics import aggregate_player_pbp
+from .pbp_metrics import aggregate_player_pbp, aggregate_player_pbp_multi
 from .pbp_team_cache import warm_team_pbp
 from .png_export import html_to_png
 from .pwhl_bio import fetch_pwhl_bio
@@ -41,18 +41,46 @@ def _cached_pbp_aggregate(
     team: str,
     files: list[Path],
     team_games: int | None,
+    *,
+    file_groups: list[tuple[str, list[Path], int | None]] | None = None,
 ) -> dict[str, Any] | None:
     fp = pbp_files_fingerprint(files)
     key = player_cache_key(player_id, player_name)
-    path = cache_path("aggregates", team.upper(), fp, f"{key}.json")
+    cache_team = (
+        "+".join(sorted({tri for tri, _, _ in file_groups}))
+        if file_groups and len(file_groups) > 1
+        else team.upper()
+    )
+    path = cache_path("aggregates", cache_team, fp, f"{key}.json")
     hit = load_json(path, ttl_seconds=AGG_CACHE_TTL)
     if isinstance(hit, dict) and hit.get("per_game"):
         logger.debug("PBP aggregate cache hit for %s", player_name)
         return hit
-    result = aggregate_player_pbp(player_name, team, files=files, team_games=team_games)
+    if file_groups and len(file_groups) > 1:
+        result = aggregate_player_pbp_multi(player_name, file_groups)
+    else:
+        result = aggregate_player_pbp(player_name, team, files=files, team_games=team_games)
     if result:
         save_json(path, result)
     return result
+
+
+def _store_pbp_incomplete(profile: dict[str, Any]) -> bool:
+    """True when a traded player's store row only has one team's PBP."""
+    sources = profile.get("sources") or {}
+    pbp_teams = sources.get("pbp_teams")
+    if isinstance(pbp_teams, list) and len(pbp_teams) > 1:
+        return False
+    bio = profile.get("bio") or {}
+    player_id = bio.get("player_id")
+    if not player_id or not sources.get("nhl"):
+        return False
+    log_teams = fetch_player_season_teams(int(player_id), nhl_season=MUG_SEASON)
+    if not log_teams:
+        return False
+    expected_gp = sum(log_teams.values())
+    actual_gp = int((profile.get("pbp") or {}).get("games_played") or 0)
+    return actual_gp < expected_gp - 1
 
 
 def _cached_qoc_qot(
@@ -73,6 +101,56 @@ def _cached_qoc_qot(
     return result
 
 
+def _player_pbp_teams(player_id: int | None, team: str, *, league: str) -> list[str]:
+    cfg = get_league(league)
+    tri = team.upper()
+    if cfg.uses_nhl_api and player_id:
+        log_teams = fetch_player_season_teams(player_id, nhl_season=MUG_SEASON)
+        if log_teams:
+            teams = list(log_teams.keys())
+            if tri not in teams:
+                teams.append(tri)
+            return sorted(set(teams))
+    return [tri]
+
+
+def _files_for_team(
+    team: str,
+    pbp_dir: Path,
+    *,
+    league: str,
+    a3z_season: str | None,
+    instat_sid: int | None,
+    max_pbp_downloads: int | None,
+    refresh_pbp: bool,
+    allow_download: bool,
+) -> tuple[list[Path], dict[str, Any]]:
+    sid = instat_sid if instat_sid is not None else resolve_instat_season_id(a3z_season, league)
+    cached = try_fast_pbp_cache(
+        team,
+        pbp_dir,
+        league=league,
+        a3z_season=a3z_season,
+        season_id=sid,
+    )
+    if cached and not refresh_pbp:
+        files = [Path(p) for p in cached.get("files", [])]
+        return files, cached
+    if not allow_download:
+        return [], {}
+    meta = ensure_team_pbp_files(
+        team,
+        pbp_dir,
+        league=league,
+        a3z_season=a3z_season,
+        season_id=sid,
+        max_downloads=max_pbp_downloads,
+        refresh=refresh_pbp,
+    )
+    files = [Path(p) for p in meta.get("files", [])]
+    return files, meta
+
+
 def _resolve_pbp_files(
     team: str,
     pbp_dir: Path,
@@ -83,35 +161,67 @@ def _resolve_pbp_files(
     instat_season_id: int | None,
     max_pbp_downloads: int | None,
     refresh_pbp: bool = False,
-) -> tuple[list[Path], dict[str, Any]]:
+    player_id: int | None = None,
+) -> tuple[list[Path], dict[str, Any], list[str], list[tuple[str, list[Path], int | None]]]:
     source = (pbp_source or os.getenv("PLAYER_CARDS_PBP_SOURCE", "api")).lower()
+    teams = _player_pbp_teams(player_id, team, league=league)
 
     if source == "local":
-        files = discover_team_pbp_files(team)
+        file_groups: list[tuple[str, list[Path], int | None]] = []
+        all_files: list[Path] = []
+        for tri in teams:
+            files = discover_team_pbp_files(tri)
+            if files:
+                file_groups.append((tri, files, len(files)))
+                all_files.extend(files)
         meta = {
             "source": "local_pbp",
             "output_dir": str(pbp_dir),
-            "files": [str(f) for f in files],
-            "cached": len(files),
+            "files": [str(f) for f in all_files],
+            "cached": len(all_files),
             "match_ids": [],
-            "complete": bool(files),
+            "complete": bool(all_files),
             "ephemeral": False,
+            "pbp_teams": teams,
         }
-        return files, meta
+        return all_files, meta, teams, file_groups
 
-    meta = ensure_team_pbp_files(
-        team,
-        pbp_dir,
-        league=league,
-        a3z_season=a3z_season,
-        season_id=instat_season_id,
-        max_downloads=max_pbp_downloads,
-        refresh=refresh_pbp,
-    )
-    files = [Path(p) for p in meta.get("files", [])]
-    if not files:
+    file_groups: list[tuple[str, list[Path], int | None]] = []
+    all_files: list[Path] = []
+    primary_meta: dict[str, Any] = {}
+    for tri in teams:
+        dir_path = (
+            pbp_dir
+            if tri == team.upper()
+            else team_pbp_dir(tri, league=league, a3z_season=a3z_season, season_id=instat_season_id)
+        )
+        files, meta = _files_for_team(
+            tri,
+            dir_path,
+            league=league,
+            a3z_season=a3z_season,
+            instat_sid=instat_season_id,
+            max_pbp_downloads=max_pbp_downloads,
+            refresh_pbp=refresh_pbp,
+            allow_download=True,
+        )
+        if not files:
+            continue
+        match_ids = meta.get("match_ids") or []
+        tg = len(match_ids) if meta.get("complete") and match_ids else len(files)
+        file_groups.append((tri, files, tg))
+        all_files.extend(files)
+        if tri == team.upper():
+            primary_meta = meta
+
+    if not all_files:
         raise RuntimeError(f"InStat API returned no PBP files for {team}")
-    return files, meta
+
+    merged = dict(primary_meta)
+    merged["files"] = [str(f) for f in all_files]
+    merged["cached"] = len(all_files)
+    merged["pbp_teams"] = teams
+    return all_files, merged, teams, file_groups
 
 
 def _use_card_store() -> bool:
@@ -232,7 +342,7 @@ def build_player_card_profile(
     season = resolve_a3z_season(a3z_season or cfg.default_season, instat_season_id)
     if (use_store if use_store is not None else _use_card_store()) and not refresh_pbp:
         stored = load_stored_profile(player_name, team=team, season=season, league=league)
-        if stored:
+        if stored and not _store_pbp_incomplete(stored):
             logger.info("Card store hit for %s", player_name)
             return _enrich_stored_profile(stored)
 
@@ -264,9 +374,10 @@ def build_player_card_profile(
             instat_season_id=instat_season_id,
             max_pbp_downloads=max_pbp_downloads,
             refresh_pbp=refresh_pbp,
+            player_id=bio.get("player_id"),
         )
         cap = cap_future.result() if cap_future else None
-        pbp_files, pbp_meta = pbp_future.result()
+        pbp_files, pbp_meta, pbp_teams, file_groups = pbp_future.result()
 
     if not cfg.uses_nhl_api:
         bio = fetch_pwhl_bio(player_name, tri, league=league, files=pbp_files)
@@ -280,6 +391,7 @@ def build_player_card_profile(
         tri,
         pbp_files,
         team_game_count,
+        file_groups=file_groups,
     )
     if pbp:
         pbp["source"] = pbp_meta.get("source", "instat_api")
@@ -298,14 +410,14 @@ def build_player_card_profile(
                 pbp,
                 deployment,
                 season=season,
-                percentiles=pbp_percentiles.get(bio["name"]) if pbp_percentiles else None,
+                percentiles=(pbp_percentiles or {}).get(bio["name"]),
             )
     else:
         a3z = build_pbp_display_profile(
             pbp,
             deployment,
             season=season,
-            percentiles=pbp_percentiles.get(bio["name"]) if pbp_percentiles else None,
+            percentiles=(pbp_percentiles or {}).get(bio["name"]),
         )
 
     games = build_game_context(pbp_files, pbp, a3z, a3z_season=season, pbp_meta=pbp_meta)
@@ -332,6 +444,7 @@ def build_player_card_profile(
             "pbp_team_games": games["pbp_team_games"],
             "pbp_skated_games": games["pbp_skated_games"],
             "a3z_games": games["a3z_games"],
+            "pbp_teams": pbp_meta.get("pbp_teams") or [tri],
             "pbp_ephemeral": pbp_meta.get("ephemeral", False),
             "pbp_downloaded": pbp_meta.get("downloaded"),
             "pbp_skipped_api": pbp_meta.get("skipped_api"),
@@ -361,7 +474,7 @@ def generate_player_card(
     profile: dict[str, Any] | None = None
     if (use_store if use_store is not None else _use_card_store()) and not refresh_pbp:
         profile = load_stored_profile(player_name, team=team, season=season, league=league)
-        if profile:
+        if profile and not _store_pbp_incomplete(profile):
             profile = _enrich_stored_profile(profile)
             logger.info("Card store hit for %s — skipping live data fetch", player_name)
 
