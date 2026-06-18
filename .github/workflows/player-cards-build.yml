@@ -311,7 +311,7 @@ jobs:
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          python research/line_chemistry_passing_networks/run_analysis.py
+          python research/line_chemistry_passing_networks/analyze_line_chemistry.py
 
       - name: Upload research outputs
         uses: actions/upload-artifact@v4

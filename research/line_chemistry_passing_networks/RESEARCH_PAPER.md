@@ -3,7 +3,7 @@
 **Authors:** Analytics Research (Cascade Projects)  
 **Date:** June 2026  
 **Data:** NHL 2025–26 season (partial), InStat/Hudl tracking PBP + NHL API rosters  
-**Code:** `automated-scraping/research/line_chemistry_passing_networks/run_analysis.py`
+**Code:** `automated-scraping/research/line_chemistry_passing_networks/analyze_line_chemistry.py`
 
 ---
 
@@ -329,7 +329,7 @@ Forward lines show weaker network effects, reinforcing that **pair chemistry is 
 
 ```bash
 cd automated-scraping/research/line_chemistry_passing_networks
-python3 run_analysis.py
+python3 analyze_line_chemistry.py
 ```
 
 **Requirements:** Python 3.10+, pandas, numpy, httpx; local InStat PBP cache at `~/Desktop/My Analytics Work/{Team}/Instat_API_Downloads/`; read access to `pwhl-analytics/pipeline/line_pairing_engine.py`.
