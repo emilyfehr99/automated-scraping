@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import tempfile
@@ -20,7 +21,7 @@ from .instat_source import discover_team_pbp_files
 from .leagues import get_league, team_full_name
 from .nhl_bio import fetch_nhl_bio
 from .nhl_instat import instat_season_id
-from .pbp_display import build_pbp_display_profile
+from .pbp_display import _pbp_values, build_pbp_display_profile, compute_team_metric_percentiles
 from .pbp_metrics import aggregate_player_pbp
 from .pbp_team_cache import warm_team_pbp
 from .png_export import html_to_png
@@ -117,6 +118,73 @@ def _use_card_store() -> bool:
     return os.getenv("PLAYER_CARDS_USE_STORE", "1").strip().lower() not in ("0", "false", "no")
 
 
+def _team_percentiles_from_store(
+    team: str,
+    season: str,
+    *,
+    league: str = "nhl",
+    store_path: Path | str | None = None,
+) -> dict[str, dict[str, float | None]]:
+    """Recompute team PBP metric percentiles from profiles already in the card store."""
+    metrics: dict[str, dict[str, float]] = {}
+    with open_store(store_path) as store:
+        rows = store._conn.execute(
+            "SELECT profile_json FROM player_profiles WHERE league = ? AND team = ? AND season = ?",
+            (league, team.upper(), season),
+        )
+        for row in rows:
+            profile = json.loads(str(row["profile_json"]))
+            bio = profile.get("bio") or {}
+            name = bio.get("name")
+            per_game = (profile.get("pbp") or {}).get("per_game") or {}
+            if not name or not per_game:
+                continue
+            vals = _pbp_values(per_game)
+            metrics[str(name)] = {k: v for k, v in vals.items() if not k.startswith("_")}
+    return compute_team_metric_percentiles(metrics)
+
+
+def _enrich_stored_profile(profile: dict[str, Any]) -> dict[str, Any]:
+    """Backfill PBP percentile display for NHL profiles stored without A3Z tiles."""
+    a3z = profile.get("a3z")
+    if isinstance(a3z, dict) and a3z.get("sections"):
+        return profile
+    sources = dict(profile.get("sources") or {})
+    if sources.get("a3z"):
+        return profile
+
+    pbp = profile.get("pbp")
+    if not pbp:
+        return profile
+
+    league = str(profile.get("league") or "nhl").lower()
+    cfg = get_league(league)
+    bio = profile.get("bio") or {}
+    tri = bio.get("team")
+    if not tri:
+        return profile
+
+    season = str(sources.get("a3z_season") or cfg.default_season)
+    store_path = sources.get("store_path")
+    pct_by_name = _team_percentiles_from_store(
+        tri, season, league=league, store_path=store_path
+    )
+    name = str(bio.get("name") or "")
+    display = build_pbp_display_profile(
+        pbp,
+        None,
+        season=season,
+        percentiles=pct_by_name.get(name),
+    )
+    if not display:
+        return profile
+
+    out = dict(profile)
+    out["a3z"] = display
+    out["sources"] = {**sources, "a3z": False, "pbp_percentiles": True}
+    return out
+
+
 def _persist_to_store(profile: dict[str, Any], season: str, instat_sid: int | None, *, league: str = "nhl") -> None:
     bio = profile.get("bio") or {}
     tri = str(bio.get("team") or "").upper()
@@ -166,7 +234,7 @@ def build_player_card_profile(
         stored = load_stored_profile(player_name, team=team, season=season, league=league)
         if stored:
             logger.info("Card store hit for %s", player_name)
-            return stored
+            return _enrich_stored_profile(stored)
 
     if cfg.uses_nhl_api:
         bio = bio or fetch_nhl_bio(player_name, team=team)
@@ -219,15 +287,25 @@ def build_player_card_profile(
     team_full = team_full_name(league, tri)
     deployment = _cached_qoc_qot(bio.get("player_id"), bio["name"], team_full, pbp_files) if pbp_files else None
 
+    a3z_from_api = False
     if cfg.uses_a3z:
         a3z = fetch_a3z_profile(bio["name"], tri, season=season, pbp_team_games=(pbp or {}).get("games"))
-        a3z = merge_deployment_context(a3z, deployment)
+        if a3z:
+            a3z = merge_deployment_context(a3z, deployment)
+            a3z_from_api = True
+        else:
+            a3z = build_pbp_display_profile(
+                pbp,
+                deployment,
+                season=season,
+                percentiles=pbp_percentiles.get(bio["name"]) if pbp_percentiles else None,
+            )
     else:
         a3z = build_pbp_display_profile(
             pbp,
             deployment,
             season=season,
-            percentiles=pbp_percentiles,
+            percentiles=pbp_percentiles.get(bio["name"]) if pbp_percentiles else None,
         )
 
     games = build_game_context(pbp_files, pbp, a3z, a3z_season=season, pbp_meta=pbp_meta)
@@ -244,7 +322,8 @@ def build_player_card_profile(
         "sources": {
             "league": league,
             "nhl": cfg.uses_nhl_api,
-            "a3z": a3z is not None and cfg.uses_a3z,
+            "a3z": a3z_from_api,
+            "pbp_percentiles": bool(a3z) and not a3z_from_api,
             "pbp": pbp is not None,
             "cap": cap is not None,
             "a3z_season": season,
@@ -283,6 +362,7 @@ def generate_player_card(
     if (use_store if use_store is not None else _use_card_store()) and not refresh_pbp:
         profile = load_stored_profile(player_name, team=team, season=season, league=league)
         if profile:
+            profile = _enrich_stored_profile(profile)
             logger.info("Card store hit for %s — skipping live data fetch", player_name)
 
     if profile is None:

@@ -35,11 +35,6 @@ def main() -> None:
         help="Bypass SQLite card store and fetch live data",
     )
     parser.add_argument(
-        "--no-store",
-        action="store_true",
-        help="Bypass SQLite card store and fetch live data",
-    )
-    parser.add_argument(
         "--refresh-pbp",
         action="store_true",
         help="Re-fetch InStat match list and download any missing PBP files",

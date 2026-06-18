@@ -217,6 +217,7 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
     games_ctx = profile.get("games") or {}
     per_game = pbp.get("per_game") or {}
     sections = a3z.get("sections") or {}
+    has_a3z = bool((profile.get("sources") or {}).get("a3z"))
 
     pbp_skated = games_ctx.get("pbp_skated_games", pbp.get("games_played", 0))
     pbp_team_games = games_ctx.get("pbp_team_games", pbp.get("games", 0))
@@ -226,10 +227,16 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
     primary = colors["primary"]
     accent = colors["accent"]
     team_name = team_full_name(league, bio["team"])
-    pillar_tag = "League percentiles · <span>per 60 · A3Z</span>" if league_cfg.uses_a3z else "Team percentiles · <span>InStat PBP</span>"
+    toi = a3z.get("toi_5v5")
+    toi_disp = f"{toi:.0f} min" if isinstance(toi, (int, float)) else "—"
+    pillar_tag = (
+        "League percentiles · <span>per 60 · A3Z</span>"
+        if has_a3z
+        else "Team percentiles · <span>InStat PBP</span>"
+    )
     pct_footer = (
         f'<span>A3Z · <strong>{a3z_games} GP</strong> · {toi_disp} 5v5 TOI</span>'
-        if league_cfg.uses_a3z
+        if has_a3z
         else f'<span>InStat · <strong>{pbp_skated}</strong> GP skated</span>'
     )
 
@@ -315,9 +322,6 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
         accent=accent,
         player_name="",
     )
-
-    toi = a3z.get("toi_5v5")
-    toi_disp = f"{toi:.0f} min" if isinstance(toi, (int, float)) else "—"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
