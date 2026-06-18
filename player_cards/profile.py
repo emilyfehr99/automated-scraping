@@ -297,7 +297,7 @@ def _persist_to_store(profile: dict[str, Any], season: str, instat_sid: int | No
     tri = str(bio.get("team") or "").upper()
     if not tri:
         return
-    sid = instat_sid if instat_sid is not None else instat_season_id(season, league)
+    sid = instat_sid if instat_sid is not None else resolve_instat_season_id(season, league)
     pbp_dir = team_pbp_dir(tri, league=league, a3z_season=season, season_id=sid)
     fast = try_fast_pbp_cache(tri, pbp_dir, league=league, a3z_season=season, season_id=sid)
     files = [Path(p) for p in (fast or {}).get("files", [])]
