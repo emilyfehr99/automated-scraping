@@ -278,7 +278,7 @@ jobs:
       - name: Install analysis dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy httpx
+          pip install pandas numpy httpx Pillow
           pip install -r player_cards/requirements.txt
 
       - name: Download PBP cache shards

@@ -1,9 +1,9 @@
 """NHL player microstat cards — NHL API + A3Z + InStat PBP."""
 
-from .html_renderer import render_player_card, render_player_card_html, write_player_card_html
-from .png_export import html_to_png
-from .card_store import CardStore, DEFAULT_STORE_PATH, load_stored_profile, open_store
-from .profile import build_player_card_profile, generate_player_card
+from __future__ import annotations
+
+from importlib import import_module
+from typing import Any
 
 __all__ = [
     "build_player_card_profile",
@@ -17,3 +17,26 @@ __all__ = [
     "html_to_png",
     "render_player_card",
 ]
+
+_LAZY: dict[str, tuple[str, str]] = {
+    "build_player_card_profile": (".profile", "build_player_card_profile"),
+    "generate_player_card": (".profile", "generate_player_card"),
+    "load_stored_profile": (".card_store", "load_stored_profile"),
+    "open_store": (".card_store", "open_store"),
+    "CardStore": (".card_store", "CardStore"),
+    "DEFAULT_STORE_PATH": (".card_store", "DEFAULT_STORE_PATH"),
+    "render_player_card_html": (".html_renderer", "render_player_card_html"),
+    "write_player_card_html": (".html_renderer", "write_player_card_html"),
+    "render_player_card": (".html_renderer", "render_player_card"),
+    "html_to_png": (".png_export", "html_to_png"),
+}
+
+
+def __getattr__(name: str) -> Any:
+    spec = _LAZY.get(name)
+    if spec is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attr = spec
+    value = getattr(import_module(module_name, __name__), attr)
+    globals()[name] = value
+    return value
