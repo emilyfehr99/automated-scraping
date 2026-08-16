@@ -30,7 +30,6 @@ permissions:
 env:
   PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
   PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/card_store.db
-  # Skip NHL photo downloads during batch indexing (photos load on first card view).
   SKIP_PHOTO_PREWARM: "1"
 
 jobs:
@@ -38,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       full_build: ${{ steps.set.outputs.full_build }}
+      matrix: ${{ steps.set.outputs.matrix }}
     steps:
       - id: set
         env:
@@ -45,45 +45,53 @@ jobs:
           SHARD: ${{ github.event.inputs.shard }}
           TEAMS: ${{ github.event.inputs.teams }}
         run: |
-          FULL=false
-          if [ "$EVENT_NAME" = "schedule" ] || { [ -z "$TEAMS" ] && { [ -z "$SHARD" ] || [ "$SHARD" = "all" ]; }; }; then
-            FULL=true
-          fi
-          echo "full_build=$FULL" >> "$GITHUB_OUTPUT"
-          echo "event=$EVENT_NAME shard=${SHARD:-} teams=${TEAMS:-} full_build=$FULL"
+          python3 - <<'PY'
+          import json, os
+          shard = (os.environ.get("SHARD") or "").strip()
+          teams = (os.environ.get("TEAMS") or "").strip()
+          event = os.environ.get("EVENT_NAME") or ""
+          all_shards = [
+              {"shard_id": 1, "teams": "ANA,BOS,BUF,CGY"},
+              {"shard_id": 2, "teams": "CAR,CBJ,CHI,COL"},
+              {"shard_id": 3, "teams": "DAL,DET,EDM,FLA"},
+              {"shard_id": 4, "teams": "LAK,MIN,MTL,NJD"},
+              {"shard_id": 5, "teams": "NSH,NYI,NYR,OTT"},
+              {"shard_id": 6, "teams": "PHI,PIT,SEA,SJS"},
+              {"shard_id": 7, "teams": "STL,TBL,TOR,UTA"},
+              {"shard_id": 8, "teams": "VAN,VGK,WPG,WSH"},
+              {"shard_id": 9, "teams": "BPF,MNF,MVL,NYS,OTC,TSR", "league": "pwhl"},
+          ]
+          full = event == "schedule" or (not teams and shard in ("", "all"))
+          if teams:
+              selected = [s for s in all_shards if s["shard_id"] == 1]
+          elif full:
+              selected = all_shards
+          else:
+              try:
+                  want = int(shard)
+              except ValueError:
+                  raise SystemExit(f"Invalid shard {shard!r}; use 1-9 or all")
+              selected = [s for s in all_shards if s["shard_id"] == want]
+              if not selected:
+                  raise SystemExit(f"Unknown shard {want}; use 1-9 or all")
+          matrix = {"include": selected}
+          print(f"event={event} shard={shard!r} teams={teams!r} full_build={full}")
+          print("matrix", json.dumps(matrix))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"full_build={'true' if full else 'false'}\n")
+              fh.write("matrix<<MATRIX\n")
+              fh.write(json.dumps(matrix, separators=(",", ":")))
+              fh.write("\nMATRIX\n")
+          PY
 
   build-shard:
     needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 330
-    if: >-
-      needs.plan.outputs.full_build == 'true' ||
-      github.event.inputs.shard == format('{0}', matrix.shard_id) ||
-      (github.event.inputs.teams != '' && matrix.shard_id == 1)
     strategy:
       fail-fast: false
       max-parallel: 4
-      matrix:
-        include:
-          - shard_id: 1
-            teams: "ANA,BOS,BUF,CGY"
-          - shard_id: 2
-            teams: "CAR,CBJ,CHI,COL"
-          - shard_id: 3
-            teams: "DAL,DET,EDM,FLA"
-          - shard_id: 4
-            teams: "LAK,MIN,MTL,NJD"
-          - shard_id: 5
-            teams: "NSH,NYI,NYR,OTT"
-          - shard_id: 6
-            teams: "PHI,PIT,SEA,SJS"
-          - shard_id: 7
-            teams: "STL,TBL,TOR,UTA"
-          - shard_id: 8
-            teams: "VAN,VGK,WPG,WSH"
-          - shard_id: 9
-            teams: "BPF,MNF,MVL,NYS,OTC,TSR"
-            league: "pwhl"
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -209,7 +217,7 @@ jobs:
     needs: [plan, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: success() && needs.plan.outputs.full_build == 'true'
+    if: needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -270,7 +278,7 @@ jobs:
     needs: [plan, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    if: success() && needs.plan.outputs.full_build == 'true'
+    if: needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
