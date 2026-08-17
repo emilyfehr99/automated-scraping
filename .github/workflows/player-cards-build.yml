@@ -255,11 +255,29 @@ jobs:
               "SELECT league, COUNT(DISTINCT team) FROM team_builds GROUP BY league"
           ).fetchall()
           players = con.execute("SELECT COUNT(*) FROM player_profiles").fetchone()[0]
+          present = con.execute(
+              "SELECT league, team FROM team_builds ORDER BY league, team"
+          ).fetchall()
           by = {str(league): int(n) for league, n in teams}
           print("Merged card store:")
           for league, n in teams:
               print(f"  {league}: {n} teams")
           print(f"  player profiles: {players}")
+          present_nhl = {t for lg, t in present if lg == "nhl"}
+          present_pwhl = {t for lg, t in present if lg == "pwhl"}
+          expected_nhl = {
+              "ANA","BOS","BUF","CAR","CBJ","CGY","CHI","COL",
+              "DAL","DET","EDM","FLA","LAK","MIN","MTL","NJD",
+              "NSH","NYI","NYR","OTT","PHI","PIT","SEA","SJS",
+              "STL","TBL","TOR","UTA","VAN","VGK","WPG","WSH",
+          }
+          expected_pwhl = {"BPF","MNF","MVL","NYS","OTC","TSR"}
+          missing_nhl = sorted(expected_nhl - present_nhl)
+          missing_pwhl = sorted(expected_pwhl - present_pwhl)
+          if missing_nhl:
+              print(f"  MISSING NHL teams: {', '.join(missing_nhl)}")
+          if missing_pwhl:
+              print(f"  MISSING PWHL teams: {', '.join(missing_pwhl)}")
           nhl, pwhl = by.get("nhl", 0), by.get("pwhl", 0)
           if nhl < 32 or pwhl < 6:
               print(f"ERROR: expected 32 NHL + 6 PWHL teams, got nhl={nhl} pwhl={pwhl}", file=sys.stderr)

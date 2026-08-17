@@ -38,6 +38,13 @@ NHL_API = "https://api-web.nhle.com/v1"
 ROSTER_SEASON = "20252026"
 
 
+def _cache_skips_download(cached: dict[str, Any] | None, *, refresh: bool) -> bool:
+    """Only skip InStat downloads when the on-disk season cache is complete."""
+    if not cached or refresh:
+        return False
+    return bool(cached.get("complete"))
+
+
 def fetch_nhl_roster(team: str) -> list[dict[str, Any]]:
     tri = team.upper()
     resp = httpx.get(
@@ -68,7 +75,7 @@ def fetch_nhl_roster(team: str) -> list[dict[str, Any]]:
 
 def fetch_roster(league: str, team: str, pbp_files: list[Path]) -> list[dict[str, Any]]:
     cfg = get_league(league)
-    if cfg.uses_nhl_api:
+    if cfg.uses_nhl_api and league != "prospect":
         return fetch_nhl_roster(team)
     return roster_from_pbp(pbp_files, team, league=league)
 
@@ -84,11 +91,11 @@ def _team_pbp_percentiles(
     metrics: dict[str, dict[str, float]] = {}
     for entry in roster:
         name = entry["name"]
-        pbp = aggregate_player_pbp(name, team, files=pbp_files, team_games=team_games)
+        pbp = aggregate_player_pbp(name, team, files=pbp_files, team_games=team_games, league=league)
         if not pbp:
             continue
         vals = _pbp_values(pbp.get("per_game") or {})
-        metrics[name] = {k: v for k, v in vals.items() if not k.startswith("_")}
+        metrics[name] = {k: v for k, v in vals.items() if not str(k).startswith("_")}
     return compute_team_metric_percentiles(metrics)
 
 
@@ -116,6 +123,11 @@ def build_team(
         if not fast:
             raise RuntimeError(
                 f"No cached PBP for {league}/{tri} — run without --skip-pbp-download first"
+            )
+        if not _cache_skips_download(fast, refresh=refresh_pbp):
+            raise RuntimeError(
+                f"Incomplete PBP cache for {league}/{tri} ({fast.get('cached')} files) — "
+                "re-run without --skip-pbp-download"
             )
         pbp_meta = fast
         pbp_files = [Path(p) for p in fast.get("files", [])]
@@ -148,6 +160,7 @@ def build_team(
 
     built = 0
     skipped = 0
+    skip_reasons: list[str] = []
     for entry in roster:
         name = entry["name"]
         try:
@@ -158,7 +171,7 @@ def build_team(
                 a3z_season=season,
                 instat_season_id=instat_sid,
                 pbp_dir=pbp_dir,
-                refresh_pbp=False,
+                refresh_pbp=refresh_pbp,
                 use_store=False,
                 pbp_percentiles=pct_by_player.get(name),
             )
@@ -171,7 +184,18 @@ def build_team(
             logger.info("  [%s/%s] %s", built, len(roster), name)
         except Exception as exc:
             skipped += 1
+            skip_reasons.append(f"{name}: {exc}")
             logger.warning("  skip %s: %s", name, exc)
+
+    if roster and skipped / len(roster) > 0.25:
+        logger.error(
+            "High skip rate for %s/%s: %s/%s players (%s)",
+            league,
+            tri,
+            skipped,
+            len(roster),
+            "; ".join(skip_reasons[:5]),
+        )
 
     store.upsert_team(
         tri,
@@ -233,9 +257,21 @@ def build_store(
             cached = try_fast_pbp_cache(
                 tri, pbp_dir, league=league_key, a3z_season=season_tag, season_id=sid
             )
-            if cached and not refresh_pbp:
-                logger.info("PBP already cached for %s/%s (%s games)", league_key, tri, cached["cached"])
+            if _cache_skips_download(cached, refresh=refresh_pbp):
+                logger.info(
+                    "PBP already cached for %s/%s (%s games)",
+                    league_key,
+                    tri,
+                    cached["cached"],
+                )
                 continue
+            if cached:
+                logger.info(
+                    "Partial PBP cache for %s/%s (%s files) — will download missing games",
+                    league_key,
+                    tri,
+                    cached.get("cached"),
+                )
             download_jobs.append(
                 {
                     "league": league_key,
@@ -251,6 +287,11 @@ def build_store(
         logger.info("Batch downloading PBP for %s teams (one InStat session)", len(download_jobs))
         asyncio.run(batch_download_team_pbp(download_jobs))
 
+    if "pwhl" in league_keys:
+        from .pwhl_action_sync import ensure_pwhl_action_index
+
+        ensure_pwhl_action_index(min_coverage_pct=0.0)
+
     with open_store(store_path) as store:
         for league_key, tri, season_tag, sid in team_plan:
             cfg = get_league(league_key)
@@ -261,14 +302,15 @@ def build_store(
             store.set_meta(f"instat_season_id:{league_key}", str(sid))
             logger.info("=== Index %s / %s ===", league_key.upper(), tri)
             try:
-                use_skip = skip_pbp_download or players_only or bool(
-                    try_fast_pbp_cache(
-                        tri,
-                        team_pbp_dir(tri, league=league_key, a3z_season=season_tag, season_id=sid),
-                        league=league_key,
-                        a3z_season=season_tag,
-                        season_id=sid,
-                    )
+                cached = try_fast_pbp_cache(
+                    tri,
+                    team_pbp_dir(tri, league=league_key, a3z_season=season_tag, season_id=sid),
+                    league=league_key,
+                    a3z_season=season_tag,
+                    season_id=sid,
+                )
+                use_skip = skip_pbp_download or players_only or _cache_skips_download(
+                    cached, refresh=refresh_pbp
                 )
                 summary = build_team(
                     store,
@@ -289,12 +331,14 @@ def build_store(
             season_tag = resolve_a3z_season(season or get_league(league_key).default_season, instat_season_id_override)
             total_players += store.count_players(season_tag, league=league_key)
 
+    failed = [r for r in results if "error" in r]
     return {
         "store": str(store_path or DEFAULT_STORE_PATH),
         "leagues": league_keys,
         "players_indexed": total_players,
         "seconds": round(time.perf_counter() - t0, 1),
         "results": results,
+        "failed_teams": [(r["league"], r["team"], r["error"]) for r in failed],
     }
 
 
@@ -342,6 +386,11 @@ def main(argv: list[str] | None = None) -> None:
         players_only=args.players_only,
     )
     print(json.dumps(summary, indent=2))
+
+    failed = summary.get("failed_teams") or []
+    if failed:
+        logger.error("%d team(s) failed: %s", len(failed), ", ".join(f"{lg}/{t}" for lg, t, _ in failed))
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
