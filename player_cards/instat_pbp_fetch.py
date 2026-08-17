@@ -215,6 +215,10 @@ async def _fetch_season_match_ids(api, team_id: int, season_id: int) -> list[int
     instat_api.TEAM_ID = team_id
     instat_api.SEASON_ID = season_id
     matches = await api.get_matches_list()
+    if not matches and hasattr(api, "refresh_auth"):
+        logger.warning("Empty matches for team_id=%s season_id=%s; trying refresh_auth()", team_id, season_id)
+        if await api.refresh_auth():
+            matches = await api.get_matches_list()
     return api._extract_match_ids(matches)
 
 
