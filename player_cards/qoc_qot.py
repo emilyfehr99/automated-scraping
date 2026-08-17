@@ -30,6 +30,24 @@ RUSH_ACTIONS = {
 }
 CYCLE_ACTIONS = {"Dump ins", "Puck recoveries in OZ", "Puck battles in OZ", "Passes to the slot"}
 
+MICROSTAT_OFFENSE_COLS = [
+    "Scoring_Chances",
+    "Shot_Assists",
+    "Zone_Entries",
+    "Carry_ins",
+    "Carries_with_Chances",
+    "Dump_in_Chances",
+    "DZ_Shots",
+    "NZ_Shots",
+    "Shots_off_Rush",
+    "Shots_off_Forecheck",
+]
+MICROSTAT_DEFENSE_COLS = [
+    "Possession_Exits",
+    "Forecheck_Recoveries",
+    "NZ_Turnovers",
+]
+
 
 def _game_id(path: Path) -> str:
     m = re.search(r"game_(?:\d{4}-\d{2}-\d{2}_)?(\d+)_pbp\.csv", path.name, re.I)
@@ -85,8 +103,10 @@ def compute_microstat_game_score(df: pd.DataFrame, team_name: str) -> pd.DataFra
     def _count(mask: pd.Series, col: str) -> pd.Series:
         return tg.loc[mask, "player"].value_counts().rename(col)
 
+    pos_x = tg.get("pos_x", pd.Series(0, index=tg.index))
+    pos_y = tg.get("pos_y", pd.Series(0, index=tg.index))
     scoring = _count(
-        (tg["action"] == "Shots") & (tg["pos_x"] >= 50) & (tg["pos_y"] >= 11) & (tg["pos_y"] <= 14),
+        (tg["action"] == "Shots") & (pos_x >= 50) & (pos_y >= 11) & (pos_y <= 14),
         "Scoring_Chances",
     )
 
@@ -163,8 +183,13 @@ def compute_microstat_game_score(df: pd.DataFrame, team_name: str) -> pd.DataFra
         if s is not None and len(s):
             out = out.join(s.to_frame(), how="left")
     out = out.fillna(0)
-    out["game_score"] = out.sum(axis=1)
-    return out.reset_index()[["player", "game_score"]]
+    metric_cols = list(out.columns)
+    off_cols = [c for c in MICROSTAT_OFFENSE_COLS if c in out.columns]
+    def_cols = [c for c in MICROSTAT_DEFENSE_COLS if c in out.columns]
+    out["game_score"] = out[metric_cols].sum(axis=1)
+    out["offense_gs"] = out[off_cols].sum(axis=1) if off_cols else 0.0
+    out["defense_gs"] = out[def_cols].sum(axis=1) if def_cols else 0.0
+    return out.reset_index()[["player", "game_score", "offense_gs", "defense_gs"]]
 
 
 def _lookup_gs(player: str, game_id: str, gs_game: dict[tuple[str, str], float], gs_season: dict[str, float]) -> float:
@@ -179,14 +204,20 @@ def _qoc_qot_game(df: pd.DataFrame, team_name: str, game_id: str, gs_game: dict,
     if shifts.empty:
         return pd.DataFrame(columns=["player", "qoc", "qot", "shift_events"])
 
+    is_goalie_cache = {}
+    def check_goalie(p: str) -> bool:
+        if p not in is_goalie_cache:
+            is_goalie_cache[p] = _is_probable_goalie(p, df)
+        return is_goalie_cache[p]
+
     rows: list[dict[str, Any]] = []
     for (start, action), block in shifts.groupby(["start", "action"], sort=False):
         team_players = block[block["team"] == team_name]["player"].unique().tolist()
         if not team_players:
             continue
         opp_players = block[block["team"] != team_name]["player"].unique().tolist()
-        opp_players = [p for p in opp_players if not _is_probable_goalie(p, df)]
-        skaters = [p for p in team_players if not _is_probable_goalie(p, df)]
+        opp_players = [p for p in opp_players if not check_goalie(p)]
+        skaters = [p for p in team_players if not check_goalie(p)]
 
         opp_gs = [_lookup_gs(p, game_id, gs_game, gs_season) for p in opp_players]
         opp_gs = [g for g in opp_gs if np.isfinite(g)]

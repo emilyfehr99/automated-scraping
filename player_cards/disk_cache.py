@@ -60,14 +60,37 @@ def photo_data_url(url: str) -> str | None:
     """Return cached data URL for a remote photo, or None."""
     if not url or url.startswith("data:"):
         return url or None
-    digest = hashlib.sha256(url.encode()).hexdigest()[:24]
-    path = cache_path("photos", f"{digest}.json")
-    hit = load_json(path)
+    hit = load_json(_cache_path_for_url(url))
     if isinstance(hit, dict) and hit.get("data_url"):
         return str(hit["data_url"])
     return None
 
 
-def store_photo_data_url(url: str, data_url: str) -> None:
+def photo_dimensions(url: str) -> tuple[int | None, int | None]:
+    hit = load_json(_cache_path_for_url(url))
+    if isinstance(hit, dict):
+        w, h = hit.get("width"), hit.get("height")
+        try:
+            return (int(w) if w else None, int(h) if h else None)
+        except (TypeError, ValueError):
+            pass
+    return None, None
+
+
+def _cache_path_for_url(url: str) -> Path:
     digest = hashlib.sha256(url.encode()).hexdigest()[:24]
-    save_json(cache_path("photos", f"{digest}.json"), {"url": url, "data_url": data_url})
+    return cache_path("photos", f"{digest}.json")
+
+
+def store_photo_data_url(
+    url: str,
+    data_url: str,
+    *,
+    width: int | None = None,
+    height: int | None = None,
+) -> None:
+    payload: dict[str, Any] = {"url": url, "data_url": data_url}
+    if width and height:
+        payload["width"] = width
+        payload["height"] = height
+    save_json(_cache_path_for_url(url), payload)

@@ -104,19 +104,53 @@ def _instat_name(nhl_name: str) -> str:
 
 
 def _match_player_name(row_name: str, nhl_name: str) -> bool:
-    a, b = _norm(row_name), _norm(nhl_name)
-    if a == b:
+    import re
+    import difflib
+    
+    def clean(n):
+        n = re.sub(r'\(.*?\)', '', n)
+        n = re.sub(r'[^a-zA-Z\s]', '', n)
+        return n.lower().strip()
+        
+    row_clean = clean(row_name)
+    nhl_clean = clean(nhl_name)
+    
+    if row_clean == nhl_clean:
         return True
-    instat_fmt = _norm(_instat_name(nhl_name))
-    if instat_fmt == a:
+        
+    row_parts = row_clean.split()
+    nhl_parts = nhl_clean.split()
+    
+    if not row_parts or not nhl_parts:
+        return False
+        
+    if set(row_parts) == set(nhl_parts):
         return True
-    row_parts = a.split()
-    inst_parts = instat_fmt.split()
-    if len(row_parts) >= 2 and len(inst_parts) >= 2 and row_parts[0] == inst_parts[0]:
-        from .nhl_bio import _first_name_matches
-
-        if _first_name_matches(row_parts[-1], inst_parts[-1]):
+        
+    best_sim = 0.0
+    best_row_idx = 0
+    best_nhl_idx = 0
+    
+    for i, r_word in enumerate(row_parts):
+        for j, n_word in enumerate(nhl_parts):
+            sim = difflib.SequenceMatcher(None, r_word, n_word).ratio()
+            if sim > best_sim:
+                best_sim = sim
+                best_row_idx = i
+                best_nhl_idx = j
+                
+    if best_sim >= 0.75:
+        row_rem = [w for idx, w in enumerate(row_parts) if idx != best_row_idx]
+        nhl_rem = [w for idx, w in enumerate(nhl_parts) if idx != best_nhl_idx]
+        
+        if row_rem and nhl_rem:
+            for r_word in row_rem:
+                for n_word in nhl_rem:
+                    if r_word and n_word and r_word[0] == n_word[0]:
+                        return True
+        elif not row_rem or not nhl_rem:
             return True
+            
     return False
 
 
@@ -126,13 +160,23 @@ def _norm_tri(team: str) -> str:
     return normalize_team_abbrev("nhl", team)
 
 
-def _team_search_roots(team: str) -> list[Path]:
-    tri = _norm_tri(team)
-    full = NHL_TEAM_SEARCH.get(tri, "")
-    nickname = full.split()[-1] if full else team
+def _team_search_roots(team: str, *, league: str = "nhl") -> list[Path]:
     from .leagues import player_cards_work_root
 
     work = player_cards_work_root()
+
+    # For prospect teams, only search the dedicated Prospects subfolder.
+    # Skipping NHL team name lookup prevents e.g. 'VANCOUVER (WHL)' from
+    # accidentally scanning all Vancouver Canucks NHL game files.
+    if league == "prospect":
+        prospect_root = Path.home() / "Desktop" / "My Analytics Work" / "Prospects" / team.upper()
+        roots = [prospect_root / "Instat_API_Downloads", prospect_root]
+        found = [r for r in roots if r.is_dir()]
+        return list(dict.fromkeys(found))
+
+    tri = _norm_tri(team)
+    full = NHL_TEAM_SEARCH.get(tri, "")
+    nickname = full.split()[-1] if full else team
     roots = [
         work / full / "Instat_API_Downloads",
         work / full,
@@ -156,7 +200,14 @@ def _team_search_roots(team: str) -> list[Path]:
     return list(dict.fromkeys(found))
 
 
+def is_pbp_game_csv(path: Path) -> bool:
+    """True for InStat per-game play-by-play exports (not season stat sheets)."""
+    return path.name.endswith("_pbp.csv")
+
+
 def _is_team_game_file(path: Path, team: str) -> bool:
+    if not is_pbp_game_csv(path):
+        return False
     tri = _norm_tri(team)
     full = NHL_TEAM_SEARCH.get(tri, "")
     nickname = full.split()[-1] if full else team
@@ -168,11 +219,11 @@ def _is_team_game_file(path: Path, team: str) -> bool:
     return False
 
 
-def discover_team_pbp_files(team: str) -> list[Path]:
+def discover_team_pbp_files(team: str, *, league: str = "nhl") -> list[Path]:
     """All PBP CSV files for a team (recursive)."""
     files: list[Path] = []
     seen: set[str] = set()
-    for root in _team_search_roots(team):
+    for root in _team_search_roots(team, league=league):
         for pattern in ("*.csv", "**/*.csv"):
             for path in root.glob(pattern):
                 if not path.is_file():
@@ -187,7 +238,9 @@ def discover_team_pbp_files(team: str) -> list[Path]:
                     try:
                         with path.open(encoding="utf-8") as f:
                             sample = f.read(4096)
-                        if NHL_TEAM_SEARCH.get(_norm_tri(team), "").split()[0].lower() not in sample.lower():
+                        full_name = NHL_TEAM_SEARCH.get(_norm_tri(team), "")
+                        search_term = full_name.split()[0].lower() if full_name else team.lower()
+                        if search_term not in sample.lower():
                             if _norm_tri(team) not in sample.upper():
                                 continue
                     except Exception:
@@ -261,7 +314,7 @@ def aggregate_from_local_pbp(player_name: str, team: str) -> dict[str, Any] | No
     }
 
 
-async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35) -> dict[str, Any] | None:
+async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35, league: str = "prospect") -> dict[str, Any] | None:
     try:
         from playwright.async_api import async_playwright
         from instat_api import InStatAPI
@@ -277,10 +330,13 @@ async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35
         if not await api.init_session(p):
             return None
 
-        team_query = NHL_TEAM_SEARCH.get(_norm_tri(team), team)
-        team_id = await api.find_team_by_name(f"{team_query} men")
+        from .leagues import resolve_instat_team_id
+        team_id = await resolve_instat_team_id(api, league, team)
         if not team_id:
-            team_id = await api.get_team_id(team_query)
+            team_query = NHL_TEAM_SEARCH.get(_norm_tri(team), team)
+            team_id = await api.find_team_by_name(f"{team_query} men")
+            if not team_id:
+                team_id = await api.get_team_id(team_query)
         if not team_id:
             await api.close()
             return None
@@ -293,9 +349,14 @@ async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35
             )
             if matches_resp and matches_resp.get("data"):
                 block = matches_resp["data"][0].get("scout_uni_advanced_matches_list", [])
-                if isinstance(block, list):
-                    for m in block:
-                        mid = m.get("match_id") if isinstance(m, dict) else None
+                matches = block.get("matches", []) if isinstance(block, dict) else block
+                if isinstance(matches, list):
+                    for m in matches:
+                        mid = None
+                        if isinstance(m, dict):
+                            mid = m.get("id") or m.get("match_id")
+                        elif isinstance(m, (int, str)):
+                            mid = m
                         if mid and int(mid) > 100000:
                             match_ids.append(int(mid))
             if match_ids:
@@ -315,10 +376,78 @@ async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35
         data = skaters["data"][0].get("scout_uni_team_players_stat", {})
         col_map = await api._build_col_map(1)
         rows = api._parse_player_rows(data, col_map)
-        await api.close()
 
         player_row = next((r for r in rows if _match_player_name(r.get("Player", ""), player_name)), None)
+        
+        # Check if we should fall back to junior team (J20/U20/J18) if pro stats are non-existent or very low (< 5 GP)
+        gp_val = 0
+        if player_row:
+            try:
+                gp_val = int(float(player_row.get("GP", 0)))
+            except:
+                pass
+        is_junior_fallback = (not player_row) or (gp_val < 5)
+        
+        if is_junior_fallback:
+            import json
+            normalized_team = team.lower().split()[0]
+            if normalized_team in {"modo", "frolunda", "hv71", "leksand", "djurgarden", "orebro", "lulea", "tappara", "tps", "ilves", "karpat", "hifk", "assat", "saipa", "lukko", "jyp", "kalpa", "pelicans", "kookoo", "jukurit", "hpk", "sport"}:
+                resp_jr = await api.api_call("scout_uni_search", {"_ps_any_text": f"{normalized_team} j20"})
+                if not resp_jr or not resp_jr.get("data"):
+                    resp_jr = await api.api_call("scout_uni_search", {"_ps_any_text": f"{normalized_team} u20"})
+                if not resp_jr or not resp_jr.get("data"):
+                    resp_jr = await api.api_call("scout_uni_search", {"_ps_any_text": f"{normalized_team} j18"})
+                
+                jr_teams = (resp_jr or {}).get("data", [{}])[0].get("scout_uni_search", {}).get("teams") or []
+                jr_team_id = None
+                for t_jr in jr_teams:
+                    if isinstance(t_jr, str):
+                        try:
+                            t_jr = json.loads(t_jr)
+                        except Exception:
+                            continue
+                    if isinstance(t_jr, dict) and str(t_jr.get("gender")) == "1":
+                        jr_team_id = int(t_jr["id"])
+                        break
+                
+                if jr_team_id and jr_team_id != team_id:
+                    jr_match_ids = []
+                    for sid in (season_id, 34, 33, 36):
+                        m_resp = await api.api_call(
+                            "scout_uni_advanced_matches_list",
+                            {"_p_season_id": sid, "_p_team_id": jr_team_id},
+                        )
+                        if m_resp and m_resp.get("data"):
+                            block_jr = m_resp["data"][0].get("scout_uni_advanced_matches_list", [])
+                            m_list = block_jr.get("matches", []) if isinstance(block_jr, dict) else block_jr
+                            if isinstance(m_list, list):
+                                for m_entry in m_list:
+                                    m_val = None
+                                    if isinstance(m_entry, dict):
+                                        m_val = m_entry.get("id") or m_entry.get("match_id")
+                                    elif isinstance(m_entry, (int, str)):
+                                        m_val = m_entry
+                                    if m_val and int(m_val) > 100000:
+                                        jr_match_ids.append(int(m_val))
+                        if jr_match_ids:
+                            break
+                    
+                    if jr_match_ids:
+                        skaters_jr = await api.api_call(
+                            "scout_uni_team_players_stat",
+                            {"_p_team_id": jr_team_id, "_p_match_arr": jr_match_ids},
+                        )
+                        if skaters_jr and skaters_jr.get("data"):
+                            data_jr = skaters_jr["data"][0].get("scout_uni_team_players_stat", {})
+                            rows_jr = api._parse_player_rows(data_jr, col_map)
+                            player_row_jr = next((r for r in rows_jr if _match_player_name(r.get("Player", ""), player_name)), None)
+                            if player_row_jr:
+                                player_row = player_row_jr
+                                match_ids = jr_match_ids
+                                team_id = jr_team_id
+                                
         if not player_row:
+            await api.close()
             return None
 
         metrics = []
@@ -344,9 +473,48 @@ async def fetch_from_instat_api(player_name: str, team: str, season_id: int = 35
             if len(metrics) >= 12:
                 break
 
+        gp_val = None
+        g_val = None
+        a_val = None
+        try:
+            gp_val = int(float(player_row.get("GP", 0)))
+        except:
+            pass
+        try:
+            g_val = int(float(player_row.get("G", 0)))
+        except:
+            pass
+        try:
+            a_val = int(float(player_row.get("A", 0)))
+        except:
+            pass
+
+        hgt_inches = None
+        try:
+            hgt_cm = float(player_row.get("HGT", 0))
+            if hgt_cm > 0:
+                hgt_inches = int(round(hgt_cm / 2.54))
+        except:
+            pass
+
+        wgt_lbs = None
+        try:
+            wgt_kg = float(player_row.get("WGT", 0))
+            if wgt_kg > 0:
+                wgt_lbs = int(round(wgt_kg * 2.20462))
+        except:
+            pass
+
+        await api.close()
         return {
             "games": len(match_ids),
-            "games_played": len(match_ids),
+            "games_played": gp_val if gp_val is not None else len(match_ids),
+            "goals": g_val or 0,
+            "assists": a_val or 0,
+            "pts": (g_val or 0) + (a_val or 0),
+            "height_inches": hgt_inches,
+            "weight_lbs": wgt_lbs,
+            "dob": player_row.get("DOB"),
             "metrics": metrics[:12],
             "source": "instat_api",
             "team_id": team_id,

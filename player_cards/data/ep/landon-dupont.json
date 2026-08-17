@@ -1,0 +1,83 @@
+{
+  "ep_id": "701503",
+  "slug": "landon-dupont",
+  "height": "6'0\"",
+  "height_cm": 183,
+  "weight_lbs": 190,
+  "shoots": "R",
+  "position": "D",
+  "dob": "2009-05-28",
+  "birth_city": "Calgary",
+  "birth_country": "CAN",
+  "nhl_draft_year": 2027,
+  "nhl_draft_info": "2027 NHL Draft Eligible",
+  "chl_draft": {
+    "league": "WHL",
+    "year": 2024,
+    "round": 1,
+    "pick": 1,
+    "team": "Everett Silvertips",
+    "raw": "Drafted 2024, 1 #1 by Everett Silvertips in the WHL Prospects Draft"
+  },
+  "career_seasons": [
+    {
+      "season": "2022-23",
+      "team": "Edge School U15 Prep",
+      "league": "CSSHL U15",
+      "gp": 27,
+      "g": 15,
+      "a": 32,
+      "tp": 47
+    },
+    {
+      "season": "2023-24",
+      "team": "Edge School U18 Prep",
+      "league": "CSSHL U18",
+      "gp": 30,
+      "g": 19,
+      "a": 43,
+      "tp": 62
+    },
+    {
+      "season": "2024-25",
+      "team": "Everett Silvertips",
+      "league": "WHL",
+      "gp": 64,
+      "g": 17,
+      "a": 43,
+      "tp": 60
+    },
+    {
+      "season": "2025-26",
+      "team": "Everett Silvertips",
+      "league": "WHL",
+      "gp": 63,
+      "g": 18,
+      "a": 55,
+      "tp": 73
+    },
+    {
+      "season": "2026-27",
+      "team": "Univ. of Michigan",
+      "league": "NCAA",
+      "gp": null,
+      "g": null,
+      "a": null,
+      "tp": null
+    }
+  ],
+  "amateur_club": "Everett Silvertips",
+  "name": "Landon Dupont",
+  "career_clubs": [
+    "Edge School U15 Prep",
+    "Edge School U18 Prep",
+    "Everett Silvertips",
+    "Univ. of Michigan"
+  ],
+  "pbp_clubs": [
+    "Everett Silvertips",
+    "Edge School U15 Prep",
+    "Edge School U18 Prep",
+    "Univ. of Michigan"
+  ]
+}

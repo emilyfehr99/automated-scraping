@@ -38,11 +38,53 @@ TEAM_COLORS: dict[str, dict[str, str]] = {
     "WSH": {"primary": "#041E42", "accent": "#C8102E", "light": "#E8EDF5"},
 }
 
+CHL_TEAM_COLORS: dict[str, dict[str, str]] = {
+    "EVERETT SILVERTIPS": {"primary": "#043927", "accent": "#C5A059", "light": "#E8F2EE"},
+    "EVERETT": {"primary": "#043927", "accent": "#C5A059", "light": "#E8F2EE"},
+    "REGINA PATS": {"primary": "#00205B", "accent": "#CC0000", "light": "#E8EEFA"},
+    "REGINA": {"primary": "#00205B", "accent": "#CC0000", "light": "#E8EEFA"},
+    "LONDON KNIGHTS": {"primary": "#00482B", "accent": "#FFB81C", "light": "#E8F2EE"},
+    "LONDON": {"primary": "#00482B", "accent": "#FFB81C", "light": "#E8F2EE"},
+    "SAGINAW SPIRIT": {"primary": "#002B49", "accent": "#D11242", "light": "#E8EDF5"},
+    "SAGINAW": {"primary": "#002B49", "accent": "#D11242", "light": "#E8EDF5"},
+    "MEDICINE HAT TIGERS": {"primary": "#111111", "accent": "#FF6600", "light": "#F5F5F5"},
+    "MEDICINE HAT": {"primary": "#111111", "accent": "#FF6600", "light": "#F5F5F5"},
+    "PRINCE ALBERT RAIDERS": {"primary": "#004B33", "accent": "#C5A059", "light": "#E8F2EE"},
+    "BRANDON WHEAT KINGS": {"primary": "#111111", "accent": "#FFB81C", "light": "#FFF8E6"},
+    "MOOSE JAW WARRIORS": {"primary": "#CC0000", "accent": "#111111", "light": "#F5E8E8"},
+    "SPOKANE CHIEFS": {"primary": "#CC0000", "accent": "#002B49", "light": "#F5E8E8"},
+    "TRI-CITY AMERICANS": {"primary": "#002B49", "accent": "#CC0000", "light": "#E8EDF5"},
+    "KELOWNA ROCKETS": {"primary": "#005A60", "accent": "#CC0000", "light": "#E8F2F3"},
+    "KAMLOOPS BLAZERS": {"primary": "#002B49", "accent": "#FF4500", "light": "#E8EDF5"},
+    "VANCOUVER GIANTS": {"primary": "#111111", "accent": "#C5A059", "light": "#F5F5F5"},
+    "PRINCE GEORGE COUGARS": {"primary": "#CC0000", "accent": "#111111", "light": "#F5E8E8"},
+    "VICTORIA ROYALS": {"primary": "#002B49", "accent": "#8F8F8C", "light": "#E8EDF5"},
+    "EDMONTON OIL KINGS": {"primary": "#CC0000", "accent": "#FFB81C", "light": "#F5E8E8"},
+    "CALGARY HITMEN": {"primary": "#CC0000", "accent": "#005A60", "light": "#F5E8E8"},
+    "RED DEER REBELS": {"primary": "#111111", "accent": "#CC0000", "light": "#F5F5F5"},
+    "SWIFT CURRENT BRONCOS": {"primary": "#002B49", "accent": "#008080", "light": "#E8EDF5"},
+    "LETHBRIDGE HURRICANES": {"primary": "#CC0000", "accent": "#002B49", "light": "#F5E8E8"},
+    "WENATCHEE WILD": {"primary": "#002B49", "accent": "#CC0000", "light": "#E8EDF5"},
+    # NCAA / USHL clubs (undrafted prospect branding)
+    "UNIV. OF MICHIGAN": {"primary": "#00274C", "accent": "#FFCB05", "light": "#E8EEF5"},
+    "UNIVERSITY OF MICHIGAN": {"primary": "#00274C", "accent": "#FFCB05", "light": "#E8EEF5"},
+    "MICHIGAN": {"primary": "#00274C", "accent": "#FFCB05", "light": "#E8EEF5"},
+    "PENN STATE": {"primary": "#041E42", "accent": "#FFFFFF", "light": "#E8EDF5"},
+    "PENN STATE NITTANY LIONS": {"primary": "#041E42", "accent": "#FFFFFF", "light": "#E8EDF5"},
+}
+
 DEFAULT = {"primary": "#0f172a", "accent": "#3b82f6", "light": "#f1f5f9"}
 
 
 def get_team_colors(team: str, *, league: str | None = None) -> dict[str, str]:
-    tri = team.upper()
+    tri = team.upper().strip()
     if (league or "nhl").lower() == "pwhl":
         return PWHL_TEAM_COLORS.get(tri, DEFAULT)
-    return TEAM_COLORS.get(tri, DEFAULT)
+    if tri in TEAM_COLORS:
+        return TEAM_COLORS[tri]
+    if tri in CHL_TEAM_COLORS:
+        return CHL_TEAM_COLORS[tri]
+    for k, v in CHL_TEAM_COLORS.items():
+        if k in tri or tri in k:
+            return v
+    return DEFAULT

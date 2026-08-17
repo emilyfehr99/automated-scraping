@@ -111,27 +111,20 @@ jobs:
           INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
           INSTAT_AUTH_JSON: ${{ secrets.INSTAT_AUTH_JSON }}
         run: |
-          if [ -n "$INSTAT_X_AUTH_TOKEN" ] && [ -n "$INSTAT_AUTHORIZATION" ]; then
-            echo "Using InStat API token auth (no Playwright login)"
-          elif [ -n "$INSTAT_AUTH_JSON" ]; then
-            echo "Using auth.json session (Playwright header capture)"
-            mkdir -p hudl-scraping
+          mkdir -p hudl-scraping
+          if [ -n "$INSTAT_AUTH_JSON" ]; then
+            echo "Restoring auth.json session state"
             echo "$INSTAT_AUTH_JSON" | base64 -d > hudl-scraping/auth.json
-          else
-            echo "Missing secrets: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION, or INSTAT_AUTH_JSON" >&2
-            exit 1
+          fi
+          if [ -n "$INSTAT_X_AUTH_TOKEN" ] && [ -n "$INSTAT_AUTHORIZATION" ]; then
+            echo "Using InStat API token headers with Playwright fallback"
           fi
 
       - name: Install dependencies
-        env:
-          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r player_cards/requirements.txt
-          if [ -z "$INSTAT_X_AUTH_TOKEN" ]; then
-            echo "No API tokens — installing Playwright for auth.json session capture"
-            python -m playwright install --with-deps chromium
-          fi
+          python -m playwright install --with-deps chromium
 
       - name: Resolve team list
         id: teams
@@ -168,7 +161,11 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
           INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
           INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
-          DISABLE_AUTO_LOGIN: "1"
+          HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
+          HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
+          INSTAT_DEDICATED_ACCOUNT: "1"
+          ALLOW_INSTAT_LOGIN: "1"
+          DISABLE_AUTO_LOGIN: "0"
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
           PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
         run: |

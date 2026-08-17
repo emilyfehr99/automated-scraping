@@ -12,13 +12,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .leagues import get_league, instat_season_id, pbp_cache_dir, resolve_instat_team_id, team_full_name
+from .leagues import get_league, instat_season_id, min_season_games, pbp_cache_dir, resolve_instat_team_id, team_full_name
 
 logger = logging.getLogger(__name__)
 
 HUDL_ROOT = Path(__file__).resolve().parents[1] / "hudl-scraping"
 if str(HUDL_ROOT) not in sys.path:
     sys.path.insert(0, str(HUDL_ROOT))
+
+# Process-level latch: dead InStat auth should fail fast after first probe/cascade.
+_INSTAT_AUTH_BLOCKED: str | None = None
 
 
 def _instat_api_tokens_configured() -> bool:
@@ -29,10 +32,25 @@ def _instat_api_tokens_configured() -> bool:
 
 
 def _instat_auth_ready() -> bool:
+    if _INSTAT_AUTH_BLOCKED:
+        return False
     if _instat_api_tokens_configured():
         return True
-    return (HUDL_ROOT / "auth.json").is_file()
+    from pathlib import Path as _P
+    cache = _P.home() / ".cache" / "player-cards" / "instat_headers_cache.json"
+    bak = _P.home() / ".cache" / "player-cards" / "instat_headers_cache.json.bak_expired"
+    return (HUDL_ROOT / "auth.json").is_file() or cache.is_file() or bak.is_file()
 
+
+def _raise_if_auth_blocked() -> None:
+    if _INSTAT_AUTH_BLOCKED:
+        raise RuntimeError(_INSTAT_AUTH_BLOCKED)
+
+
+def _block_instat_auth(reason: str) -> None:
+    global _INSTAT_AUTH_BLOCKED
+    _INSTAT_AUTH_BLOCKED = reason
+    logger.error("Latching InStat auth failure for this process: %s", reason)
 
 def team_pbp_dir(
     team_abbrev: str,
@@ -84,12 +102,19 @@ def _save_manifest(output_dir: Path, season_id: int, payload: dict[str, Any]) ->
     )
 
 
-def _bootstrap_manifest_from_disk(output_dir: Path, season_id: int, tri: str) -> dict[str, Any] | None:
+def _bootstrap_manifest_from_disk(
+    output_dir: Path,
+    season_id: int,
+    tri: str,
+    *,
+    league: str = "nhl",
+) -> dict[str, Any] | None:
     """Build manifest from existing Desktop/API CSVs so repeat runs skip Playwright."""
     if not output_dir.is_dir():
         return None
     files = sorted(output_dir.glob("*_pbp.csv"))
-    if len(files) < 20:
+    min_games = min_season_games(league)
+    if len(files) < min_games:
         return None
     match_ids: list[int] = []
     for path in files:
@@ -156,10 +181,32 @@ def try_fast_pbp_cache(
     sid = season_id if season_id is not None else instat_season_id(a3z_season, league)
     manifest = _load_manifest(output_dir, sid)
     if manifest is None:
-        manifest = _bootstrap_manifest_from_disk(output_dir, sid, tri)
-    if manifest is None:
+        manifest = _bootstrap_manifest_from_disk(output_dir, sid, tri, league=league)
+    if manifest is not None:
+        complete = _complete_cache_meta(output_dir, tri, sid, manifest)
+        if complete:
+            return complete
+
+    from .instat_source import discover_team_pbp_files
+
+    discovered = [Path(p) for p in discover_team_pbp_files(tri, league=league)]
+    if not discovered:
         return None
-    return _complete_cache_meta(output_dir, tri, sid, manifest)
+    return {
+        "team": tri,
+        "season_id": sid,
+        "output_dir": str(output_dir),
+        "match_ids": [],
+        "files": discovered,
+        "cached": len(discovered),
+        "complete": False,
+        "partial": True,
+        "downloaded": 0,
+        "failed": [],
+        "source": "instat_api",
+        "ephemeral": False,
+        "skipped_api": True,
+    }
 
 
 async def _fetch_season_match_ids(api, team_id: int, season_id: int) -> list[int]:
@@ -189,7 +236,7 @@ async def _download_team_pbp_with_api(
 
     if not refresh and max_downloads is None:
         fast = try_fast_pbp_cache(tri, out, a3z_season=a3z_season, season_id=sid, league=league)
-        if fast:
+        if fast and fast.get("complete"):
             logger.info("PBP cache hit for %s (%s games) — skipping InStat session", tri, fast["cached"])
             return fast
 
@@ -212,20 +259,28 @@ async def _download_team_pbp_with_api(
 
     downloaded = 0
     failed: list[int] = []
-    for i, mid in enumerate(to_fetch, start=1):
+
+    async def fetch_one(i: int, mid: int):
         info = await api.get_match_info(mid)
         raw_date = (info or {}).get("match_date", "")
         date = raw_date.split("T")[0] if raw_date else ""
         path = _pbp_path_for_match(out, mid, date or None)
-        ok = await api.export_pbp_csv(mid, str(path))
+        ok = await api.export_pbp_csv(mid, str(path), team_id=team_id)
+        if ok:
+            logger.info("[%s/%s] PBP %s", i, len(to_fetch), mid)
+            return True, mid
+        else:
+            logger.warning("PBP download failed for match %s", mid)
+            return False, mid
+
+    tasks = [fetch_one(i, mid) for i, mid in enumerate(to_fetch, start=1)]
+    results = await asyncio.gather(*tasks)
+
+    for ok, mid in results:
         if ok:
             downloaded += 1
-            logger.info("[%s/%s] PBP %s", i, len(to_fetch), mid)
         else:
             failed.append(mid)
-            logger.warning("PBP download failed for match %s", mid)
-        if i < len(to_fetch):
-            await asyncio.sleep(0.75)
 
     all_paths: list[Path] = []
     for mid in match_ids:
@@ -276,6 +331,7 @@ async def _download_team_pbp_async(
     refresh: bool = False,
     api=None,
 ) -> dict[str, Any]:
+    _raise_if_auth_blocked()
     if api is not None:
         return await _download_team_pbp_with_api(
             api,
@@ -288,37 +344,24 @@ async def _download_team_pbp_async(
             refresh=refresh,
         )
 
-    from playwright.async_api import async_playwright
     from instat_api import InStatAPI
 
     if not _instat_auth_ready():
-        raise RuntimeError(
-            "InStat auth missing: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION, or hudl-scraping/auth.json"
+        msg = (
+            "InStat auth missing: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION, "
+            "or restore live tokens via instat_token_bridge.py"
         )
+        _block_instat_auth(msg)
+        raise RuntimeError(msg)
 
     api = InStatAPI()
-    if _instat_api_tokens_configured():
-        if not await api.init_session(None):
-            raise RuntimeError("InStat API token auth failed")
-        try:
-            result = await _download_team_pbp_with_api(
-                api,
-                team_abbrev,
-                output_dir,
-                league=league,
-                a3z_season=a3z_season,
-                season_id=season_id,
-                max_downloads=max_downloads,
-                refresh=refresh,
-            )
-        finally:
-            await api.close()
-        return result
-
-    async with async_playwright() as p:
-        if not await api.init_session(p):
-            raise RuntimeError("InStat session init failed (check auth.json)")
-        result = await _download_team_pbp_with_api(
+    # init_session runs token cache → cookie mint → CDP (never password login).
+    if not await api.init_session(None):
+        msg = "InStat session init failed (JWTs revoked; need live Hudl SPA tokens)"
+        _block_instat_auth(msg)
+        raise RuntimeError(msg)
+    try:
+        return await _download_team_pbp_with_api(
             api,
             team_abbrev,
             output_dir,
@@ -328,8 +371,8 @@ async def _download_team_pbp_async(
             max_downloads=max_downloads,
             refresh=refresh,
         )
+    finally:
         await api.close()
-        return result
 
 
 async def batch_download_team_pbp(

@@ -1,0 +1,81 @@
+{
+  "ep_id": "701409",
+  "slug": "maddox-schultz",
+  "height": "5'10\"",
+  "height_cm": 178,
+  "weight_lbs": 181,
+  "shoots": "L",
+  "position": "F",
+  "dob": "2010-03-15",
+  "birth_city": "Medicine Hat",
+  "birth_country": "CAN",
+  "nhl_draft_year": 2028,
+  "nhl_draft_info": "2028 NHL Draft Eligible",
+  "chl_draft": {
+    "league": "WHL",
+    "year": 2025,
+    "round": 1,
+    "pick": 1,
+    "team": "Regina Pats",
+    "raw": "Drafted 2025, 1 #1 by Regina Pats in the WHL Prospects Draft"
+  },
+  "career_seasons": [
+    {
+      "season": "2022-23",
+      "team": "Regina Pat Blues U15 AA",
+      "league": "SAAHL U15",
+      "gp": 28,
+      "g": 23,
+      "a": 40,
+      "tp": 63
+    },
+    {
+      "season": "2023-24",
+      "team": "Regina Pat Blues U15 AA",
+      "league": "SAAHL U15",
+      "gp": 27,
+      "g": 63,
+      "a": 71,
+      "tp": 134
+    },
+    {
+      "season": "2024-25",
+      "team": "Regina Pat Canadians U18 AAA",
+      "league": "SMAAAHL",
+      "gp": 44,
+      "g": 43,
+      "a": 50,
+      "tp": 93
+    },
+    {
+      "season": "2025-26",
+      "team": "Regina Pat Canadians U18 AAA",
+      "league": "SMAAAHL",
+      "gp": 21,
+      "g": 30,
+      "a": 30,
+      "tp": 60
+    },
+    {
+      "season": "2025-26",
+      "team": "Regina Pats",
+      "league": "WHL",
+      "gp": 34,
+      "g": null,
+      "a": null,
+      "tp": null
+    }
+  ],
+  "amateur_club": "Regina Pats",
+  "name": "Maddox Schultz",
+  "career_clubs": [
+    "Regina Pat Blues U15 AA",
+    "Regina Pat Canadians U18 AAA",
+    "Regina Pats"
+  ],
+  "pbp_clubs": [
+    "Regina Pats",
+    "Regina Pat Canadians U18 AAA"
+  ],
+  "dual_roster": true
+}

@@ -22,8 +22,12 @@ CURRENT_SEASON = "2025-26"
 
 
 def _slugify(name: str) -> str:
-    s = re.sub(r"[^a-zA-Z0-9]+", "-", name.strip().lower())
+    import unicodedata
+    normalized = unicodedata.normalize('NFKD', name.strip().lower())
+    ascii_name = normalized.encode('ascii', 'ignore').decode('ascii')
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_name)
     return s.strip("-")
+
 
 
 def _slug_candidates(name: str) -> list[str]:
@@ -160,7 +164,7 @@ def _normalize_cap(page_props: dict[str, Any], *, player_id: int | None) -> dict
         "source": "capwages",
         "slug": player.get("slug"),
         "aav": aav_disp,
-        "market_value": market_disp,
+        "market_value": market_disp or aav_disp,
         "expiry_season": expiry_season,
     }
 

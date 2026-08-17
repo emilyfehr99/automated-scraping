@@ -20,7 +20,7 @@ __all__ = [
 
 _LAZY: dict[str, tuple[str, str]] = {
     "build_player_card_profile": (".profile", "build_player_card_profile"),
-    "generate_player_card": (".profile", "generate_player_card"),
+    "generate_player_card": (".generators", "generate_card"),
     "load_stored_profile": (".card_store", "load_stored_profile"),
     "open_store": (".card_store", "open_store"),
     "CardStore": (".card_store", "CardStore"),

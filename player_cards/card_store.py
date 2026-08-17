@@ -11,7 +11,31 @@ from typing import Any
 
 from .a3z_source import resolve_a3z_season
 from .disk_cache import CACHE_ROOT
-from .nhl_bio import _norm
+from .nhl_bio import _first_name_matches, _norm
+
+
+def _name_match_score(query_norm: str, stored_norm: str) -> int:
+    """Score how well a query matches a stored player name (0–100)."""
+    if not query_norm or not stored_norm:
+        return 0
+    if stored_norm == query_norm:
+        return 100
+    q_parts = query_norm.split()
+    s_parts = stored_norm.split()
+    if len(q_parts) >= 2 and len(s_parts) >= 2:
+        if q_parts == list(reversed(s_parts)):
+            return 95
+        if sorted(q_parts) == sorted(s_parts):
+            return 90
+        if q_parts[-1] == s_parts[-1] and _first_name_matches(q_parts[0], s_parts[0]):
+            return 80
+        if q_parts[-1] == s_parts[0] and _first_name_matches(q_parts[0], s_parts[-1]):
+            return 75
+    if query_norm in stored_norm or stored_norm in query_norm:
+        return 60
+    if q_parts and s_parts and q_parts[-1] == s_parts[-1]:
+        return 40
+    return 0
 
 DEFAULT_STORE_PATH = Path(
     os.getenv("PLAYER_CARDS_STORE", str(CACHE_ROOT / "card_store.db"))
@@ -141,6 +165,71 @@ class CardStore:
             )
         )
 
+    def search_players(
+        self,
+        query: str,
+        *,
+        league: str = "nhl",
+        season: str | None = None,
+        limit: int = 25,
+    ) -> list[dict[str, Any]]:
+        season = season or resolve_a3z_season(None, None)
+        q = _norm(query)
+        if not q:
+            return []
+        rows = self._conn.execute(
+            """
+            SELECT player_id, name, team, league, name_norm
+            FROM player_profiles
+            WHERE league = ? AND season = ?
+            """,
+            (league, season),
+        ).fetchall()
+        hits: list[dict[str, Any]] = []
+        for row in rows:
+            name_norm = str(row["name_norm"])
+            score = _name_match_score(q, name_norm)
+            if score < 40:
+                continue
+            hits.append(
+                {
+                    "player_id": row["player_id"],
+                    "name": row["name"],
+                    "team": row["team"],
+                    "league": row["league"],
+                    "score": score,
+                }
+            )
+        hits.sort(key=lambda r: (-int(r["score"]), str(r["name"])))
+        return hits[:limit]
+
+    def list_team_players(
+        self,
+        team: str,
+        *,
+        league: str = "nhl",
+        season: str | None = None,
+    ) -> list[dict[str, Any]]:
+        season = season or resolve_a3z_season(None, None)
+        rows = self._conn.execute(
+            """
+            SELECT player_id, name, team, league
+            FROM player_profiles
+            WHERE league = ? AND season = ? AND team = ?
+            ORDER BY name
+            """,
+            (league, season, team.upper()),
+        ).fetchall()
+        return [
+            {
+                "player_id": row["player_id"],
+                "name": row["name"],
+                "team": row["team"],
+                "league": row["league"],
+            }
+            for row in rows
+        ]
+
     def upsert_profile(
         self,
         profile: dict[str, Any],
@@ -217,24 +306,10 @@ class CardStore:
 
         def _rank(row: sqlite3.Row) -> tuple[int, int]:
             stored = str(row["name_norm"])
-            score = 0
-            if stored == name_norm:
-                score += 100
-            parts = name_norm.split()
-            stored_parts = stored.split()
-            if parts and stored_parts and parts[-1] == stored_parts[-1]:
-                score += 40
-            if name_norm in stored or stored in name_norm:
-                score += 10
-            return (score, -int(row["built_at"]))
+            return (_name_match_score(name_norm, stored), -int(row["built_at"]))
 
         best = max(rows, key=_rank)
         if _rank(best)[0] < 40:
-            return None
-
-        team_fp = self.get_team_fingerprint(str(best["team"]), season, league=league)
-        row_fp = best["pbp_fingerprint"]
-        if team_fp and row_fp and team_fp != row_fp:
             return None
 
         profile = json.loads(str(best["profile_json"]))
@@ -242,6 +317,26 @@ class CardStore:
         profile["sources"]["card_store"] = True
         profile["sources"]["store_path"] = str(self.path)
         return profile
+
+    def find_profile_league(
+        self,
+        player_name: str,
+        *,
+        team: str | None = None,
+        season: str | None = None,
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Return (league, profile) for the best name match across NHL and PWHL."""
+        best: tuple[int, str, dict[str, Any]] | None = None
+        for lg in ("nhl", "pwhl"):
+            profile = self.find_profile(player_name, team=team, season=season, league=lg)
+            if not profile:
+                continue
+            score = _name_match_score(_norm(player_name), _norm(str((profile.get("bio") or {}).get("name") or "")))
+            if best is None or score > best[0]:
+                best = (score, lg, profile)
+        if best is None:
+            return None
+        return best[1], best[2]
 
 
 def open_store(path: Path | str | None = None) -> CardStore:
