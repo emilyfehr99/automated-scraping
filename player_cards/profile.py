@@ -601,6 +601,21 @@ def _team_percentiles_from_store(
     return compute_team_metric_percentiles(metrics)
 
 
+def _display_usable(profile: dict[str, Any] | None) -> bool:
+    """Return True if profile has enough data for display."""
+    if not profile or not isinstance(profile, dict):
+        return False
+    bio = profile.get("bio") or {}
+    return bool(bio.get("name"))
+
+
+def _store_profile_stale(profile: dict[str, Any] | None) -> bool:
+    """Return True if stored profile needs rebuild."""
+    if not profile or not isinstance(profile, dict):
+        return True
+    return False
+
+
 def _enrich_stored_profile(profile: dict[str, Any]) -> dict[str, Any]:
     """Backfill PBP percentile display for NHL profiles stored without A3Z tiles."""
     a3z = profile.get("a3z")
