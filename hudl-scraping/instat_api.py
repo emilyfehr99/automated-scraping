@@ -19,6 +19,7 @@ import hashlib
 import time
 import argparse
 import random
+from pathlib import Path
 from playwright.async_api import async_playwright
 
 logging.basicConfig(
@@ -42,10 +43,125 @@ except ImportError:
 
 USERNAME = _credential("HUDL_USERNAME", _HUDL_USERNAME)
 PASSWORD = _credential("HUDL_PASSWORD", _HUDL_PASSWORD)
+
+# Shared Hudl/InStat accounts: a new login invalidates other sessions.
+# Default = never auto-login. Opt in with ALLOW_INSTAT_LOGIN=1 or
+# INSTAT_DEDICATED_ACCOUNT=1 (automation bot account — preferred durable path).
+if os.getenv("DISABLE_AUTO_LOGIN") is None:
+    os.environ["DISABLE_AUTO_LOGIN"] = "1"
+
+
+def _login_allowed() -> bool:
+    """Password login is opt-in only (shared Hudl accounts get kicked).
+
+    Set ALLOW_INSTAT_LOGIN=1 (one-shot) or INSTAT_DEDICATED_ACCOUNT=1 (bot account).
+    """
+    if os.getenv("ALLOW_INSTAT_LOGIN", "").strip() == "1":
+        return True
+    if os.getenv("INSTAT_DEDICATED_ACCOUNT", "").strip() == "1":
+        return True
+    return False
+
+
+def _headers_cache_path() -> Path:
+    override = os.getenv("INSTAT_HEADERS_CACHE", "").strip()
+    if override:
+        return Path(override).expanduser()
+    try:
+        from instat_config import HEADERS_CACHE
+        return Path(HEADERS_CACHE)
+    except Exception:
+        return Path.home() / ".cache" / "player-cards" / "instat_headers_cache.json"
+
+
+def _headers_bak_path() -> Path:
+    return _headers_cache_path().with_suffix(_headers_cache_path().suffix + ".bak_expired")
+
+
+async def _launch_chromium(playwright, *, headless: bool = True, proxy=None):
+    """Launch Chromium; fall back to system Chrome when Playwright browsers missing."""
+    last_err: Exception | None = None
+    for attempt in (
+        {"headless": headless, "proxy": proxy},
+        {"headless": headless, "proxy": proxy, "channel": "chrome"},
+    ):
+        try:
+            return await playwright.chromium.launch(**{k: v for k, v in attempt.items() if v is not None or k == "headless"})
+        except Exception as e:
+            last_err = e
+            if "Executable doesn't exist" not in str(e) and "chrome-headless-shell" not in str(e):
+                raise
+            logger.warning("Chromium launch failed (%s) — trying next launcher", e)
+    raise last_err or RuntimeError("Could not launch Chromium/Chrome")
+
+
+async def _launch_persistent(playwright, profile: Path, *, headless: bool = True, proxy=None, args=None):
+    last_err: Exception | None = None
+    launch_args = args or ["--disable-blink-features=AutomationControlled"]
+    for channel in (None, "chrome"):
+        try:
+            kwargs: dict = {
+                "headless": headless,
+                "args": launch_args,
+            }
+            if proxy is not None:
+                kwargs["proxy"] = proxy
+            if channel:
+                kwargs["channel"] = channel
+            return await playwright.chromium.launch_persistent_context(str(profile), **kwargs)
+        except Exception as e:
+            last_err = e
+            if "Executable doesn't exist" not in str(e) and "chrome-headless-shell" not in str(e):
+                raise
+            logger.warning("Persistent Chromium failed (%s) — trying channel=chrome", e)
+    raise last_err or RuntimeError("Could not launch persistent Chromium/Chrome")
+
+
+def _jwt_exp(token: str | None) -> int | None:
+    """Return JWT exp (unix) or None if not a JWT."""
+    if not token:
+        return None
+    raw = token[7:].strip() if token.lower().startswith("bearer ") else token.strip()
+    parts = raw.split(".")
+    if len(parts) < 2:
+        return None
+    import base64
+
+    pad = parts[1] + "=" * (-len(parts[1]) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(pad.encode("ascii")))
+        exp = payload.get("exp")
+        return int(exp) if exp is not None else None
+    except Exception:
+        return None
+
+
+def _auth_file_path() -> str:
+    return os.getenv("INSTAT_AUTH_FILE", AUTH_FILE)
+
+
+def _user_data_dir() -> Path | None:
+    raw = os.getenv("INSTAT_USER_DATA_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    # Default durable profile beside auth.json
+    root = Path(_auth_file_path()).expanduser().resolve().parent
+    return root / ".instat_browser_profile"
+
+
+def _cdp_url() -> str | None:
+    u = os.getenv("INSTAT_CDP_URL", "").strip()
+    return u or None
 TEAM_ID = 25195
 SEASON_ID = 36
 AUTH_FILE = "auth.json"
 OUTPUT_DIR = os.path.expanduser("~/Desktop/Instat_API_Downloads")
+try:
+    from instat_config import apply_to_instat_module
+
+    apply_to_instat_module()
+except ImportError:
+    pass
 # Set a default proxy server here (e.g. "socks5://127.0.0.1:9050" or "http://username:password@ip:port")
 # If set, all traffic will route through it. If None, it checks environment variables or uses direct connection.
 PROXY_URL = None
@@ -122,13 +238,33 @@ class InStatAPI:
         self.cache = InStatCache()
         self._request_lock = asyncio.Lock()
         self._last_request_time = 0.0
-        self._cooldown = 1.0  # limit to 1 request per second
+        # Spacing between request *starts* (sync layer may run 3–5 concurrent).
+        self._cooldown = float(os.getenv("INSTAT_MIN_INTERVAL", "0.35"))
+        self._gear_cache: dict[int, list] = {}
+        self._pbp_metrics_cache: list[str] | None = None
+        self._col_map_cache: dict[int, dict] = {}
+        self._headers_fingerprint: str | None = None
 
     def _load_env_auth(self) -> bool:
-        """Use captured API headers from env (no Hudl login / Playwright)."""
+        """Use captured API headers from env or local file cache (no Hudl login / Playwright)."""
         x_token = os.getenv("INSTAT_X_AUTH_TOKEN", "").strip()
         authorization = os.getenv("INSTAT_AUTHORIZATION", "").strip()
         if not x_token or not authorization:
+            for cache_file in (_headers_cache_path(), _headers_bak_path()):
+                if not cache_file.exists():
+                    continue
+                try:
+                    data = json.loads(cache_file.read_text(encoding="utf-8"))
+                    if data.get("x-auth-token") and data.get("authorization"):
+                        self.auth_headers = {
+                            "x-auth-token": data["x-auth-token"],
+                            "authorization": data["authorization"],
+                        }
+                        src = "bak_expired" if cache_file == _headers_bak_path() else "cache"
+                        logger.info("InStat API auth loaded from local headers %s file", src)
+                        return True
+                except Exception as e:
+                    logger.debug("Failed to load cached headers (%s): %s", cache_file, e)
             return False
         self.auth_headers = {
             "x-auth-token": x_token,
@@ -137,27 +273,130 @@ class InStatAPI:
         logger.info("InStat API auth loaded from environment")
         return True
 
+    def headers_near_expiry(self, hours: float = 36.0) -> bool:
+        """True if either JWT is missing or expires within `hours`."""
+        now = time.time()
+        threshold = now + hours * 3600
+        for key in ("authorization", "x-auth-token"):
+            exp = _jwt_exp(self.auth_headers.get(key))
+            if exp is None or exp <= threshold:
+                return True
+        return False
+
+    def invalidate_cached_headers(self, *, discard_memory: bool = True) -> None:
+        """Park dead tokens as bak — never delete last-known JWTs.
+
+        Important: keep bak forever so a failed Playwright refresh cannot leave
+        zero cache files. Soft mode (discard_memory=False) parks disk copy while
+        refresh is in flight without wiping in-memory tokens until new ones land.
+        """
+        if discard_memory:
+            self.auth_headers = {}
+            self._headers_fingerprint = None
+        cache = _headers_cache_path()
+        bak = _headers_bak_path()
+        if cache.is_file():
+            try:
+                if bak.is_file():
+                    bak.unlink()
+                cache.replace(bak)
+                logger.info("Parked headers cache → %s (kept for recovery)", bak)
+            except Exception as e:
+                logger.debug("Could not park headers cache: %s", e)
+        os.environ.pop("INSTAT_X_AUTH_TOKEN", None)
+        os.environ.pop("INSTAT_AUTHORIZATION", None)
+
     async def _ensure_http_client(self) -> None:
         if self._http_client is None:
             import httpx
 
-            self._http_client = httpx.AsyncClient(timeout=httpx.Timeout(60.0))
+            self._http_client = httpx.AsyncClient(
+                timeout=httpx.Timeout(90.0, connect=20.0),
+                limits=httpx.Limits(max_connections=8, max_keepalive_connections=4),
+            )
 
-    async def _post(self, url: str, payload: dict) -> tuple[int, str | bytes]:
-        headers = await self._get_auth_headers()
-        if self._http_client is not None:
-            response = await self._http_client.post(url, json=payload, headers=headers)
-            if response.status_code == 401 and await self.refresh_auth():
-                headers = await self._get_auth_headers()
-                response = await self._http_client.post(url, json=payload, headers=headers)
-            return response.status_code, response.content
+    def _persist_auth_headers(self) -> None:
+        if not self.auth_headers.get("x-auth-token"):
+            return
+        fingerprint = (
+            f"{self.auth_headers.get('x-auth-token', '')[:24]}|"
+            f"{self.auth_headers.get('authorization', '')[:24]}"
+        )
+        if fingerprint == self._headers_fingerprint:
+            return
+        try:
+            cache = _headers_cache_path()
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(
+                json.dumps({
+                    "x-auth-token": self.auth_headers.get("x-auth-token", ""),
+                    "authorization": self.auth_headers.get("authorization", ""),
+                    "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                }, indent=2),
+                encoding="utf-8",
+            )
+            self._headers_fingerprint = fingerprint
+            logger.info("Persisted InStat auth headers to %s", cache)
+        except Exception as e:
+            logger.debug("Could not persist auth headers: %s", e)
 
-        response = await self.context.request.post(url, data=payload, headers=headers)
-        if response.status == 401 and await self.refresh_auth():
+    async def _post(self, url: str, payload: dict, *, allow_auth_refresh: bool = True) -> tuple[int, str | bytes]:
+        max_attempts = 5
+        status = 0
+        body: str | bytes = b""
+        auth_retried = False
+        for attempt in range(max_attempts):
             headers = await self._get_auth_headers()
-            response = await self.context.request.post(url, data=payload, headers=headers)
-        body = await response.body()
-        return response.status, body
+            if self._http_client is not None:
+                response = await self._http_client.post(url, json=payload, headers=headers)
+                status = response.status_code
+                body = response.content
+            elif self.context is not None:
+                response = await self.context.request.post(url, data=payload, headers=headers)
+                status = response.status
+                body = await response.body()
+            else:
+                logger.error("No HTTP client or Playwright context for POST")
+                return 0, b""
+
+            if status == 401 and allow_auth_refresh and not auth_retried:
+                auth_retried = True
+                if getattr(self, "_refreshing_auth", False):
+                    return status, body
+                if await self.refresh_auth():
+                    continue
+                return status, body
+            if status in (429, 500, 502, 503, 504) and attempt < max_attempts - 1:
+                delay = min(2 ** attempt + random.uniform(0, 0.5), 12.0)
+                if status == 429:
+                    delay = max(delay, 3.0)
+                logger.warning("HTTP %s from InStat — retrying in %.1fs", status, delay)
+                await asyncio.sleep(delay)
+                continue
+            return status, body
+        return status, body
+
+    async def probe_auth(self) -> bool:
+        """Cheap auth check: matches list for configured team/season.
+
+        Never triggers refresh_auth (avoids 401 recursion).
+        """
+        await self._ensure_http_client()
+        status, body = await self._post(
+            DATA_URL,
+            {
+                "proc": "scout_uni_advanced_matches_list",
+                "params": {"_p_season_id": SEASON_ID, "_p_team_id": TEAM_ID},
+            },
+            allow_auth_refresh=False,
+        )
+        if 200 <= status < 300:
+            self._persist_auth_headers()
+            return True
+        logger.error("InStat auth probe failed: HTTP %s", status)
+        if isinstance(body, (bytes, bytearray)) and body:
+            logger.debug("Probe body: %s", body[:200])
+        return False
 
     def _load_team_map(self):
         """Load team ID mappings from target_team_ids.json"""
@@ -318,56 +557,70 @@ class InStatAPI:
         return proxy_opts
 
     async def login(self, playwright):
-        """Automated headless login to generate fresh auth.json"""
-        logger.info("Performing automated login...")
+        """Credential login — kicks other users on shared Hudl accounts.
+
+        Refused unless ALLOW_INSTAT_LOGIN=1 or INSTAT_DEDICATED_ACCOUNT=1.
+        """
+        if not _login_allowed():
+            raise RuntimeError(
+                "InStat credential login blocked (protects shared sessions). "
+                "For a dedicated automation account set INSTAT_DEDICATED_ACCOUNT=1 "
+                "(and HUDL_USERNAME / HUDL_PASSWORD). "
+                "Or one-shot: ALLOW_INSTAT_LOGIN=1."
+            )
+        if not USERNAME or not PASSWORD:
+            raise RuntimeError(
+                "Hudl credentials missing. Set HUDL_USERNAME / HUDL_PASSWORD "
+                "or provide hudl_credentials.py."
+            )
+        logger.warning(
+            "Performing credential login (INSTAT_DEDICATED_ACCOUNT / ALLOW_INSTAT_LOGIN). "
+            "If this is a shared scout account, other sessions will be kicked."
+        )
         proxy_opts = self._get_proxy_config()
-        browser = await playwright.chromium.launch(headless=True, proxy=proxy_opts)
+        browser = await _launch_chromium(playwright, headless=True, proxy=proxy_opts)
         context = await browser.new_context()
         page = await context.new_page()
 
         await page.goto("https://app.hudl.com/instat/hockey/login", wait_until="load")
-        await asyncio.sleep(5)
-        
-        # Email field
+        await asyncio.sleep(3)
+
         await page.fill('input[type="email"]', USERNAME)
         await page.click('button:has-text("Continue")')
-        await asyncio.sleep(5)
-        
-        # Password field
+        await asyncio.sleep(3)
+
         await page.fill('input[type="password"]', PASSWORD)
         await page.click('button:has-text("Continue")')
-        await asyncio.sleep(12)
-        
-        # Save session
-        await context.storage_state(path=AUTH_FILE)
-        logger.info(f"Session saved to {AUTH_FILE}")
-        await browser.close()
-
-    async def init_session(self, playwright=None):
-        """Initialize authenticated session and capture auth headers."""
-        self._playwright = playwright
-        if self._load_env_auth():
-            await self._ensure_http_client()
-            return True
-        if playwright is None:
-            logger.error(
-                "Playwright required when INSTAT_X_AUTH_TOKEN / INSTAT_AUTHORIZATION are not set"
+        # Wait until Auth0 hands us back to the Hudl SPA (or timeout).
+        try:
+            await page.wait_for_url(
+                lambda u: "identity.hudl.com" not in u and "/login" not in u,
+                timeout=90000,
             )
-            return False
+        except Exception:
+            await asyncio.sleep(12)
 
-        auth_path = os.getenv("INSTAT_AUTH_FILE", AUTH_FILE)
-        if not os.path.exists(auth_path):
-            if os.getenv("DISABLE_AUTO_LOGIN") == "1":
-                logger.error("Session file auth.json not found and auto-login is disabled. Please perform a manual login or generate auth.json.")
-                return False
-            await self.login(playwright)
+        auth_path = _auth_file_path()
+        await context.storage_state(path=auth_path)
+        logger.info("Session saved to %s", auth_path)
 
-        proxy_opts = self._get_proxy_config()
-        self.browser = await playwright.chromium.launch(headless=True, proxy=proxy_opts)
-        self.context = await self.browser.new_context(storage_state=auth_path)
-        self.page = await self.context.new_page()
+        # Mint API JWTs from this live session before closing.
+        self.browser = browser
+        self.context = context
+        self.page = page
+        self._playwright = playwright
+        ok = await self._goto_and_capture(page)
+        await context.storage_state(path=auth_path)
+        await browser.close()
+        self.browser = None
+        self.context = None
+        self.page = None
+        if not ok:
+            raise RuntimeError("Hudl login completed but InStat JWT capture/probe failed")
+        logger.info("Credential login minted verified InStat JWTs")
+        return True
 
-        # Intercept headers from live traffic
+    def _attach_header_capture(self, page) -> None:
         async def capture_headers(request):
             if "api-hockey.instatscout.com/data" in request.url and request.method == "POST":
                 h = request.headers
@@ -375,95 +628,307 @@ class InStatAPI:
                     self.auth_headers["x-auth-token"] = h["x-auth-token"]
                 if "authorization" in h:
                     self.auth_headers["authorization"] = h["authorization"]
+                if self.auth_headers.get("x-auth-token") and self.auth_headers.get("authorization"):
+                    # Memory only — never persist until probe_auth() succeeds.
+                    pass
 
-        self.page.on("request", capture_headers)
+        page.on("request", capture_headers)
 
-        logger.info("Navigating to InStat to capture auth tokens...")
-        await self.page.goto(f"https://app.hudl.com/instat/hockey/teams/{TEAM_ID}/games",
-                             wait_until="load", timeout=60000)
-        await asyncio.sleep(8)
+    async def _wait_for_captured_headers(self, timeout_s: float = 20.0) -> bool:
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if self.auth_headers.get("x-auth-token") and self.auth_headers.get("authorization"):
+                return True
+            await asyncio.sleep(0.5)
+        return bool(self.auth_headers.get("x-auth-token") and self.auth_headers.get("authorization"))
 
-        # Check if we got redirected to login
-        if "identity.hudl.com" in self.page.url or "login" in self.page.url:
-            logger.warning("Session expired.")
-            if os.getenv("DISABLE_AUTO_LOGIN") == "1":
-                logger.error("Auto-login is disabled. Cannot refresh expired session without risking kicking other users out.")
-                return False
-            logger.warning("Re-logging in...")
-            await self.browser.close()
-            await self.login(playwright)
-            # Retry
-            self.browser = await playwright.chromium.launch(headless=True, proxy=proxy_opts)
-            self.context = await self.browser.new_context(storage_state=auth_path)
-            self.page = await self.context.new_page()
-            self.page.on("request", capture_headers)
-            await self.page.goto(f"https://app.hudl.com/instat/hockey/teams/{TEAM_ID}/games",
-                                 wait_until="load", timeout=60000)
-            await asyncio.sleep(8)
-
-        # Wait for tokens
-        for _ in range(10):
-            if self.auth_headers:
-                break
-            await asyncio.sleep(1)
-
-        if not self.auth_headers:
-            logger.error("Failed to capture auth headers!")
+    async def _tokens_from_local_storage(self, page) -> bool:
+        """Mint API headers from Hudl SPA localStorage (no login, no kick)."""
+        try:
+            ls = await page.evaluate(
+                """() => ({
+                  auth0_token: localStorage.getItem('auth0_token'),
+                  id_token: localStorage.getItem('id_token'),
+                  AuthUser: localStorage.getItem('AuthUser'),
+                })"""
+            )
+        except Exception as e:
+            logger.debug("localStorage read failed: %s", e)
             return False
-
-        logger.info(f"Auth tokens captured: {list(self.auth_headers.keys())}")
+        auth0 = (ls or {}).get("auth0_token") or ""
+        xt = (ls or {}).get("id_token") or ""
+        if not xt:
+            try:
+                au = json.loads((ls or {}).get("AuthUser") or "{}")
+                xt = au.get("token") or ""
+            except Exception:
+                xt = ""
+        if not auth0 or not xt:
+            return False
+        authorization = auth0 if auth0.lower().startswith("bearer ") else f"Bearer {auth0}"
+        self.auth_headers = {
+            "x-auth-token": xt,
+            "authorization": authorization,
+        }
+        # Memory only — probe_auth() persists on success.
         return True
 
-    async def refresh_auth(self) -> bool:
-        """Refresh auth headers mid-batch (handles token expiry)."""
-        if self._load_env_auth():
-            logger.info("Reloaded InStat API tokens from environment")
-            return True
-        if not self.page or not self._playwright:
-            return False
-        logger.warning("Refreshing InStat auth tokens...")
+    async def _goto_and_capture(self, page, url: str | None = None) -> bool:
+        target = url or f"https://app.hudl.com/instat/hockey/teams/{TEAM_ID}/games"
         self.auth_headers = {}
-        await self.page.goto(
-            f"https://app.hudl.com/instat/hockey/teams/{TEAM_ID}/games",
-            wait_until="load",
-            timeout=60000,
-        )
-        await asyncio.sleep(8)
-        if "identity.hudl.com" in self.page.url or "login" in self.page.url:
-            if os.getenv("DISABLE_AUTO_LOGIN") == "1":
-                logger.error("Session expired and auto-login is disabled")
-                return False
-            await self.browser.close()
-            await self.login(self._playwright)
-            proxy_opts = self._get_proxy_config()
-            auth_path = os.getenv("INSTAT_AUTH_FILE", AUTH_FILE)
-            self.browser = await self._playwright.chromium.launch(headless=True, proxy=proxy_opts)
-            self.context = await self.browser.new_context(storage_state=auth_path)
-            self.page = await self.context.new_page()
+        self._attach_header_capture(page)
+        logger.info("Navigating to InStat to capture auth tokens...")
+        await page.goto(target, wait_until="load", timeout=60000)
+        await asyncio.sleep(6)
+        if "identity.hudl.com" in page.url or "/login" in page.url:
+            logger.warning("Redirected to login — browser session is dead")
+            self.auth_headers = {}
+            return False
+        ok = await self._wait_for_captured_headers()
+        if not ok:
+            # SPA localStorage often has usable tokens even if no API POST fired yet
+            ok = await self._tokens_from_local_storage(page)
+            if ok:
+                logger.info("Captured auth from Hudl localStorage (silent, no login)")
+        if not ok:
+            return False
+        await self._ensure_http_client()
+        if not await self.probe_auth():
+            logger.warning("Captured tokens failed auth probe — discarding")
+            self.auth_headers = {}
+            return False
+        try:
+            if self.context is not None:
+                await self.context.storage_state(path=_auth_file_path())
+                logger.info("Rolled auth.json storage_state (session keep-alive)")
+        except Exception as e:
+            logger.debug("Could not persist storage_state: %s", e)
+        return True
 
-            async def capture_headers(request):
-                if "api-hockey.instatscout.com/data" in request.url and request.method == "POST":
-                    h = request.headers
-                    if "x-auth-token" in h:
-                        self.auth_headers["x-auth-token"] = h["x-auth-token"]
-                    if "authorization" in h:
-                        self.auth_headers["authorization"] = h["authorization"]
-
-            self.page.on("request", capture_headers)
-            await self.page.goto(
-                f"https://app.hudl.com/instat/hockey/teams/{TEAM_ID}/games",
-                wait_until="load",
-                timeout=60000,
-            )
-            await asyncio.sleep(8)
-        for _ in range(10):
-            if self.auth_headers:
-                logger.info("Auth refresh successful")
-                return True
-            await asyncio.sleep(1)
-        logger.error("Auth refresh failed")
+    async def refresh_from_storage_state(self, playwright) -> bool:
+        """Mint JWTs from auth.json cookies (shared-account safe when cookies live)."""
+        auth_path = _auth_file_path()
+        if not os.path.exists(auth_path):
+            logger.info("No auth.json at %s — skip cookie capture", auth_path)
+            return False
+        proxy_opts = self._get_proxy_config()
+        try:
+            if self.browser:
+                await self.browser.close()
+        except Exception:
+            pass
+        self.browser = await _launch_chromium(playwright, headless=True, proxy=proxy_opts)
+        self.context = await self.browser.new_context(storage_state=auth_path)
+        self.page = await self.context.new_page()
+        self._playwright = playwright
+        ok = await self._goto_and_capture(self.page)
+        if ok:
+            logger.info("Cookie capture auth verified")
+            return True
         return False
 
+    async def refresh_from_persistent_profile(self, playwright) -> bool:
+        """Use a durable Chromium user-data-dir that is already logged into Hudl.
+
+        Shared-account safe: never fills username/password (that kicks sessions).
+        If the profile is logged out, returns False so CDP / manual login can help.
+        """
+        profile = _user_data_dir()
+        if profile is None:
+            return False
+        profile.mkdir(parents=True, exist_ok=True)
+        proxy_opts = self._get_proxy_config()
+        try:
+            if self.browser:
+                await self.browser.close()
+        except Exception:
+            pass
+        self.context = await _launch_persistent(
+            playwright,
+            profile,
+            headless=True,
+            proxy=proxy_opts,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        self.browser = self.context.browser
+        self.page = self.context.pages[0] if self.context.pages else await self.context.new_page()
+        self._playwright = playwright
+        ok = await self._goto_and_capture(self.page)
+        if not ok:
+            logger.warning(
+                "Persistent profile is logged out — not auto-filling credentials "
+                "(shared-account safe). Log in once in the InStat Chrome debug window."
+            )
+            return False
+        logger.info("Persistent-profile auth verified")
+        return True
+
+    async def refresh_from_cdp(self, playwright, cdp_url: str | None = None) -> bool:
+        """Attach to an already-logged-in Chrome (chrome --remote-debugging-port=9222).
+
+        Shared-account safe: reuses a live browser session; never submits a password.
+        """
+        url = cdp_url or _cdp_url() or "http://127.0.0.1:9222"
+        try:
+            self.browser = await playwright.chromium.connect_over_cdp(url)
+        except Exception as e:
+            logger.warning("CDP attach failed (%s): %s", url, e)
+            return False
+        contexts = self.browser.contexts
+        self.context = contexts[0] if contexts else await self.browser.new_context()
+        # Prefer an existing Hudl tab if present
+        self.page = None
+        for p in self.context.pages:
+            u = (p.url or "").lower()
+            if "hudl.com" in u or "instat" in u:
+                self.page = p
+                break
+        if self.page is None:
+            self.page = self.context.pages[0] if self.context.pages else await self.context.new_page()
+        self._playwright = playwright
+        ok = await self._goto_and_capture(self.page)
+        if ok:
+            logger.info("CDP auth verified (no login — reused live Chrome session)")
+            return True
+        return False
+
+    async def ensure_auth(self, playwright=None, *, force: bool = False) -> bool:
+        """Token-only auth. Never password-login.
+
+        Order: env/cache/bak JWTs → auth.json cookie harvest → live CDP →
+        already-logged-in persistent profile. Recovery without login: token bridge.
+        """
+        if playwright is not None:
+            self._playwright = playwright
+
+        live_ok = False
+        if self._load_env_auth():
+            await self._ensure_http_client()
+            if await self.probe_auth():
+                live_ok = True
+                if not force and not self.headers_near_expiry():
+                    logger.info("InStat token auth verified")
+                    return True
+                logger.info(
+                    "InStat tokens valid%s — attempting silent mint (no login)",
+                    " but near expiry" if self.headers_near_expiry() else " (force refresh)",
+                )
+            else:
+                logger.warning(
+                    "Cached InStat JWTs rejected (401) despite future exp — "
+                    "revoked server-side; trying silent cookie/CDP mint (no login)…"
+                )
+
+        pw = self._playwright or playwright
+        if pw is None and (force or not live_ok or self.headers_near_expiry()):
+            try:
+                from playwright.async_api import async_playwright
+
+                self._pw_cm = await async_playwright().start()
+                self._playwright = self._pw_cm
+                pw = self._playwright
+            except Exception as e:
+                if live_ok:
+                    logger.info("Playwright unavailable — continuing with probed tokens")
+                    return True
+                logger.error("Cannot mint fresh tokens without Playwright: %s", e)
+                return False
+
+        if not live_ok:
+            self.invalidate_cached_headers(discard_memory=True)
+
+        if pw is not None:
+            try:
+                if await self.refresh_from_storage_state(pw):
+                    return True
+            except Exception as e:
+                logger.warning("Cookie capture failed: %s", e)
+
+            try:
+                cdp = _cdp_url() or "http://127.0.0.1:9222"
+                try:
+                    import urllib.request
+
+                    urllib.request.urlopen(cdp + "/json/version", timeout=1)
+                    cdp_up = True
+                except Exception:
+                    cdp_up = False
+                if cdp_up and await self.refresh_from_cdp(pw):
+                    return True
+                if not cdp_up:
+                    logger.info("No live CDP at %s — skip (will not launch login Chrome)", cdp)
+            except Exception as e:
+                logger.warning("CDP refresh failed: %s", e)
+
+            try:
+                if await self.refresh_from_persistent_profile(pw):
+                    return True
+            except Exception as e:
+                logger.warning("Persistent profile refresh failed: %s", e)
+
+            # Opt-in password login (ALLOW_INSTAT_LOGIN / INSTAT_DEDICATED_ACCOUNT).
+            if _login_allowed() and USERNAME and PASSWORD:
+                try:
+                    await self.login(pw)
+                    if self.auth_headers.get("x-auth-token") and await self.probe_auth():
+                        return True
+                    if await self.refresh_from_storage_state(pw):
+                        return True
+                except Exception as e:
+                    logger.error("Credential login failed: %s", e)
+
+        if live_ok:
+            logger.warning("Silent mint failed — keeping currently valid tokens")
+            self._load_env_auth()
+            return True
+
+        logger.error(
+            "InStat JWTs revoked and cannot be minted. Options:\n"
+            "  ALLOW_INSTAT_LOGIN=1 python3 instat_auth.py --i-accept-kicking-others\n"
+            "  python3 instat_token_bridge.py   # bookmarklet while already in InStat\n"
+            "  INSTAT_DEDICATED_ACCOUNT=1       # bot account that can auto-login"
+        )
+        return False
+
+    async def init_session(self, playwright=None):
+        """Initialize authenticated session (delegates to ensure_auth)."""
+        self._playwright = playwright
+        return await self.ensure_auth(playwright)
+
+    async def refresh_auth(self) -> bool:
+        """Refresh auth mid-batch (401 handler) — full ensure_auth cascade."""
+        if getattr(self, "_refreshing_auth", False):
+            return False
+        self._refreshing_auth = True
+        try:
+            prev = self._headers_fingerprint
+            if self._load_env_auth():
+                fingerprint = (
+                    f"{self.auth_headers.get('x-auth-token', '')[:24]}|"
+                    f"{self.auth_headers.get('authorization', '')[:24]}"
+                )
+                # Only accept cache reload if tokens actually changed AND probe ok
+                if fingerprint and fingerprint != prev:
+                    await self._ensure_http_client()
+                    if await self.probe_auth():
+                        self._headers_fingerprint = fingerprint
+                        logger.info("Reloaded newer InStat tokens from environment/cache")
+                        return True
+            # Force full cascade (cookies / profile / CDP / login)
+            self.invalidate_cached_headers()
+            pw = self._playwright
+            if pw is None:
+                try:
+                    from playwright.async_api import async_playwright
+                    self._pw_cm = await async_playwright().start()
+                    self._playwright = self._pw_cm
+                    pw = self._playwright
+                except Exception as e:
+                    logger.error("Cannot start Playwright for auth refresh: %s", e)
+                    return False
+            return await self.ensure_auth(pw, force=True)
+        finally:
+            self._refreshing_auth = False
     async def _get_auth_headers(self):
         """Build standard headers with captured auth tokens"""
         return {
@@ -511,15 +976,13 @@ class InStatAPI:
         return True
 
     async def _throttle(self):
+        """Space request starts; lock only covers scheduling (not the HTTP call)."""
         async with self._request_lock:
             now = time.time()
             elapsed = now - self._last_request_time
-            # Base cooldown is 1.0s, add random jitter between 0.1s and 0.5s to bypass pattern detection firewalls
-            required_cooldown = self._cooldown + random.uniform(0.1, 0.5)
-            if elapsed < required_cooldown:
-                delay = required_cooldown - elapsed
-                logger.info(f"Rate Limiting: Sleeping for {delay:.2f}s before next request (with jitter)...")
-                await asyncio.sleep(delay)
+            required = self._cooldown + random.uniform(0.05, 0.2)
+            if elapsed < required:
+                await asyncio.sleep(required - elapsed)
             self._last_request_time = time.time()
 
     # ─── Core API Call ───────────────────────────────────────────
@@ -597,10 +1060,14 @@ class InStatAPI:
 
     async def get_gear(self, params_type=15):
         """Get stat column definitions (the 'gear' that defines what each column means)"""
+        if params_type in self._gear_cache:
+            return self._gear_cache[params_type]
         result = await self.api_call("scout_uni_gear", {"_p_params_type": params_type})
+        gear = []
         if result and "data" in result and result["data"]:
-            return result["data"][0].get("scout_uni_gear", [])
-        return []
+            gear = result["data"][0].get("scout_uni_gear", []) or []
+        self._gear_cache[params_type] = gear
+        return gear
 
     async def get_labels(self, phrase_ids):
         """Get human-readable labels for stat columns"""
@@ -652,93 +1119,6 @@ class InStatAPI:
             return result["data"][0].get("scout_uni_team_matches_stat", {})
         return {}
 
-    # ─── CSV Export ──────────────────────────────────────────────
-    async def export_match_csv(self, match_id, output_path):
-        """Export a single match's player stats to CSV"""
-        # Get match info
-        match_info = await self.get_match_info(match_id)
-        if not match_info:
-            logger.warning(f"  No match info for {match_id}")
-            return False
-
-        team1 = match_info.get("team1", {})
-        team2 = match_info.get("team2", {})
-        match_date = match_info.get("match_date", "")
-
-        # Get player stats
-        players_data = await self.get_match_players(match_id)
-        if not players_data:
-            logger.warning(f"  No player data for {match_id}")
-            return False
-
-        # Get gear/column definitions
-        gear = await self.get_gear()
-
-        # Build a param_id → label lookup from gear
-        param_labels = {}
-        label_ids = set()
-        for block in gear:
-            for param in block.get("params", []):
-                lexica = param.get("lexica", "")
-                lexica_short = param.get("lexica_short", "")
-                param_key = (param.get("param_id", 0), param.get("option_id", 0))
-                if lexica_short:
-                    label_ids.add(str(lexica_short))
-                if lexica:
-                    label_ids.add(str(lexica))
-
-        # Get readable labels
-        labels = await self.get_labels(list(label_ids)) if label_ids else {}
-
-        # Build column name mapping
-        col_map = {}
-        for block in gear:
-            for param in block.get("params", []):
-                pid = param.get("param_id", 0)
-                oid = param.get("option_id", 0)
-                short_lex = str(param.get("lexica_short", ""))
-                full_lex = str(param.get("lexica", ""))
-                name = labels.get(short_lex, {}).get("text", "") or labels.get(full_lex, {}).get("text", "") or param.get("param_name", f"p{pid}_o{oid}")
-                col_map[(pid, oid)] = name
-
-        # Write CSV
-        rows = []
-        for team_key, team_data in [("team1", players_data.get("team1", {})), ("team2", players_data.get("team2", {}))]:
-            team_name = team_data.get("name_eng", "Unknown")
-            for player in team_data.get("stat", []):
-                row = {
-                    "Match_ID": match_id,
-                    "Date": match_date,
-                    "Team": team_name,
-                    "Player": player.get("name_eng", ""),
-                    "Number": player.get("num", ""),
-                }
-                for p_entry in player.get("params", []):
-                    pid = p_entry.get("p", 0)
-                    oid = p_entry.get("o", 0)
-                    val = p_entry.get("v")
-                    col_name = col_map.get((pid, oid), f"p{pid}_o{oid}")
-                    row[col_name] = val
-                rows.append(row)
-
-        if not rows:
-            logger.warning(f"  No player rows for {match_id}")
-            return False
-
-        # Determine all columns
-        all_cols = list(rows[0].keys())
-        for row in rows[1:]:
-            for k in row:
-                if k not in all_cols:
-                    all_cols.append(k)
-
-        with open(output_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=all_cols, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
-
-        return True
-
     # ─── Helpers ──────────────────────────────────────────────────
     def _extract_match_ids(self, matches):
         """Parse match IDs from the API response, filtering out metadata IDs"""
@@ -768,6 +1148,9 @@ class InStatAPI:
 
     async def _build_col_map(self, gear_type=15):
         """Build a (param_id, option_id) → readable_name mapping from ALL gear types + labels"""
+        # Full map is identical regardless of gear_type arg (always scans 1–19 once).
+        if 0 in self._col_map_cache:
+            return self._col_map_cache[0]
         # Option ID → situation suffix
         OPTION_SUFFIXES = {
             0: "", 4: " (PP)", 5: " (SH)", 6: " (P1)", 7: " (P2)", 8: " (P3)",
@@ -857,7 +1240,35 @@ class InStatAPI:
         # Store fallback data for _parse_player_rows to use
         self._base_names = base_names
         self._option_suffixes = OPTION_SUFFIXES
+        self._col_map_cache[0] = col_map
         return col_map
+
+    async def _pbp_metric_ids(self) -> list[str]:
+        """Derive PBP export metric keys from scout gear (replaces hardcoded list)."""
+        if self._pbp_metrics_cache is not None:
+            return self._pbp_metrics_cache
+        shift_pids = {2, 191, 72, 15, 73, 75, 8, 9, 16, 91, 179, 185, 186}
+        allowed_options = {0, 4, 5, 6, 7, 8, 9}
+        metric_ids: set[str] = set()
+        for gear_type in (15, 14, 13, 12):
+            gear = await self.get_gear(gear_type)
+            for block in gear or []:
+                if not isinstance(block, dict):
+                    continue
+                for param in block.get("params") or []:
+                    pid = int(param.get("param_id") or 0)
+                    oid = int(param.get("option_id") or 0)
+                    if pid in shift_pids or oid in allowed_options:
+                        metric_ids.add(f"{pid}_{oid}")
+        for required in (
+            "2_0", "191_0", "72_0", "15_0", "73_0", "75_0", "8_0", "9_0", "16_0", "91_0",
+            "179_0", "8_4", "8_5", "55_0", "56_0", "96_0", "131_0", "29_0", "27_0", "28_0",
+            "271_0", "48_0", "49_0", "50_0", "116_0", "117_0", "118_0", "47_0", "119_0",
+            "120_0", "121_0", "12_0", "13_0", "92_0", "17_9", "186_0", "185_0",
+        ):
+            metric_ids.add(required)
+        self._pbp_metrics_cache = sorted(metric_ids)
+        return self._pbp_metrics_cache
 
     def _rows_to_csv(self, rows, output_path):
         """Write a list of row dicts to CSV"""
@@ -921,34 +1332,38 @@ class InStatAPI:
         meta = {"Match_ID": match_id, "Date": raw_date.split("T")[0] if raw_date else ""}
         rows = self._parse_player_rows(players_data, col_map, meta)
         return self._rows_to_csv(rows, output_path)
-    async def export_pbp_csv(self, match_id, output_path, bypass_cache=False):
-        """Export raw Play-by-Play (Episodes) event log to CSV"""
+
+    async def export_pbp_csv(self, match_id, output_path, bypass_cache=False, team_id=None):
+        """Extract full play-by-play events from the 'scout_uni_team_players_stat' API"""
+        if team_id is None:
+            team_id = TEAM_ID
+            
         match_info = await self.get_match_info(match_id)
         if not match_info:
             return False
         
         # Get all players for the match (to get the IDs)
-        players_data = await self.get_match_players(match_id)
-        if not players_data:
+        players_stat = await self.get_match_players(match_id)
+        if not players_stat:
             return False
         
         # Collect all player IDs correctly
         player_ids = []
-        for team_name, team_data in (players_data.items() if isinstance(players_data, dict) else {}):
-            for p in team_data.get("stat", []):
+        available_teams = [str(t.get("id")) for t in (players_stat.values() if isinstance(players_stat, dict) else players_stat)]
+        team_data = next((t for t in (players_stat.values() if isinstance(players_stat, dict) else players_stat) if str(t.get("id")) == str(team_id)), None)
+        if not team_data:
+            logger.warning(f"No team data found for match {match_id} and team {team_id}. Available teams: {available_teams}")
+            return False
+            
+        # Collect all player IDs from BOTH teams for the PBP export
+        for t_data in (players_stat.values() if isinstance(players_stat, dict) else players_stat):
+            for p in t_data.get("stat", []):
                 pid = p.get("player_id")
                 if pid:
                     player_ids.append(int(pid))
         
-        # Build the refined metric list: 
-        # 3 shifts (ES, PP, PK) + all other skater actions from 'Main' scouting
-        metrics = [
-            "2_0","191_0","72_0","15_0","73_0","75_0","8_0","9_0","16_0","91_0",
-            "179_0","8_4","8_5","55_0","56_0","96_0","55_6","55_7","55_8","131_0",
-            "29_0","27_0","28_0","271_0","48_0","48_6","48_7","48_8","49_0","49_6",
-            "49_7","49_8","50_0","116_0","117_0","118_0","47_0","119_0","120_0",
-            "121_0","12_0","13_0","92_0","12_6","12_7","12_8","17_9","186_0","185_0"
-        ]
+        # Build metric list from gear definitions (falls back to core shift/action IDs)
+        metrics = await self._pbp_metric_ids()
         
         payload = {
             "name": f"{match_id}_pbp",
@@ -1141,40 +1556,40 @@ class InStatAPI:
 
     # ─── Main Pipeline ───────────────────────────────────────────
     async def direct_post(self, url, payload, bypass_cache=False):
-        """Fire a raw POST request with captured headers"""
-        # 1. Check cache
-        use_cache = not bypass_cache and os.getenv("BYPASS_INSTAT_CACHE") != "1" and self._should_cache(url, payload=payload)
+        """Fire a raw POST (httpx token path or Playwright context)."""
+        use_cache = (
+            not bypass_cache
+            and os.getenv("BYPASS_INSTAT_CACHE") != "1"
+            and self._should_cache(url, payload=payload)
+        )
         payload_raw = self._normalize_payload(payload)
         payload_hash = self._hash_payload(payload_raw)
-        
+
         if use_cache:
             cached_val = self.cache.get(url, payload_hash)
             if cached_val is not None:
-                logger.info(f"Cache HIT for direct_post: {url}")
+                logger.info("Cache HIT for direct_post: %s", url)
                 try:
                     return json.loads(cached_val)
                 except Exception as e:
-                    logger.error(f"Failed to decode cached JSON for {url}: {e}")
+                    logger.error("Failed to decode cached JSON for %s: %s", url, e)
 
-        # 2. Throttle before outbound request
         await self._throttle()
-
-        # 3. Perform request
-        headers = await self._get_auth_headers()
-        response = await self.context.request.post(url, headers=headers, data=payload)
-        if response.ok:
-            data = await response.json()
+        await self._ensure_http_client()
+        status, body = await self._post(url, payload)
+        if 200 <= status < 300:
+            try:
+                data = json.loads(body) if isinstance(body, (bytes, bytearray, str)) else body
+            except Exception as e:
+                logger.error("direct_post JSON decode failed (%s): %s", status, e)
+                return None
             if use_cache:
                 self.cache.set(url, payload_hash, payload_raw, json.dumps(data))
             return data
-        
-        # Log failure details
-        logger.error(f"POST failed with status {response.status}")
-        try:
-            error_text = await response.text()
-            logger.error(f"Response: {error_text[:200]}")
-        except:
-            pass
+
+        logger.error("POST failed with status %s", status)
+        if isinstance(body, (bytes, bytearray)) and body:
+            logger.error("Response: %s", body[:200])
         return None
 
     async def export_shot_map_csv(self, filename):
@@ -1379,29 +1794,43 @@ class InStatAPI:
 async def main():
     parser = argparse.ArgumentParser(description="InStat API Data Extractor")
     parser.add_argument("--team", type=str, default="Clarkson", help="Team ID or Name")
-    parser.add_argument("--season", type=int, default=36, help="Season ID")
+    parser.add_argument("--season", type=int, default=None, help="Season ID")
+    parser.add_argument("--config", type=str, default=None, help="Path to clarkson_config.json")
     args = parser.parse_args()
+
+    try:
+        from instat_config import apply_to_instat_module, load_team_config
+
+        cfg = load_team_config(args.config)
+        apply_to_instat_module(cfg)
+    except ImportError:
+        cfg = {}
 
     async with async_playwright() as p:
         api = InStatAPI()
         if await api.init_session(p):
-            # Resolve Team ID if a name was provided
-            team_id = await api.get_team_id(args.team)
-            if not team_id:
-                logger.error(f"Could not resolve team: {args.team}")
-                return
-            
-            # Update global for the extraction
             global TEAM_ID, SEASON_ID, OUTPUT_DIR
-            TEAM_ID = team_id
-            SEASON_ID = args.season
-            
-            # Sanitise team name for dynamic output directory
-            clean_team = "".join(c for c in args.team if c.isalnum() or c in (' ', '_', '-')).strip()
-            clean_team = clean_team.replace(' ', '_')
-            OUTPUT_DIR = os.path.expanduser(f"~/Desktop/My Analytics Work/{clean_team}/Instat_API_Downloads")
-            logger.info(f"Setting dynamic output directory: {OUTPUT_DIR}")
-            
+            if args.season is not None:
+                SEASON_ID = args.season
+            elif cfg.get("season_id"):
+                SEASON_ID = cfg["season_id"]
+            if str(args.team).isdigit():
+                TEAM_ID = int(args.team)
+            else:
+                team_id = await api.get_team_id(args.team)
+                if not team_id:
+                    logger.error(f"Could not resolve team: {args.team}")
+                    return
+                TEAM_ID = team_id
+            if cfg.get("output_dir"):
+                OUTPUT_DIR = str(cfg["output_dir"])
+            else:
+                clean_team = "".join(c for c in args.team if c.isalnum() or c in (" ", "_", "-")).strip()
+                clean_team = clean_team.replace(" ", "_")
+                OUTPUT_DIR = os.path.expanduser(
+                    f"~/Desktop/My Analytics Work/{clean_team}/Instat_API_Downloads"
+                )
+            logger.info(f"TEAM_ID={TEAM_ID} SEASON_ID={SEASON_ID} OUTPUT_DIR={OUTPUT_DIR}")
             await api.run_full_extraction()
         await api.close()
 
