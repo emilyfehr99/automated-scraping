@@ -124,7 +124,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r player_cards/requirements.txt
-          python -m playwright install --with-deps chromium
+          # ubuntu-24.04 runners have all Playwright system deps pre-installed.
+          # Try without --with-deps first; fall back with a 3-min timeout to
+          # avoid hanging on transient Azure apt mirror outages.
+          python -m playwright install chromium || \
+            timeout 180 python -m playwright install --with-deps chromium
 
       - name: Resolve team list
         id: teams
