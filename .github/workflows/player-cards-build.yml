@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -152,7 +152,7 @@ jobs:
           echo "Building shard ${{ matrix.shard_id }}: league=$LEAGUE teams=$TEAMS"
 
       - name: Restore PBP cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .player-cards-data
           key: player-cards-pbp-${{ matrix.shard_id }}-${{ hashFiles('player_cards/leagues.py', 'player_cards/instat_source.py', 'player_cards/instat_pbp_fetch.py', 'player_cards/build_store.py') }}
@@ -181,7 +181,7 @@ jobs:
             -v
 
       - name: Upload shard store
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: card-store-shard-${{ matrix.shard_id }}
           if-no-files-found: error
@@ -206,7 +206,7 @@ jobs:
             -C .player-cards-data .
 
       - name: Upload PBP cache snapshot
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pbp-cache-shard-${{ matrix.shard_id }}
           if-no-files-found: error
@@ -224,7 +224,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Download shard stores
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: card-store-shard-*
           path: shards
@@ -286,7 +286,7 @@ jobs:
           PY
 
       - name: Upload merged card store
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: card-store-merged
           if-no-files-found: error
@@ -303,7 +303,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -315,7 +315,7 @@ jobs:
           pip install -r research/line_chemistry_passing_networks/requirements.txt
 
       - name: Download PBP cache shards
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: pbp-cache-shard-*
           path: pbp-shards
@@ -351,7 +351,7 @@ jobs:
           python research/line_chemistry_passing_networks/analyze_line_chemistry.py
 
       - name: Upload research outputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: line-chemistry-research
           if-no-files-found: error
