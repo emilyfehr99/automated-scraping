@@ -212,6 +212,19 @@ LEAGUES: dict[str, LeagueConfig] = {
         default_season=DEFAULT_SEASON,
         work_dir_name="My Analytics Work/Prospects",
     ),
+    "pwhl_prospect": LeagueConfig(
+        key="pwhl_prospect",
+        label="PWHL Prospect",
+        teams={},
+        instat_ids=PROSPECT_INSTAT_TEAM_IDS,
+        instat_gender=2,
+        instat_search_suffix="women",
+        uses_a3z=False,
+        uses_nhl_api=False,
+        uses_cap=False,
+        default_season=DEFAULT_SEASON,
+        work_dir_name="My Analytics Work/PWHL_Prospects",
+    ),
 }
 
 
