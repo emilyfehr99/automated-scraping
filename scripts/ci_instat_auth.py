@@ -81,18 +81,25 @@ async def main() -> None:
 
 
 def _export_tokens(token: str, authorization: str) -> None:
+    import json
+    import shutil
+
+    auth_dir = ROOT / ".instat-auth"
+    auth_dir.mkdir(parents=True, exist_ok=True)
+    cache_payload = {
+        "x-auth-token": token,
+        "authorization": authorization,
+    }
+    (auth_dir / "instat_headers_cache.json").write_text(json.dumps(cache_payload, indent=2))
+    auth_json = ROOT / "hudl-scraping" / "auth.json"
+    if auth_json.is_file():
+        shutil.copy2(auth_json, auth_dir / "auth.json")
+
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
-        # Mask secrets in GitHub Actions console logs
-        print(f"::add-mask::{token}")
-        print(f"::add-mask::{authorization}")
         with open(github_output, "a") as f:
-            f.write(f"x_auth_token={token}\n")
-            f.write(f"authorization={authorization}\n")
             f.write("auth_ok=true\n")
-    else:
-        logger.info("x-auth-token: %s...", token[:15])
-        logger.info("authorization: %s...", authorization[:25])
+    logger.info("Exported InStat auth cache to %s", auth_dir)
 
 
 if __name__ == "__main__":

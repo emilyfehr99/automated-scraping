@@ -126,6 +126,13 @@ jobs:
         run: |
           python scripts/ci_instat_auth.py
 
+      - name: Upload InStat auth artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: instat-auth-session
+          path: .instat-auth
+          retention-days: 1
+
   build-shard:
     needs: [plan, auth]
     runs-on: ubuntu-latest
@@ -147,13 +154,22 @@ jobs:
             requirements.txt
             player_cards/requirements.txt
 
+      - name: Download InStat auth artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: instat-auth-session
+          path: .instat-auth
+
       - name: Configure InStat auth
-        env:
-          INSTAT_X_AUTH_TOKEN: ${{ needs.auth.outputs.x_auth_token || secrets.INSTAT_X_AUTH_TOKEN }}
-          INSTAT_AUTHORIZATION: ${{ needs.auth.outputs.authorization || secrets.INSTAT_AUTHORIZATION }}
         run: |
-          mkdir -p hudl-scraping
-          echo "Using verified InStat API token headers from auth job"
+          mkdir -p ~/.cache/player-cards hudl-scraping
+          if [ -f .instat-auth/instat_headers_cache.json ]; then
+            cp .instat-auth/instat_headers_cache.json ~/.cache/player-cards/instat_headers_cache.json
+          fi
+          if [ -f .instat-auth/auth.json ]; then
+            cp .instat-auth/auth.json hudl-scraping/auth.json
+          fi
+          echo "Restored verified InStat auth session from auth job"
 
       - name: Install dependencies
         run: |
