@@ -84,7 +84,7 @@ def _export_tokens(token: str, authorization: str) -> None:
     import json
     import shutil
 
-    auth_dir = ROOT / ".instat-auth"
+    auth_dir = ROOT / "instat_auth_session"
     auth_dir.mkdir(parents=True, exist_ok=True)
     cache_payload = {
         "x-auth-token": token,

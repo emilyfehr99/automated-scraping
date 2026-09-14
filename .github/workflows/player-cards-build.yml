@@ -130,7 +130,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: instat-auth-session
-          path: .instat-auth
+          path: instat_auth_session/
           retention-days: 1
 
   build-shard:
@@ -158,16 +158,16 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: instat-auth-session
-          path: .instat-auth
+          path: instat_auth_session
 
       - name: Configure InStat auth
         run: |
           mkdir -p ~/.cache/player-cards hudl-scraping
-          if [ -f .instat-auth/instat_headers_cache.json ]; then
-            cp .instat-auth/instat_headers_cache.json ~/.cache/player-cards/instat_headers_cache.json
+          if [ -f instat_auth_session/instat_headers_cache.json ]; then
+            cp instat_auth_session/instat_headers_cache.json ~/.cache/player-cards/instat_headers_cache.json
           fi
-          if [ -f .instat-auth/auth.json ]; then
-            cp .instat-auth/auth.json hudl-scraping/auth.json
+          if [ -f instat_auth_session/auth.json ]; then
+            cp instat_auth_session/auth.json hudl-scraping/auth.json
           fi
           echo "Restored verified InStat auth session from auth job"
 
