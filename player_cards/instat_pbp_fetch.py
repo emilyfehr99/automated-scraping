@@ -189,7 +189,7 @@ def try_fast_pbp_cache(
 
     from .instat_source import discover_team_pbp_files
 
-    discovered = [Path(p) for p in discover_team_pbp_files(tri, league=league)]
+    discovered = [Path(p) for p in discover_team_pbp_files(tri, league=league, opponent_fallback=(league != "nhl"))]
     if not discovered:
         return None
     return {
@@ -263,19 +263,21 @@ async def _download_team_pbp_with_api(
 
     downloaded = 0
     failed: list[int] = []
+    sem = asyncio.Semaphore(6)
 
     async def fetch_one(i: int, mid: int):
-        info = await api.get_match_info(mid)
-        raw_date = (info or {}).get("match_date", "")
-        date = raw_date.split("T")[0] if raw_date else ""
-        path = _pbp_path_for_match(out, mid, date or None)
-        ok = await api.export_pbp_csv(mid, str(path), team_id=team_id)
-        if ok:
-            logger.info("[%s/%s] PBP %s", i, len(to_fetch), mid)
-            return True, mid
-        else:
-            logger.warning("PBP download failed for match %s", mid)
-            return False, mid
+        async with sem:
+            info = await api.get_match_info(mid)
+            raw_date = (info or {}).get("match_date", "")
+            date = raw_date.split("T")[0] if raw_date else ""
+            path = _pbp_path_for_match(out, mid, date or None)
+            ok = await api.export_pbp_csv(mid, str(path), team_id=team_id)
+            if ok:
+                logger.info("[%s/%s] PBP %s", i, len(to_fetch), mid)
+                return True, mid
+            else:
+                logger.warning("PBP download failed for match %s", mid)
+                return False, mid
 
     tasks = [fetch_one(i, mid) for i, mid in enumerate(to_fetch, start=1)]
     results = await asyncio.gather(*tasks)
@@ -444,7 +446,7 @@ def ensure_team_pbp_files(
         existing = list(output_dir.glob("*.csv")) if output_dir.exists() else []
         if not existing:
             from .instat_source import discover_team_pbp_files
-            existing = discover_team_pbp_files(team_abbrev, league=league)
+            existing = discover_team_pbp_files(team_abbrev, league=league, opponent_fallback=(league != "nhl"))
         if existing or not os.getenv("ALLOW_INSTAT_LOGIN"):
             return {
                 "team": team_abbrev,
@@ -476,7 +478,7 @@ def ensure_team_pbp_files(
         existing = list(output_dir.glob("*.csv")) if output_dir.exists() else []
         if not existing:
             from .instat_source import discover_team_pbp_files
-            existing = discover_team_pbp_files(team_abbrev, league=league)
+            existing = discover_team_pbp_files(team_abbrev, league=league, opponent_fallback=(league != "nhl"))
         return {
             "team": team_abbrev,
             "league": league,
