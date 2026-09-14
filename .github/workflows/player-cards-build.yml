@@ -11,8 +11,8 @@ concurrency:
 
 on:
   schedule:
-    # Weekly Sunday 6am UTC (~midnight CT)
-    - cron: "0 6 * * 0"
+    # Weekly Sunday 8am UTC (3am CT / 4am ET)
+    - cron: "0 8 * * 0"
   workflow_dispatch:
     inputs:
       shard:
