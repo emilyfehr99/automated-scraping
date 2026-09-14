@@ -145,16 +145,18 @@ NHL_INSTAT_TEAM_IDS: dict[str, int] = {
     "WSH": 68,
 }
 
-# InStat `_p_season_id` — men's NHL and PWHL 2025-26 both use 36 in our probe.
+# InStat `_p_season_id` — men's NHL and PWHL season IDs
 SEASON_TO_INSTAT: dict[str, int] = {
+    "2026-27p": 38,
+    "2026-27": 38,
     "2025-26p": 36,
     "2025-26": 36,
     "2024-25p": 34,
     "2024-25": 34,
 }
 
-DEFAULT_SEASON = "2025-26"
-DEFAULT_INSTAT_SEASON_ID = 36
+DEFAULT_SEASON = os.getenv("PLAYER_CARDS_SEASON", "2025-26").strip()
+DEFAULT_INSTAT_SEASON_ID = int(os.getenv("INSTAT_SEASON_ID", "36").strip())
 
 
 @dataclass(frozen=True)
@@ -263,6 +265,13 @@ def instat_season_id(season: str | None, league: str | None = None) -> int:
         base = key[:-1]
         if base in SEASON_TO_INSTAT:
             return SEASON_TO_INSTAT[base]
+    if "-" in key:
+        try:
+            start_yr = int(key.split("-")[0])
+            offset = (start_yr - 2025) * 2
+            return 36 + offset
+        except Exception:
+            pass
     return DEFAULT_INSTAT_SEASON_ID
 
 

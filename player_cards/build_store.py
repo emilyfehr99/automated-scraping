@@ -45,13 +45,32 @@ def _cache_skips_download(cached: dict[str, Any] | None, *, refresh: bool) -> bo
     return bool(cached.get("complete"))
 
 
-def fetch_nhl_roster(team: str) -> list[dict[str, Any]]:
+def fetch_nhl_roster(team: str, season: str | None = None) -> list[dict[str, Any]]:
     tri = team.upper()
+    season_id = None
+    if season and "-" in season:
+        try:
+            yr = int(season.split("-")[0])
+            season_id = f"{yr}{yr+1}"
+        except Exception:
+            pass
+    elif season and season.isdigit() and len(season) == 8:
+        season_id = season
+
+    url = f"{NHL_API}/roster/{tri}/{season_id}" if season_id else f"{NHL_API}/roster/{tri}/current"
     resp = httpx.get(
-        f"{NHL_API}/roster/{tri}/{ROSTER_SEASON}",
+        url,
         timeout=20.0,
         headers={"User-Agent": "PlayerCards/1.0"},
+        follow_redirects=True,
     )
+    if resp.status_code != 200 and season_id:
+        resp = httpx.get(
+            f"{NHL_API}/roster/{tri}/current",
+            timeout=20.0,
+            headers={"User-Agent": "PlayerCards/1.0"},
+            follow_redirects=True,
+        )
     resp.raise_for_status()
     data = resp.json()
     players: list[dict[str, Any]] = []
@@ -73,10 +92,10 @@ def fetch_nhl_roster(team: str) -> list[dict[str, Any]]:
     return players
 
 
-def fetch_roster(league: str, team: str, pbp_files: list[Path]) -> list[dict[str, Any]]:
+def fetch_roster(league: str, team: str, pbp_files: list[Path], season: str | None = None) -> list[dict[str, Any]]:
     cfg = get_league(league)
     if cfg.uses_nhl_api and league != "prospect":
-        return fetch_nhl_roster(team)
+        return fetch_nhl_roster(team, season=season)
     return roster_from_pbp(pbp_files, team, league=league)
 
 
@@ -151,7 +170,7 @@ def build_team(
     fingerprint = pbp_files_fingerprint(pbp_files) if pbp_files else None
     match_ids = pbp_meta.get("match_ids") or []
     team_game_count = len(match_ids) if pbp_meta.get("complete") and match_ids else None
-    roster = fetch_roster(league, tri, pbp_files)
+    roster = fetch_roster(league, tri, pbp_files, season=season)
     logger.info("Building %s %s — %s players", league, tri, len(roster))
 
     pct_by_player: dict[str, dict[str, float | None]] = {}

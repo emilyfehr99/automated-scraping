@@ -13,6 +13,7 @@ from typing import Any
 
 from .a3z_source import fetch_a3z_profile, merge_deployment_context, resolve_a3z_season
 from .cap_source import fetch_cap_info
+from .edge_source import fetch_edge_info
 from .card_store import load_stored_profile, open_store
 from .disk_cache import cache_path, load_json, pbp_files_fingerprint, player_cache_key, save_json
 from .game_context import build_game_context
@@ -66,13 +67,19 @@ def _team_percentiles_from_pbp(
     One GS pass per game (not per teammate) so junior seasons finish quickly.
     """
     from collections import defaultdict
+    import pandas as pd
 
-    from .pbp_metrics import COUNT_MAP, _resolve_team_name
+    from .pbp_metrics import COUNT_MAP, PASS_ACTIONS, _is_assist_shot, _is_turnover, _resolve_team_name, _xg
     from .pwhl_bio import _is_team_match
     from .qoc_qot import compute_microstat_game_score
 
     if not pbp_files:
         return {}
+    fp = pbp_files_fingerprint(pbp_files)
+    cache_file = cache_path("team_percentiles", fp, f"{league}-v2-{team.upper()}.json")
+    hit = load_json(cache_file, ttl_seconds=AGG_CACHE_TTL)
+    if isinstance(hit, dict) and hit:
+        return hit
     # Use the same PBP file set as the card aggregate. Expanding to a larger
     # team cache dilutes focus-player rates (DNP games in denominator).
     files_for_roster = list(pbp_files)
@@ -85,7 +92,7 @@ def _team_percentiles_from_pbp(
         return {}
 
     max_peers = 12 if league == "prospect" else 28
-    max_files = 40 if league == "prospect" and len(files_for_roster) > 40 else len(files_for_roster)
+    max_files = 35 if len(files_for_roster) > 35 else len(files_for_roster)
     files_for_roster = sorted(files_for_roster, key=lambda p: p.name)[-max_files:]
     roster = sorted(roster, key=lambda e: -int(e.get("games") or 0))
     if focus_player:
@@ -105,7 +112,7 @@ def _team_percentiles_from_pbp(
 
     warm_team_pbp(files_for_roster)
     for _path, df in get_team_frames(files_for_roster):
-        tm = _resolve_team_name(df, team_full)
+        tm = _resolve_team_name(df, team_full, player_name=focus_player)
         if not tm:
             continue
         # Full-roster GS once per game (was N× redundant).
@@ -131,7 +138,7 @@ def _team_percentiles_from_pbp(
         # Vectorized COUNT_MAP tallies for roster (skip per-player sequence scans).
         if "player" not in df.columns or "action" not in df.columns:
             continue
-        team_mask = df["team"].astype(str).apply(lambda x, _tm=tm: _is_team_match(x, _tm))
+        team_mask = (df["team"].astype(str).str.strip() == tm)
         sub = df.loc[team_mask]
         if sub.empty:
             continue
@@ -164,6 +171,55 @@ def _team_percentiles_from_pbp(
             for n, cnt in hit.groupby("_roster").size().items():
                 totals[n][label] += float(cnt)
 
+        # Fast single-pass Chance Assists & One Timers for all roster players in this game
+        game_sub = sub.copy()
+        if "start" in game_sub.columns:
+            game_sub["start"] = pd.to_numeric(game_sub["start"], errors="coerce")
+            game_sub = game_sub.sort_values(["half", "start"]).reset_index(drop=True)
+        g_acts = game_sub["action"].astype(str).tolist()
+        g_rost = game_sub["_roster"].tolist()
+        g_starts = game_sub["start"].tolist() if "start" in game_sub.columns else [None] * len(game_sub)
+        g_px = pd.to_numeric(game_sub.get("pos_x"), errors="coerce").tolist()
+        g_py = pd.to_numeric(game_sub.get("pos_y"), errors="coerce").tolist()
+        g_xg = [
+            _xg(float(px), float(py)) if pd.notna(px) and pd.notna(py) else 0.0
+            for px, py in zip(g_px, g_py)
+        ]
+
+        for i, act in enumerate(g_acts):
+            if not _is_assist_shot(act):
+                continue
+            shooter = g_rost[i]
+            # 1. One-timers: shooter received pass within 1.0s
+            if shooter and act != "Blocked shots":
+                shot_time = g_starts[i]
+                for j in range(i - 1, max(i - 4, -1), -1):
+                    if _is_turnover(g_acts[j]):
+                        break
+                    if g_acts[j] in PASS_ACTIONS:
+                        if g_rost[j] != shooter:
+                            if shot_time is not None and g_starts[j] is not None:
+                                if float(shot_time) - float(g_starts[j]) <= 1.0:
+                                    totals[shooter]["One Timers"] += 1.0
+                            elif j == i - 1:
+                                totals[shooter]["One Timers"] += 1.0
+                        break
+                    if _is_assist_shot(g_acts[j]):
+                        break
+
+            # 2. Chance assists: teammate passed before a high-danger / chance shot
+            is_chance = g_xg[i] >= 0.08 or (pd.notna(g_px[i]) and g_px[i] >= 70 and pd.notna(g_py[i]) and 30 <= g_py[i] <= 55)
+            if not is_chance:
+                continue
+            for j in range(i - 1, max(i - 4, -1), -1):
+                if g_acts[j] in PASS_ACTIONS:
+                    passer = g_rost[j]
+                    if passer and passer != shooter:
+                        totals[passer]["Chance Assists"] += 1.0
+                    break
+                if _is_turnover(g_acts[j]) or _is_assist_shot(g_acts[j]):
+                    break
+
     metrics: dict[str, dict[str, float]] = {}
     for n in names:
         if played[n] == 0 or tg <= 0:
@@ -174,7 +230,10 @@ def _team_percentiles_from_pbp(
     if len(metrics) < 2:
         return {}
     logger.info("Team percentiles from PBP: %s players on %s", len(metrics), team)
-    return compute_team_metric_percentiles(metrics)
+    res = compute_team_metric_percentiles(metrics)
+    if res:
+        save_json(cache_file, res)
+    return res
 
 
 def _cached_pbp_aggregate(
@@ -187,6 +246,8 @@ def _cached_pbp_aggregate(
     file_groups: list[tuple[str, list[Path], int | None]] | None = None,
     league: str | None = "nhl",
 ) -> dict[str, Any] | None:
+    if not files:
+        return None
     fp = pbp_files_fingerprint(files)
     key = player_cache_key(player_id, player_name)
     cache_team = (
@@ -195,19 +256,19 @@ def _cached_pbp_aggregate(
         else team.upper()
     )
     league_key = (league or "nhl").lower()
-    # v11: plottable-aligned count_totals.Shots/Goals on single-club aggregates
-    path = cache_path("aggregates", f"{league_key}-v11-{cache_team}", fp, f"{key}.json")
+    # v13: include tournament_data and full multi-team prospect aggregation
+    path = cache_path("aggregates", f"{league_key}-v13-{cache_team}", fp, f"{key}.json")
     hit = load_json(path, ttl_seconds=AGG_CACHE_TTL)
     # Never rebuild shot_count from rounded rates — that reintroduces integer drift.
     if (
         isinstance(hit, dict)
         and hit.get("per_game")
-        and int(hit.get("schema_version") or 0) >= 11
+        and int(hit.get("schema_version") or 0) >= 13
         and hit.get("shot_count") is not None
         and isinstance(hit.get("shots"), list)
     ):
         logger.debug("PBP aggregate cache hit for %s", player_name)
-        return hit
+        return json.loads(json.dumps(hit))
     if file_groups and len(file_groups) > 1:
         result = aggregate_player_pbp_multi(player_name, file_groups, league=league)
     else:
@@ -215,7 +276,7 @@ def _cached_pbp_aggregate(
             player_name, team, files=files, team_games=team_games, league=league
         )
     if result:
-        result["schema_version"] = 11
+        result["schema_version"] = 13
         save_json(path, result)
     return result
 
@@ -272,10 +333,22 @@ def _season_pbp_clubs(bio: dict[str, Any] | None, team: str | None = None) -> li
         seen.add(key)
         out.append(n)
 
-    _add(team)
+    amateur = bio.get("amateur_club")
+    if amateur:
+        _add(amateur)
+
     season_rows = [r for r in (bio.get("season_clubs") or []) if isinstance(r, dict)]
     for row in season_rows:
         _add(row.get("team"))
+    for row in (bio.get("season_totals") or []):
+        if isinstance(row, dict):
+            tm = row.get("teamName")
+            if isinstance(tm, dict):
+                _add(tm.get("default"))
+            elif isinstance(tm, str):
+                _add(tm)
+            _add(row.get("team"))
+    _add(team)
     # Only fall back to career pbp_clubs when we have no this-season roster.
     if not season_rows:
         for club in bio.get("pbp_clubs") or bio.get("career_clubs") or []:
@@ -325,6 +398,18 @@ def _files_for_team(
     if cached and not refresh_pbp:
         files = [Path(p) for p in cached.get("files", [])]
         return files, cached
+    if not refresh_pbp:
+        disc_files = list(pbp_dir.glob("*.csv")) if pbp_dir.exists() else []
+        if not disc_files:
+            disc_files = discover_team_pbp_files(team, league=league, opponent_fallback=(league != "nhl"))
+        if disc_files:
+            meta = {
+                "source": "local_discovered",
+                "files": [str(f) for f in disc_files],
+                "cached": len(disc_files),
+                "complete": True,
+            }
+            return disc_files, meta
     if not allow_download:
         return [], {}
     meta = ensure_team_pbp_files(
@@ -375,45 +460,6 @@ def _resolve_pbp_files(
             all_files = list(harvested.get("all_files") or [])
             games_by_team = dict(harvested.get("games_by_team") or {})
 
-            # Fill any current-season club harvest missed via team-folder discover.
-            present = list(games_by_team.keys())
-            for club in prefer:
-                if any(_club_key_match(club, p) for p in present):
-                    continue
-                discovered = discover_team_pbp_files(club, league=league)
-                if not discovered:
-                    continue
-                from .pbp_harvest import _match_id_from_path
-                import csv as _csv
-
-                club_files: dict[str, Path] = {}
-                for path in discovered:
-                    mid = _match_id_from_path(path) or path.name
-                    try:
-                        with path.open(encoding="utf-8", errors="ignore") as fh:
-                            for row in _csv.DictReader(fh):
-                                if not _match_player_name(str(row.get("player") or ""), player_name):
-                                    continue
-                                row_team = str(row.get("team") or "").strip()
-                                if row_team and not _club_key_match(club, row_team):
-                                    continue
-                                club_files[mid] = path
-                                break
-                    except Exception:
-                        continue
-                if club_files:
-                    paths = sorted(club_files.values(), key=lambda p: p.name)
-                    file_groups.append((club, paths, len(paths)))
-                    all_files.extend(paths)
-                    games_by_team[club] = len(paths)
-                    present.append(club)
-                    logger.info(
-                        "Filled season club PBP via discover: %s → %s games for %s",
-                        club,
-                        len(paths),
-                        player_name,
-                    )
-
             missing_clubs = [
                 c for c in prefer if not any(_club_key_match(c, p) for p in games_by_team)
             ]
@@ -435,12 +481,12 @@ def _resolve_pbp_files(
                 ep_tot = (bio or {}).get("ep_season_totals") or {}
                 ep_gp = int(ep_tot.get("games_played") or 0)
                 harvested_gp = sum(games_by_team.values())
-                thin = bool(missing_clubs) or (
-                    ep_gp > 0 and harvested_gp < max(8, int(ep_gp * 0.35))
+                thin = (source == "api") and (
+                    bool(missing_clubs) or (
+                        ep_gp > 0 and harvested_gp < max(8, int(ep_gp * 0.35))
+                    )
                 )
-                # local = disk only. harvest/api with gaps → fall through to InStat
-                # for missing season clubs (e.g. Pat Canadians U18).
-                if source == "local" or not thin:
+                if source in ("local", "harvest") or not thin or bool(all_files):
                     return (
                         all_files,
                         meta,
@@ -469,7 +515,7 @@ def _resolve_pbp_files(
         file_groups = []
         all_files = []
         for tri in teams:
-            files = discover_team_pbp_files(tri, league=league)
+            files = discover_team_pbp_files(tri, league=league, opponent_fallback=(league != "nhl"))
             if files:
                 file_groups.append((tri, files, len(files)))
                 all_files.extend(files)
@@ -512,12 +558,24 @@ def _resolve_pbp_files(
                 instat_sid=instat_season_id,
                 max_pbp_downloads=max_pbp_downloads,
                 refresh_pbp=refresh_pbp,
-                allow_download=True,
+                allow_download=(source == "api" and bool(os.getenv("ALLOW_INSTAT_LOGIN"))),
             )
         except Exception as exc:
             logger.warning("InStat PBP download failed for %s: %s", tri, exc)
             download_errors.append(f"{tri}: {exc}")
-            continue
+            disc_files = discover_team_pbp_files(tri, league=league, opponent_fallback=(league != "nhl"))
+            if disc_files:
+                logger.info("Fell back to %d local PBP files on disk for %s", len(disc_files), tri)
+                files = disc_files
+                meta = {
+                    "source": "local_fallback",
+                    "files": [str(f) for f in disc_files],
+                    "cached": len(disc_files),
+                    "complete": True,
+                }
+            else:
+                continue
+
         if not files:
             continue
         match_ids = meta.get("match_ids") or []
@@ -560,8 +618,9 @@ def _resolve_pbp_files(
         return base_files, merged, list(base_games.keys()) or teams, base_groups
 
     if not all_files:
-        detail = "; ".join(download_errors[:3]) if download_errors else "no files"
-        raise RuntimeError(f"InStat API returned no PBP files for {team} ({detail})")
+        logger.warning("No PBP files found for %s (league=%s, detail=%s)", team, league, download_errors)
+        return [], {"source": "none", "files": [], "complete": False}, teams, []
+
 
     merged = dict(primary_meta)
     merged["files"] = [str(f) for f in all_files]
@@ -613,11 +672,97 @@ def _store_profile_stale(profile: dict[str, Any] | None) -> bool:
     """Return True if stored profile needs rebuild."""
     if not profile or not isinstance(profile, dict):
         return True
+    bio = profile.get("bio") or {}
+    if not bio.get("name"):
+        return True
+    a3z = profile.get("a3z")
+    if not isinstance(a3z, dict):
+        return True
+    gs = a3z.get("microstat_game_score") or (a3z.get("sections", {}).get("Game Score") or [{}])[0]
+    if isinstance(gs, dict) and gs.get("percentile") is None:
+        return True
+    if profile.get("cap") is None and profile.get("league", "nhl") == "nhl":
+        return True
+    pbp = profile.get("pbp") or {}
+    pg = pbp.get("per_game") or {}
+    if not pg.get("Assists") or float(pg.get("Assists") or 0) == 0.0 or int(pbp.get("assists") or 0) == 0:
+        st = bio.get("season_totals") or []
+        if any(int(r.get("assists") or 0) > 0 for r in st if r.get("leagueAbbrev") == "NHL"):
+            return True
     return False
 
 
+def _find_target_season_row(
+    season_totals: list[dict[str, Any]],
+    season: str | None,
+    league: str = "NHL",
+) -> dict[str, Any] | None:
+    if not season_totals:
+        return None
+    lg = league.upper()
+    target_sid: int | None = None
+    if season and "-" in season:
+        try:
+            yr = int(season.split("-")[0])
+            target_sid = int(f"{yr}{yr+1}")
+        except Exception:
+            pass
+    elif season and season.isdigit() and len(season) == 8:
+        target_sid = int(season)
+
+    if target_sid is not None:
+        row = next(
+            (r for r in reversed(season_totals) if r.get("leagueAbbrev") == lg and r.get("season") == target_sid),
+            None,
+        )
+        if row:
+            return row
+
+    # Fallback to the latest regular season row in the league
+    row = next(
+        (r for r in reversed(season_totals) if r.get("leagueAbbrev") == lg and r.get("gameTypeId") == 2),
+        None,
+    )
+    if row:
+        return row
+    return season_totals[-1] if season_totals else None
+
+
 def _enrich_stored_profile(profile: dict[str, Any]) -> dict[str, Any]:
-    """Backfill PBP percentile display for NHL profiles stored without A3Z tiles."""
+    """Backfill PBP percentile display and missing cap data for stored profiles."""
+    bio = profile.get("bio") or {}
+    league = str(profile.get("league") or bio.get("league") or "nhl").lower()
+    cfg = get_league(league)
+
+    if cfg.uses_cap and not profile.get("cap"):
+        pname = bio.get("name") or profile.get("player_name") or ""
+        cap = fetch_cap_info(pname, player_id=bio.get("player_id"))
+        if cap:
+            profile["cap"] = cap
+
+    if cfg.uses_nhl_api and not profile.get("edge") and bio.get("player_id"):
+        edge = fetch_edge_info(bio.get("player_id"))
+        if edge:
+            profile["edge"] = edge
+
+    pbp = profile.get("pbp")
+    if pbp and isinstance(pbp.get("per_game"), dict):
+        pg = pbp["per_game"]
+        st = bio.get("season_totals") or []
+        season_tag = profile.get("a3z", {}).get("season") or profile.get("sources", {}).get("a3z_season") or cfg.default_season
+        latest_row = _find_target_season_row(st, season_tag, league=league)
+        if latest_row and latest_row.get("gamesPlayed") and latest_row.get("assists") is not None:
+            gp = int(latest_row["gamesPlayed"])
+            ast = int(latest_row["assists"])
+            if gp > 0:
+                ast_val = round(ast / gp, 2)
+                pg["Assists"] = ast_val
+                games_n = int(pbp.get("games") or pbp.get("games_played") or 1)
+                pbp["assists"] = int(round(ast_val * games_n))
+                if isinstance(pbp.get("count_totals"), dict):
+                    pbp["count_totals"]["Assists"] = int(round(ast_val * games_n))
+                pbp["points"] = int(pbp.get("goals") or 0) + int(pbp["assists"])
+
     a3z = profile.get("a3z")
     sources = dict(profile.get("sources") or {})
     if sources.get("a3z"):
@@ -666,9 +811,9 @@ def _enrich_stored_profile(profile: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _persist_to_store(profile: dict[str, Any], season: str, instat_sid: int | None, *, league: str = "nhl") -> None:
+def _persist_to_store(profile: dict[str, Any], season: str, instat_sid: int | None, *, league: str = "nhl", team: str | None = None) -> None:
     bio = profile.get("bio") or {}
-    tri = str(bio.get("team") or "").upper()
+    tri = str(team or bio.get("team") or "").upper()
     if not tri:
         return
     sid = instat_sid if instat_sid is not None else resolve_instat_season_id(season, league)
@@ -713,7 +858,7 @@ def build_player_card_profile(
     season = resolve_a3z_season(a3z_season or cfg.default_season, instat_season_id)
     if (use_store if use_store is not None else _use_card_store()) and not refresh_pbp:
         stored = load_stored_profile(player_name, team=team, season=season, league=league)
-        if stored and not _store_pbp_incomplete(stored):
+        if stored and not _store_profile_stale(stored) and not _store_pbp_incomplete(stored):
             logger.info("Card store hit for %s", player_name)
             return _enrich_stored_profile(stored)
 
@@ -731,10 +876,15 @@ def build_player_card_profile(
     if pbp_dir is None:
         pbp_dir = team_pbp_dir(tri, league=league, a3z_season=season, season_id=instat_season_id)
 
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         cap_future = (
             pool.submit(fetch_cap_info, bio["name"], player_id=bio.get("player_id"))
             if cfg.uses_cap
+            else None
+        )
+        edge_future = (
+            pool.submit(fetch_edge_info, bio.get("player_id"))
+            if cfg.uses_nhl_api and bio.get("player_id")
             else None
         )
         pbp_future = pool.submit(
@@ -752,10 +902,17 @@ def build_player_card_profile(
             player_name=bio.get("name") or player_name,
         )
         cap = cap_future.result() if cap_future else None
+        edge = edge_future.result() if edge_future else None
         pbp_files, pbp_meta, pbp_teams, file_groups = pbp_future.result()
 
     if not cfg.uses_nhl_api:
         bio = fetch_pwhl_bio(player_name, tri, league=league, files=pbp_files)
+
+    pbp_team = tri
+    if file_groups and file_groups[0][0]:
+        pbp_team = file_groups[0][0]
+    elif pbp_meta.get("pbp_teams") and pbp_meta["pbp_teams"][0]:
+        pbp_team = pbp_meta["pbp_teams"][0]
 
     warm_team_pbp(pbp_files)
     match_ids = pbp_meta.get("match_ids") or []
@@ -763,7 +920,7 @@ def build_player_card_profile(
     pbp = _cached_pbp_aggregate(
         bio.get("player_id"),
         bio["name"],
-        tri,
+        pbp_team,
         pbp_files,
         team_game_count,
         file_groups=file_groups,
@@ -771,10 +928,26 @@ def build_player_card_profile(
     )
     if pbp:
         pbp["source"] = pbp_meta.get("source", "instat_api")
+        if isinstance(pbp.get("per_game"), dict):
+            pg = pbp["per_game"]
+            if (pg.get("Assists") is None or pg.get("Assists") == 0.0) and bio:
+                st = bio.get("season_totals") or []
+                latest_row = _find_target_season_row(st, season, league=league)
+                if latest_row and latest_row.get("gamesPlayed") and latest_row.get("assists") is not None:
+                    gp = int(latest_row["gamesPlayed"])
+                    ast = int(latest_row["assists"])
+                    if gp > 0:
+                        ast_pg = round(ast / gp, 2)
+                        pg["Assists"] = ast_pg
+                        games_n = int(pbp.get("games") or pbp.get("games_played") or 1)
+                        if isinstance(pbp.get("count_totals"), dict):
+                            pbp["count_totals"]["Assists"] = int(round(ast_pg * games_n))
+                        pbp["assists"] = int(round(ast_pg * games_n))
+                        pbp["points"] = int(pbp.get("goals") or 0) + int(pbp["assists"])
 
     # Per-club box scores for dual-roster season lines (never use combined PBP).
-    pbp_by_club: dict[str, dict[str, int]] = {}
-    if file_groups and len(file_groups) > 1:
+    pbp_by_club = (pbp.get("pbp_by_club") if isinstance(pbp, dict) else None) or {}
+    if not pbp_by_club and file_groups and len(file_groups) > 1:
         for club, files, tg in file_groups:
             club_agg = aggregate_player_pbp(
                 bio["name"], club, files=files, team_games=tg, league=league
@@ -791,15 +964,21 @@ def build_player_card_profile(
         pbp_meta = dict(pbp_meta)
         pbp_meta["pbp_by_club"] = pbp_by_club
 
-    team_full = team_full_name(league, tri)
-    deployment = _cached_qoc_qot(bio.get("player_id"), bio["name"], team_full, pbp_files) if pbp_files else None
+    pbp_team = tri
+    if file_groups and file_groups[0][0]:
+        pbp_team = file_groups[0][0]
+    elif pbp_meta.get("pbp_teams") and pbp_meta["pbp_teams"][0]:
+        pbp_team = pbp_meta["pbp_teams"][0]
+
+    pbp_team_full = team_full_name(league, pbp_team)
+    deployment = _cached_qoc_qot(bio.get("player_id"), bio["name"], pbp_team_full, pbp_files) if pbp_files else None
 
     a3z_from_api = False
     # Caller may pass per-player metric→pct (build_store) OR leave None for live compute.
     player_pcts: dict[str, float | None] | None = pbp_percentiles
     if player_pcts is None and pbp_files:
         pct_by_name = _team_percentiles_from_pbp(
-            tri,
+            pbp_team,
             pbp_files,
             league=league,
             team_games=team_game_count,
@@ -841,6 +1020,7 @@ def build_player_card_profile(
         "bio": bio,
         "colors": get_team_colors(tri, league=league),
         "cap": cap,
+        "edge": edge,
         "a3z": a3z,
         "pbp": pbp,
         "instat": pbp,
@@ -951,6 +1131,110 @@ def _merge_dual_roster_season(
         bio["dual_roster"] = len(season_clubs) >= 2
 
 
+def _attach_nhle_projection(profile: dict[str, Any]) -> None:
+    """Compute and attach NHLe projection + top historical comparables to profile."""
+    bio = profile.get("bio") or {}
+    player_name = bio.get("name") or "Prospect"
+    player_id = bio.get("player_id")
+
+    # Build career history from NHL landing or EP
+    career_history: list[dict[str, Any]] = []
+    if player_id:
+        try:
+            import httpx
+            url = f"https://api-web.nhle.com/v1/player/{player_id}/landing"
+            resp = httpx.get(url, headers={"User-Agent": "PlayerCards/1.0"}, timeout=6.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                b_date = data.get("birthDate")
+                b_year = int(b_date.split("-")[0]) if b_date else 2006
+                for s in data.get("seasonTotals", []):
+                    s_yr = int(str(s.get("season"))[:4]) if s.get("season") else b_year + 18
+                    gp = int(s.get("gamesPlayed") or 0)
+                    pts = int(s.get("points") or 0)
+                    if gp > 0:
+                        career_history.append({
+                            "season": s.get("season"),
+                            "age": max(15, min(22, s_yr - b_year)),
+                            "league_name": s.get("leagueAbbrev", "Unknown"),
+                            "team_name": (s.get("teamName") or {}).get("default", ""),
+                            "games_played": gp,
+                            "goals": int(s.get("goals") or 0),
+                            "assists": int(s.get("assists") or 0),
+                            "points": pts,
+                            "points_per_game": round(pts / gp, 3),
+                        })
+        except Exception as e:
+            logger.debug("NHL landing career fetch failed for %s: %s", player_name, e)
+
+    # Fallback to season_clubs or ep_season_totals if career_history is empty
+    if not career_history:
+        season_clubs = bio.get("season_clubs") or []
+        for row in season_clubs:
+            gp = int(row.get("gp") or 0)
+            pts = int(row.get("tp") or 0)
+            if gp > 0:
+                career_history.append({
+                    "age": int(bio.get("age") or 18),
+                    "league_name": row.get("league", "WHL"),
+                    "team_name": row.get("team", ""),
+                    "games_played": gp,
+                    "goals": int(row.get("g") or 0),
+                    "assists": int(row.get("a") or 0),
+                    "points": pts,
+                    "points_per_game": round(pts / gp, 3),
+                })
+
+    if not career_history:
+        return
+
+    # Extract target style rates from PBP if available
+    pbp = profile.get("pbp") or {}
+    gp_pbp = max(1, int(pbp.get("games_played") or 1))
+    target_style = {
+        "sog_pg": round(float(pbp.get("shots_on_goal") or 0) / gp_pbp, 2),
+        "entries_pg": round(float(pbp.get("carry_in") or 0) / gp_pbp, 2),
+        "passes_pg": round(float(pbp.get("passes_completed") or 0) / gp_pbp, 2),
+        "chances_pg": round(float(pbp.get("scoring_chances") or 0) / gp_pbp, 2),
+        "hd_chances_pg": round(float(pbp.get("inner_slot_shots") or 0) / gp_pbp, 2),
+    }
+    draft_details = bio.get("draft_details") or {}
+    draft_overall = (
+        draft_details.get("overallPick") or draft_details.get("pick")
+        if isinstance(draft_details, dict)
+        else None
+    )
+
+    try:
+        from nhle_model.database import NHLeDatabase
+        from nhle_model.network import DEFAULT_NHLE_FACTORS
+        from nhle_model.project import build_nhle_card_data
+        db_path = Path(__file__).resolve().parent.parent / "nhle_model" / "nhle_database.db"
+        if db_path.exists():
+            db = NHLeDatabase(str(db_path))
+            vitals = {
+                "position": bio.get("position", "F"),
+                "height_inches": bio.get("height_inches", 72),
+                "weight_lbs": bio.get("weight_lbs", 185),
+                "age": bio.get("age", 18),
+                "shoots": bio.get("shoots", "L"),
+                "draft_overall": draft_overall,
+            }
+            nhle_data = build_nhle_card_data(
+                player_name,
+                vitals,
+                career_history,
+                db,
+                DEFAULT_NHLE_FACTORS,
+                target_style=target_style,
+            )
+            profile["nhle"] = nhle_data
+            logger.info("Attached NHLe projection for %s with %d comparables", player_name, len(nhle_data.get("comparables", [])))
+    except Exception as e:
+        logger.warning("Could not attach NHLe projection for %s: %s", player_name, e)
+
+
+
 def generate_player_card(
     player_name: str,
     team: str | None = None,
@@ -968,11 +1252,7 @@ def generate_player_card(
     amateur_club: str | None = None,
     undrafted: bool | None = None,
 ) -> dict[str, Any]:
-    """Build card using persistent PBP cache or SQLite store; writes PNG only unless save_json=True.
-
-    For undrafted NHL draft-eligible prospects (no NHL club yet), pass
-    ``league="prospect"`` and ``amateur_club`` (e.g. "Everett Silvertips").
-    Colours/logos resolve from the amateur club via EliteProspects.
+    """Single unified generator function for player cards across all leagues.
 
     Card kinds stay separate on disk (see ``card_kinds``):
     nhl_player / nhl_goalie / nhl_prospect / nhl_team / pwhl_player / junior_player.
@@ -980,6 +1260,7 @@ def generate_player_card(
     Goalie and team kinds are dispatched to their own generators so this
     function never renders a skater card for a goalie.
     """
+
     from .card_kinds import (
         default_output_path,
         detect_card_kind,
@@ -1037,7 +1318,7 @@ def generate_player_card(
     store_team = team if nhl_tri else (amateur_club or team)
     if (use_store if use_store is not None else _use_card_store()) and not refresh_pbp:
         profile = load_stored_profile(player_name, team=store_team, season=season, league=league)
-        if profile and not _store_pbp_incomplete(profile):
+        if profile and not _store_profile_stale(profile) and not _store_pbp_incomplete(profile):
             profile = _enrich_stored_profile(profile)
             logger.info("Card store hit for %s — skipping live data fetch", player_name)
 
@@ -1111,15 +1392,63 @@ def generate_player_card(
             bio=bio,
             use_store=False,
         )
-        _persist_to_store(profile, season, instat_season_id, league=league)
+        _persist_to_store(profile, season, instat_season_id, league=league, team=store_team)
 
     if profile:
         bio = profile.get("bio") or {}
         if is_undrafted or league == "prospect" or card_kind in {"junior_player", "nhl_prospect"}:
-            _merge_dual_roster_season(bio, profile.get("pbp"), (profile.get("sources") or {}))
-            bio["undrafted"] = True if is_undrafted else bio.get("undrafted")
-            bio.setdefault("amateur_club", amateur_club or bio.get("team"))
-            if not bio.get("draft_info"):
+            bio["undrafted"] = True if is_undrafted else False
+
+            # 1. Fill ep_season_totals and amateur_club from season_totals (NHL landing / pro league stats) if available
+            st = bio.get("season_totals") or []
+            tournaments = {"NHL", "WJC-20", "WJC-18", "Hlinka Gretzky Cup", "EHT", "OG", "WC", "Champions HL"}
+            reg_rows = [
+                r for r in st
+                if isinstance(r, dict)
+                and r.get("gameTypeId") == 2
+                and str(r.get("leagueAbbrev") or "") not in tournaments
+            ]
+            if not reg_rows:
+                reg_rows = [
+                    r for r in st
+                    if isinstance(r, dict) and r.get("gameTypeId") == 2 and str(r.get("leagueAbbrev") or "") != "NHL"
+                ]
+            if reg_rows:
+                latest_season = max(r.get("season") for r in reg_rows if r.get("season"))
+                season_candidates = [r for r in reg_rows if r.get("season") == latest_season]
+                best = max(season_candidates, key=lambda r: int(r.get("gamesPlayed") or 0))
+                bio["ep_season_totals"] = {
+                    "games_played": int(best.get("gamesPlayed") or 0),
+                    "goals": int(best.get("goals") or 0),
+                    "assists": int(best.get("assists") or 0),
+                    "points": int(best.get("points") or 0),
+                }
+                if not amateur_club or amateur_club == bio.get("team"):
+                    tname = best.get("teamName")
+                    amateur_club = tname.get("default") if isinstance(tname, dict) else str(tname or "")
+
+            # 2. If amateur_club still not resolved, query EP
+            if not amateur_club or amateur_club == bio.get("team"):
+                from .ep_api import get_profile as _ep_get_profile
+                ep = _ep_get_profile(player_name)
+                if ep and ep.get("amateur_club"):
+                    amateur_club = ep.get("amateur_club")
+
+            if amateur_club:
+                bio["amateur_club"] = amateur_club
+            else:
+                bio.setdefault("amateur_club", bio.get("team"))
+
+            # 3. For undrafted / junior cards with dual rosters, merge per-club PBP
+            if is_undrafted or card_kind == "junior_player" or not (bio.get("ep_season_totals") or {}).get("games_played"):
+                _merge_dual_roster_season(bio, profile.get("pbp"), (profile.get("sources") or {}))
+
+            if bio.get("draft_overall"):
+                yr = bio.get("draft_year") or ""
+                rd = bio.get("draft_round") or ""
+                ov = bio.get("draft_overall")
+                bio["draft_info"] = f"{yr} Round {rd} #{ov} Overall".strip()
+            elif not bio.get("draft_info"):
                 bio["draft_info"] = "NHL Draft Eligible"
             profile["bio"] = bio
 
@@ -1136,18 +1465,27 @@ def generate_player_card(
                 and int(ep_tot["games_played"]) > sources["pbp_sample_games"] + 1
             )
 
-        amateur_card = card_kind == "junior_player" or bool(is_undrafted)
-        if amateur_card:
-            # 1. Resolve headshot URL if missing or placeholder
-            if not bio.get("headshot_url") or "silhouette" in str(bio.get("headshot_url")) or "default-" in str(bio.get("headshot_url")):
+        is_prospect = card_kind in {"junior_player", "nhl_prospect"} or league == "prospect" or bool(is_undrafted)
+        if is_prospect:
+            # 1. Resolve headshot URL if missing or placeholder (including default silhouette mugs)
+            curr_photo = str(bio.get("card_photo_url") or bio.get("headshot_url") or "")
+            if (
+                not curr_photo
+                or "silhouette" in curr_photo
+                or "default-" in curr_photo
+                or "default.jpg" in curr_photo
+                or "assets.nhle.com/mugs" in curr_photo
+            ):
                 from .headshots import resolve_prospect_headshot
-                photo = resolve_prospect_headshot(player_name, amateur_club=amateur_club or team or bio.get("amateur_club"))
+                photo = resolve_prospect_headshot(player_name, amateur_club=amateur_club or bio.get("amateur_club") or team)
                 if photo:
                     bio["headshot_url"] = photo
                     bio["card_photo_url"] = photo
                     bio["card_photo_kind"] = "mug"
 
-            # 2. Resolve amateur / junior team logo (never keep NHL CDN logos on undrafted cards)
+        amateur_card = card_kind == "junior_player" or bool(is_undrafted)
+        if amateur_card:
+            # Resolve amateur / junior team logo (never keep NHL CDN logos on undrafted cards)
             logo_raw = bio.get("team_logo_png_url") or bio.get("team_logo_url") or ""
             need_logo = (
                 not logo_raw
@@ -1173,10 +1511,14 @@ def generate_player_card(
                     from .team_colors import get_team_colors
                     profile["colors"] = get_team_colors(target_team, league=league)
 
+        if league == "prospect" or card_kind in {"nhl_prospect", "junior_player"}:
+            _attach_nhle_projection(profile)
+
     with tempfile.TemporaryDirectory(prefix="player-card-out-") as out_raw:
         out_dir = Path(out_raw)
         html_path = out_dir / "card.html"
         write_player_card_html(profile, html_path)
+
 
         # Shared consistency checks for every skater card kind (NHL/PWHL/junior).
         try:

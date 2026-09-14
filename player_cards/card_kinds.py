@@ -28,6 +28,7 @@ CARD_KINDS = (
     "nhl_team",
     "pwhl_player",
     "junior_player",
+    "junior_goalie",
 )
 
 
@@ -83,7 +84,15 @@ SPECS: dict[str, CardKindSpec] = {
         "junior/players",
         "Undrafted junior dual-roster cards (WHL/U18/etc.)",
     ),
+    "junior_goalie": CardKindSpec(
+        "junior_goalie",
+        "Junior / Undrafted Goalie",
+        "prospect",
+        "junior/goalies",
+        "Undrafted junior/college goalie cards",
+    ),
 }
+
 
 
 def normalize_kind(kind: str | None) -> str | None:
@@ -106,6 +115,9 @@ def normalize_kind(kind: str | None) -> str | None:
         "undrafted": "junior_player",
         "junior_prospect": "junior_player",
         "amateur": "junior_player",
+        "junior_goalie": "junior_goalie",
+        "undrafted_goalie": "junior_goalie",
+        "prospect_goalie": "junior_goalie",
     }
     k = aliases.get(k, k)
     if k not in SPECS:
@@ -136,32 +148,75 @@ def detect_card_kind(
     team_card: bool = False,
     position: str | None = None,
 ) -> str:
-    """Infer card kind from flags. Explicit ``kind`` always wins."""
+    """Infer card kind from flags and live player status. Explicit ``kind`` always wins."""
     if kind:
         return normalize_kind(kind)  # type: ignore[return-value]
     if team_card:
         return "nhl_team"
 
-    nhl_tri = bool(team and re.fullmatch(r"[A-Za-z]{3}", team.strip()))
-    pos = (position or "").strip().upper()
-    if pos in {"G", "GOALIE", "GOALTENDER"}:
-        return "nhl_goalie"
-
-    if undrafted is True or (
-        amateur_club and not nhl_tri and (league in {None, "prospect"} or undrafted is not False)
-    ):
-        # Junior / undrafted path — dual-roster SMAAAHL+WHL kids etc.
-        if not nhl_tri:
-            return "junior_player"
-
     league_l = (league or "").strip().lower()
     if league_l == "pwhl":
         return "pwhl_player"
-    if league_l == "prospect":
-        return "nhl_prospect" if nhl_tri else "junior_player"
 
-    if league_l in {"nhl", ""}:
+    nhl_tri = bool(team and re.fullmatch(r"[A-Za-z]{3}", team.strip()))
+
+    # Smart lookup via NHL bio / landing stats
+    bio = None
+    try:
+        from player_cards.nhl_bio import fetch_nhl_bio
+        bio = fetch_nhl_bio(name, team=team if nhl_tri else None)
+    except Exception:
+        bio = None
+
+    pos = (position or (bio.get("position") if bio else "") or "").strip().upper()
+    is_goalie = pos in {"G", "GOALIE", "GOALTENDER"}
+
+    nhl_career_gp = 0
+    current_season_nhl_gp = 0
+    is_drafted = bool(bio and bio.get("draft_overall"))
+
+    if bio and bio.get("player_id"):
+        try:
+            import httpx
+            pid = bio["player_id"]
+            resp = httpx.get(
+                f"https://api-web.nhle.com/v1/player/{pid}/landing",
+                headers={"User-Agent": "PlayerCards/1.0"},
+                timeout=4.0,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("draftDetails"):
+                    is_drafted = True
+                nhl_rows = [s for s in data.get("seasonTotals", []) if s.get("leagueAbbrev") == "NHL"]
+                for s in nhl_rows:
+                    nhl_career_gp += int(s.get("gamesPlayed") or 0)
+                if nhl_rows:
+                    current_season_nhl_gp = int(nhl_rows[-1].get("gamesPlayed") or 0)
+        except Exception:
+            pass
+
+    if is_goalie:
+        if undrafted is True or (amateur_club and not nhl_tri and not is_drafted):
+            return "junior_goalie"
+        if current_season_nhl_gp >= 5 or nhl_career_gp >= 10:
+            return "nhl_goalie"
+        return "junior_goalie" if (not nhl_tri or nhl_career_gp == 0) else "nhl_goalie"
+
+    if undrafted is True or (amateur_club and not nhl_tri and not is_drafted):
+        return "junior_player"
+
+    if league_l == "prospect":
+        if current_season_nhl_gp >= 15 or nhl_career_gp >= 40:
+            return "nhl_player"
+        return "nhl_prospect" if (nhl_tri or is_drafted) else "junior_player"
+
+    if current_season_nhl_gp >= 15 or nhl_career_gp >= 40:
         return "nhl_player"
+    if is_drafted or nhl_tri:
+        return "nhl_prospect"
+    if amateur_club:
+        return "junior_player"
     return "nhl_player"
 
 
@@ -180,10 +235,15 @@ def default_output_path(
         filename = f"{tri.lower()}-team.png"
     elif kind == "nhl_goalie":
         filename = f"{slugify(name, team)}-goalie.png"
+    elif kind == "junior_goalie":
+        club = amateur_club or team
+        club_bit = (club or "").split()[0] if club else None
+        filename = f"{slugify(name, club_bit)}-goalie.png"
     elif kind == "nhl_prospect":
         filename = f"{slugify(name, team or amateur_club)}-prospect.png"
     elif kind == "junior_player":
         club = amateur_club or team
+
         club_bit = (club or "").split()[0] if club else None
         filename = f"{slugify(name, club_bit)}-junior.png"
     elif kind == "pwhl_player":

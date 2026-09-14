@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import re
@@ -55,6 +56,7 @@ HEADERS = {
 }
 
 
+@functools.lru_cache(maxsize=128)
 def fetch_sidearm_roster_photos(domain: str) -> dict[str, str]:
     """Scrape collegiate roster page to map player names to their headshot URLs."""
     urls = [
@@ -155,6 +157,7 @@ EP_HEADERS = {
 }
 
 
+@functools.lru_cache(maxsize=256)
 def search_eliteprospects_player_photo(player_name: str) -> str | None:
     """Resolve EP photo URL via the public autocomplete API (no auth required)."""
     try:
@@ -245,6 +248,7 @@ PROSPECT_HEADSHOT_OVERRIDES = {
     "liam ruck": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Liam_Ruck_2026.03.07.jpg",
 }
 
+@functools.lru_cache(maxsize=256)
 def resolve_prospect_headshot(player_name: str, amateur_club: str | None = None) -> str | None:
     """Resolve a unified headshot URL for a prospect checking all endpoints."""
     name_clean = _norm(player_name)
@@ -260,10 +264,13 @@ def resolve_prospect_headshot(player_name: str, amateur_club: str | None = None)
             if hit_name and _norm(hit_name) == _norm(player_name):
                 pid = hit["playerId"]
                 team = hit.get("teamAbbrev") or hit.get("lastTeamAbbrev") or "NHL"
-                url = f"https://assets.nhle.com/mugs/nhl/20252026/{team}/{pid}.png"
+                url = f"https://assets.nhle.com/mugs/nhl/latest/{team}/{pid}.png"
                 
                 # Verify that the URL doesn't redirect to a default placeholder
                 r = httpx.get(url, headers=HEADERS, timeout=5.0, follow_redirects=True)
+                if r.status_code != 200:
+                    url = f"https://assets.nhle.com/mugs/nhl/20252026/{team}/{pid}.png"
+                    r = httpx.get(url, headers=HEADERS, timeout=5.0, follow_redirects=True)
                 if r.status_code == 200:
                     if "default-" in str(r.url) or "silhouette" in str(r.url):
                         logger.info("NHL API headshot for %s is a default placeholder. Skipping.", player_name)
