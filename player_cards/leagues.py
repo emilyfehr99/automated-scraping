@@ -230,6 +230,48 @@ LEAGUES: dict[str, LeagueConfig] = {
 }
 
 
+_SEASON_DETECTION_CACHE: dict[str, Any] = {"time": 0.0, "result": ("2025-26", 36)}
+
+
+def detect_active_season(league: str | None = "nhl") -> tuple[str, int]:
+    """Detect current active season dynamically (with 5-minute memory TTL).
+
+    When 1 GP occurs in a new season, NHL official standings/schedule reflects
+    the new season (e.g. 20262027) and the tool automatically rolls over.
+    Can always be overridden via PLAYER_CARDS_SEASON / INSTAT_SEASON_ID env vars.
+    """
+    env_season = os.getenv("PLAYER_CARDS_SEASON", "").strip()
+    env_instat = os.getenv("INSTAT_SEASON_ID", "").strip()
+    if env_season:
+        sid = int(env_instat) if env_instat.isdigit() else instat_season_id(env_season, league)
+        return env_season, sid
+
+    import time
+    now = time.time()
+    if now - _SEASON_DETECTION_CACHE["time"] < 300.0:
+        return _SEASON_DETECTION_CACHE["result"]
+
+    try:
+        import httpx
+        r = httpx.get("https://api-web.nhle.com/v1/standings/now", follow_redirects=True, timeout=3.0)
+        if r.status_code == 200:
+            st = r.json().get("standings", [])
+            if st and st[0].get("gamesPlayed", 0) > 0:
+                raw_sid = str(st[0].get("seasonId", ""))
+                if len(raw_sid) == 8 and raw_sid.isdigit():
+                    yr = int(raw_sid[:4])
+                    season_tag = f"{yr}-{str(yr+1)[-2:]}"
+                    sid = 36 + (yr - 2025) * 2
+                    _SEASON_DETECTION_CACHE["time"] = now
+                    _SEASON_DETECTION_CACHE["result"] = (season_tag, sid)
+                    return season_tag, sid
+    except Exception:
+        pass
+
+    _SEASON_DETECTION_CACHE["time"] = now
+    return _SEASON_DETECTION_CACHE["result"]
+
+
 def normalize_team_abbrev(league: str | None, team_abbrev: str) -> str:
     if (league or "nhl").strip().lower() == "prospect":
         return team_abbrev  # Preserve amateur club name casing and spaces
@@ -243,7 +285,23 @@ def get_league(league: str | None) -> LeagueConfig:
     key = (league or "nhl").strip().lower()
     if key not in LEAGUES:
         raise ValueError(f"Unknown league: {league!r} (use nhl, pwhl, or prospect)")
-    return LEAGUES[key]
+    base = LEAGUES[key]
+    active_season, _ = detect_active_season(key)
+    if active_season != base.default_season:
+        return LeagueConfig(
+            key=base.key,
+            label=base.label,
+            teams=base.teams,
+            instat_ids=base.instat_ids,
+            instat_gender=base.instat_gender,
+            instat_search_suffix=base.instat_search_suffix,
+            uses_a3z=base.uses_a3z,
+            uses_nhl_api=base.uses_nhl_api,
+            uses_cap=base.uses_cap,
+            default_season=active_season,
+            work_dir_name=base.work_dir_name,
+        )
+    return base
 
 
 def team_full_name(league: str | None, team_abbrev: str) -> str:
