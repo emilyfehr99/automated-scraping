@@ -137,7 +137,15 @@ def _jwt_exp(token: str | None) -> int | None:
 
 
 def _auth_file_path() -> str:
-    return os.getenv("INSTAT_AUTH_FILE", AUTH_FILE)
+    env_path = os.getenv("INSTAT_AUTH_FILE", "").strip()
+    if env_path:
+        return env_path
+    if os.path.exists(AUTH_FILE):
+        return AUTH_FILE
+    script_dir_auth = Path(__file__).resolve().parent / AUTH_FILE
+    if script_dir_auth.exists():
+        return str(script_dir_auth)
+    return AUTH_FILE
 
 
 def _user_data_dir() -> Path | None:
@@ -679,7 +687,13 @@ class InStatAPI:
         self._attach_header_capture(page)
         logger.info("Navigating to InStat to capture auth tokens...")
         await page.goto(target, wait_until="load", timeout=60000)
-        await asyncio.sleep(6)
+        try:
+            await page.wait_for_url(
+                lambda u: "identity.hudl.com" not in u and "/login" not in u,
+                timeout=30000,
+            )
+        except Exception:
+            await asyncio.sleep(6)
         if "identity.hudl.com" in page.url or "/login" in page.url:
             logger.warning("Redirected to login — browser session is dead")
             self.auth_headers = {}

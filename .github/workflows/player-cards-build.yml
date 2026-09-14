@@ -89,8 +89,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
-      x_auth_token: ${{ steps.auth.outputs.x_auth_token }}
-      authorization: ${{ steps.auth.outputs.authorization }}
       auth_ok: ${{ steps.auth.outputs.auth_ok }}
     steps:
       - name: Checkout
@@ -139,7 +137,6 @@ jobs:
     timeout-minutes: 330
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout
@@ -167,6 +164,7 @@ jobs:
             cp instat_auth_session/instat_headers_cache.json ~/.cache/player-cards/instat_headers_cache.json
           fi
           if [ -f instat_auth_session/auth.json ]; then
+            cp instat_auth_session/auth.json auth.json
             cp instat_auth_session/auth.json hudl-scraping/auth.json
           fi
           echo "Restored verified InStat auth session from auth job"
@@ -214,8 +212,7 @@ jobs:
         working-directory: hudl-scraping
         env:
           PYTHONPATH: ${{ github.workspace }}
-          INSTAT_X_AUTH_TOKEN: ${{ needs.auth.outputs.x_auth_token || secrets.INSTAT_X_AUTH_TOKEN }}
-          INSTAT_AUTHORIZATION: ${{ needs.auth.outputs.authorization || secrets.INSTAT_AUTHORIZATION }}
+          INSTAT_AUTH_FILE: ${{ github.workspace }}/hudl-scraping/auth.json
           HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
           INSTAT_DEDICATED_ACCOUNT: "0"
