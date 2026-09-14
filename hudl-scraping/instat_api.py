@@ -1788,7 +1788,18 @@ class InStatAPI:
             await self._http_client.aclose()
             self._http_client = None
         if self.browser:
-            await self.browser.close()
+            try:
+                await self.browser.close()
+            except Exception:
+                pass
+            self.browser = None
+        if getattr(self, "_pw_cm", None) is not None:
+            try:
+                await self._pw_cm.stop()
+            except Exception:
+                pass
+            self._pw_cm = None
+            self._playwright = None
 
 
 async def main():

@@ -416,19 +416,15 @@ async def batch_download_team_pbp(
                 logger.error("%s/%s PBP download failed: %s", job.get("league"), tri, exc)
                 results.append({"team": tri, "league": job.get("league"), "error": str(exc)})
 
-    if _instat_api_tokens_configured():
+    try:
         if not await api.init_session(None):
-            raise RuntimeError("InStat API token auth failed")
-        try:
-            await _run_jobs()
-        finally:
-            await api.close()
-        return results
-
-    async with async_playwright() as p:
-        if not await api.init_session(p):
-            raise RuntimeError("InStat session init failed (check auth.json)")
+            if _instat_api_tokens_configured() and not os.getenv("ALLOW_INSTAT_LOGIN") and not os.getenv("INSTAT_DEDICATED_ACCOUNT"):
+                raise RuntimeError("InStat API token auth failed")
+            async with async_playwright() as p:
+                if not await api.init_session(p):
+                    raise RuntimeError("InStat session init failed (check auth.json or credentials)")
         await _run_jobs()
+    finally:
         await api.close()
     return results
 
@@ -444,14 +440,50 @@ def ensure_team_pbp_files(
     refresh: bool = False,
 ) -> dict[str, Any]:
     """Ensure season PBP CSVs exist in output_dir (persistent cache)."""
-    return asyncio.run(
-        _download_team_pbp_async(
-            team_abbrev,
-            output_dir,
-            league=league,
-            a3z_season=a3z_season,
-            season_id=season_id,
-            max_downloads=max_downloads,
-            refresh=refresh,
+    if not refresh:
+        existing = list(output_dir.glob("*.csv")) if output_dir.exists() else []
+        if not existing:
+            from .instat_source import discover_team_pbp_files
+            existing = discover_team_pbp_files(team_abbrev, league=league)
+        if existing or not os.getenv("ALLOW_INSTAT_LOGIN"):
+            return {
+                "team": team_abbrev,
+                "league": league,
+                "directory": str(output_dir),
+                "files": [str(p) for p in existing],
+                "file_count": len(existing),
+                "match_ids": [],
+            }
+    try:
+        return asyncio.run(
+            _download_team_pbp_async(
+                team_abbrev,
+                output_dir,
+                league=league,
+                a3z_season=a3z_season,
+                season_id=season_id,
+                max_downloads=max_downloads,
+                refresh=refresh,
+            )
         )
-    )
+    except Exception as e:
+        logger.warning(
+            "ensure_team_pbp_files download failed for %s (%s): %s — falling back to local files",
+            team_abbrev,
+            league,
+            e,
+        )
+        existing = list(output_dir.glob("*.csv")) if output_dir.exists() else []
+        if not existing:
+            from .instat_source import discover_team_pbp_files
+            existing = discover_team_pbp_files(team_abbrev, league=league)
+        return {
+            "team": team_abbrev,
+            "league": league,
+            "directory": str(output_dir),
+            "files": [str(p) for p in existing],
+            "file_count": len(existing),
+            "match_ids": [],
+            "error": str(e),
+        }
+

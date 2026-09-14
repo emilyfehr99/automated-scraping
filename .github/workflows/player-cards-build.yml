@@ -84,8 +84,50 @@ jobs:
               fh.write("\nMATRIX\n")
           PY
 
-  build-shard:
+  auth:
     needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      x_auth_token: ${{ steps.auth.outputs.x_auth_token }}
+      authorization: ${{ steps.auth.outputs.authorization }}
+      auth_ok: ${{ steps.auth.outputs.auth_ok }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            player_cards/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r player_cards/requirements.txt
+          python -m playwright install chromium || \
+            timeout 180 python -m playwright install --with-deps chromium
+
+      - name: Obtain InStat Auth Tokens
+        id: auth
+        env:
+          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
+          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
+          INSTAT_AUTH_JSON: ${{ secrets.INSTAT_AUTH_JSON }}
+          HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
+          HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
+          INSTAT_DEDICATED_ACCOUNT: "1"
+          ALLOW_INSTAT_LOGIN: "1"
+          DISABLE_AUTO_LOGIN: "0"
+        run: |
+          python scripts/ci_instat_auth.py
+
+  build-shard:
+    needs: [plan, auth]
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
@@ -107,18 +149,11 @@ jobs:
 
       - name: Configure InStat auth
         env:
-          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
-          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
-          INSTAT_AUTH_JSON: ${{ secrets.INSTAT_AUTH_JSON }}
+          INSTAT_X_AUTH_TOKEN: ${{ needs.auth.outputs.x_auth_token || secrets.INSTAT_X_AUTH_TOKEN }}
+          INSTAT_AUTHORIZATION: ${{ needs.auth.outputs.authorization || secrets.INSTAT_AUTHORIZATION }}
         run: |
           mkdir -p hudl-scraping
-          if [ -n "$INSTAT_AUTH_JSON" ]; then
-            echo "Restoring auth.json session state"
-            echo "$INSTAT_AUTH_JSON" | base64 -d > hudl-scraping/auth.json
-          fi
-          if [ -n "$INSTAT_X_AUTH_TOKEN" ] && [ -n "$INSTAT_AUTHORIZATION" ]; then
-            echo "Using InStat API token headers with Playwright fallback"
-          fi
+          echo "Using verified InStat API token headers from auth job"
 
       - name: Install dependencies
         run: |
@@ -163,13 +198,13 @@ jobs:
         working-directory: hudl-scraping
         env:
           PYTHONPATH: ${{ github.workspace }}
-          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
-          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
+          INSTAT_X_AUTH_TOKEN: ${{ needs.auth.outputs.x_auth_token || secrets.INSTAT_X_AUTH_TOKEN }}
+          INSTAT_AUTHORIZATION: ${{ needs.auth.outputs.authorization || secrets.INSTAT_AUTHORIZATION }}
           HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
-          INSTAT_DEDICATED_ACCOUNT: "1"
-          ALLOW_INSTAT_LOGIN: "1"
-          DISABLE_AUTO_LOGIN: "0"
+          INSTAT_DEDICATED_ACCOUNT: "0"
+          ALLOW_INSTAT_LOGIN: "0"
+          DISABLE_AUTO_LOGIN: "1"
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
           PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
         run: |
