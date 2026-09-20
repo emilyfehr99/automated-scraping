@@ -255,6 +255,62 @@ def nhl_api_season_id(season_tag: str | None = None) -> str:
     return f"{start}{start + 1}"
 
 
+def prior_season_tag(season_tag: str | None = None) -> str:
+    """Previous season tag (2025-26 → 2024-25)."""
+    tag = (season_tag or detect_active_season("nhl")[0]).strip()
+    if tag.endswith("p"):
+        tag = tag[:-1]
+    start = int(tag.split("-")[0])
+    return f"{start - 1}-{str(start)[-2:]}"
+
+
+def a3z_min_team_gp() -> int:
+    """A3Z current-season data is unreliable until this many team GP."""
+    raw = os.getenv("A3Z_MIN_TEAM_GP", "30").strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 30
+
+
+def nhl_standings_gp_for_season(season_tag: str | None = None) -> int | None:
+    """Sum of gamesPlayed from standings/now when it matches the active season."""
+    tag = season_tag or detect_active_season("nhl")[0]
+    want = nhl_api_season_id(tag)
+    data = _http_json("https://api-web.nhle.com/v1/standings/now", timeout=8.0)
+    if not isinstance(data, dict):
+        return None
+    standings = data.get("standings") or []
+    if not standings:
+        return None
+    got = str((standings[0] or {}).get("seasonId") or "")
+    if got != want:
+        return 0
+    return sum(int(row.get("gamesPlayed") or 0) for row in standings)
+
+
+def a3z_current_season_ready(
+    season_tag: str | None = None,
+    *,
+    team_games: int | None = None,
+) -> bool:
+    """True once enough GP exist for current-season A3Z to be usable.
+
+    Gate: team_games >= A3Z_MIN_TEAM_GP when known, else league standings
+    imply at least that many GP for a typical team (sum/32).
+    """
+    min_gp = a3z_min_team_gp()
+    if min_gp <= 0:
+        return True
+    if team_games is not None:
+        return int(team_games) >= min_gp
+    total = nhl_standings_gp_for_season(season_tag)
+    if total is None:
+        return False
+    # Approximate per-team GP from league total.
+    return (total / 32.0) >= min_gp
+
+
 def _http_json(url: str, *, timeout: float = 12.0) -> Any:
     """JSON GET with httpx when available, else stdlib urllib."""
     try:

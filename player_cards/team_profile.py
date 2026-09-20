@@ -37,9 +37,14 @@ def _team_full_name(team: str) -> str:
     return NHL_TEAM_SEARCH.get(team.upper(), team.upper())
 
 
-def fetch_top_prospects(team: str, current_year: int = 2026, years: int = 3, limit: int = 3) -> str:
+def fetch_top_prospects(team: str, current_year: int | None = None, years: int = 3, limit: int = 3) -> str:
     """Fetch the highest recent draft picks for a team."""
     from .draft_source import fetch_draft_picks
+    from .leagues import detect_active_season
+
+    if current_year is None:
+        tag, _ = detect_active_season("nhl")
+        current_year = int(tag.split("-")[0]) + 1  # draft year in the season (e.g. 2025-26 → 2026)
     all_picks = []
     for y in range(current_year - years + 1, current_year + 1):
         picks = fetch_draft_picks(y)
@@ -66,21 +71,28 @@ def build_team_card_profile(
     team: str,
     *,
     league: str = "nhl",
-    season: str = "2025-26",
-    instat_season_id: int = 36,
+    season: str | None = None,
+    instat_season_id: int | None = None,
     league_team_averages: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    from .leagues import detect_active_season, nhl_api_season_id
+
     tri = team.upper()
+    if not season or instat_season_id is None:
+        active_tag, active_sid = detect_active_season(league)
+        season = season or active_tag
+        instat_season_id = instat_season_id if instat_season_id is not None else active_sid
+    season_id = int(nhl_api_season_id(season))
 
     skater_data = aggregate_team_skater_averages(
         tri, league=league, season=season, instat_season_id=instat_season_id,
     )
-    goalie_summary = fetch_team_goalie_summary(tri)
+    goalie_summary = fetch_team_goalie_summary(tri, season_str=str(season_id))
     standing = fetch_team_standing(tri)
-    leaders = fetch_team_scoring_leaders(tri)
+    leaders = fetch_team_scoring_leaders(tri, season_id=season_id)
     team_totals = compute_team_totals(skater_data.get("per_player") or {}, skater_data.get("games"))
     zone_events = aggregate_team_zone_events(tri, league=league, files=skater_data.get("files"))
-    game_log = fetch_team_game_log(tri)
+    game_log = fetch_team_game_log(tri, season_id=season_id)
     front_office = fetch_team_front_office(tri)
     top_prospects_str = fetch_top_prospects(tri)
 
@@ -88,7 +100,6 @@ def build_team_card_profile(
     if league_team_averages:
         percentiles = compute_team_percentiles(skater_data.get("averages") or {}, league_team_averages)
 
-    season_id = int(f"{season.split('-')[0]}{int(season.split('-')[0]) + 1}") if "-" in season else 20252026
     league_official = fetch_league_team_official_stats(season_id)
     official_row = league_official.get(tri, {})
     official_percentiles = (
@@ -100,6 +111,8 @@ def build_team_card_profile(
         "league": league,
         "team": tri,
         "team_name": _team_full_name(tri),
+        "season": season,
+        "instat_season_id": instat_season_id,
         "colors": get_team_colors(tri, league="nhl"),
         "logo_url": team_logo_url(tri),
         "logo_png_url": team_logo_png_url(tri),
@@ -122,6 +135,8 @@ def build_team_card_profile(
             "league": league,
             "season": season,
             "instat_season_id": instat_season_id,
+            "nhl_api_season_id": season_id,
+            "pbp": bool(skater_data.get("files")),
             "skaters_with_data": skater_data.get("player_count", 0),
             "roster_size": skater_data.get("roster_size", 0),
             "league_pool_size": len(league_team_averages) if league_team_averages else 0,

@@ -29,10 +29,18 @@ def generate(
     kwargs.pop("use_store", None)
     save_json = bool(kwargs.pop("save_json", False))
     output_png = kwargs.pop("output_png", None)
-    instat_season_id = kwargs.pop("instat_season_id", None) or 36
+    from player_cards.leagues import detect_active_season
+
+    active_tag, active_sid = detect_active_season("nhl")
+    season = kwargs.pop("season", None) or active_tag
+    instat_season_id = kwargs.pop("instat_season_id", None)
+    if instat_season_id is None:
+        instat_season_id = active_sid
     kwargs.pop("league", None)
 
-    profile = build_team_card_profile(tri, instat_season_id=instat_season_id)
+    profile = build_team_card_profile(
+        tri, season=season, instat_season_id=instat_season_id,
+    )
     stamp_card_kind(profile, KIND)
     png_path = Path(output_png) if output_png else default_output_path(KIND, tri, team=tri)
     png_path.parent.mkdir(parents=True, exist_ok=True)

@@ -75,8 +75,8 @@ def aggregate_team_skater_averages(
     team: str,
     *,
     league: str = "nhl",
-    season: str = "2025-26",
-    instat_season_id: int = 36,
+    season: str | None = None,
+    instat_season_id: int | None = None,
     max_pbp_downloads: int | None = None,
 ) -> dict[str, Any]:
     """Average per-game PBP rate metrics across the team's rostered forwards+D.
@@ -85,6 +85,7 @@ def aggregate_team_skater_averages(
     from collections import defaultdict
     from .disk_cache import cache_path, load_json, save_json
     from .instat_source import _match_player_name
+    from .leagues import detect_active_season, instat_season_id as resolve_instat_sid
     from .pbp_metrics import (
         COUNT_MAP,
         PASS_ACTIONS,
@@ -95,6 +96,11 @@ def aggregate_team_skater_averages(
     )
     from .pbp_team_cache import pbp_files_fingerprint
     from .qoc_qot import compute_microstat_game_score
+
+    if not season or instat_season_id is None:
+        active_tag, active_sid = detect_active_season(league)
+        season = season or active_tag
+        instat_season_id = instat_season_id if instat_season_id is not None else resolve_instat_sid(season, league)
 
     roster = fetch_team_roster_by_position(team)
     skaters = roster["forwards"] + roster["defensemen"]
@@ -334,8 +340,11 @@ def aggregate_team_zone_events(
     }
 
 
-def fetch_team_goalie_summary(team: str, season_str: str = "20252026") -> dict[str, Any]:
+def fetch_team_goalie_summary(team: str, season_str: str | None = None) -> dict[str, Any]:
     """Combined tandem SV%/GAA/record from NHL official stats, weighted by GP played."""
+    from .leagues import nhl_api_season_id
+
+    _ = season_str or nhl_api_season_id()  # reserved for future season-scoped landing stats
     roster = fetch_team_roster_by_position(team)
     goalies = roster["goalies"]
     total_gp = total_w = total_l = total_otl = total_so = 0
@@ -387,12 +396,15 @@ def fetch_team_goalie_summary(team: str, season_str: str = "20252026") -> dict[s
     }
 
 
-def fetch_team_game_log(team: str, season_id: int = 20252026) -> list[dict[str, Any]]:
+def fetch_team_game_log(team: str, season_id: int | str | None = None) -> list[dict[str, Any]]:
     """Real game-by-game W/L/OTL sequence for the season-form grid - not a
     derived stat, straight from the NHL schedule/results endpoint."""
+    from .leagues import nhl_api_season_id
+
     tri = team.upper()
+    sid = int(season_id) if season_id is not None else int(nhl_api_season_id())
     resp = httpx.get(
-        f"{NHL_API}/club-schedule-season/{tri}/{season_id}",
+        f"{NHL_API}/club-schedule-season/{tri}/{sid}",
         timeout=15.0, headers={"User-Agent": "PlayerCards/1.0"}, follow_redirects=True,
     )
     resp.raise_for_status()
@@ -487,15 +499,19 @@ def fetch_team_standing(team: str) -> dict[str, Any] | None:
 
 
 def fetch_league_team_skater_averages(
-    *, league: str = "nhl", season: str = "2025-26", instat_season_id: int = 36,
+    *, league: str = "nhl", season: str | None = None, instat_season_id: int | None = None,
     teams: list[str] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Precompute every NHL team's skater averages once, so a batch of team-card
     generations reuses one pool instead of re-aggregating 32 rosters per card
     (same reuse pattern as goalie_profile.py's league_goalie_rows)."""
-    from .leagues import get_league
+    from .leagues import detect_active_season, get_league, instat_season_id as resolve_instat_sid
 
     cfg = get_league(league)
+    if not season or instat_season_id is None:
+        active_tag, active_sid = detect_active_season(league)
+        season = season or active_tag
+        instat_season_id = instat_season_id if instat_season_id is not None else resolve_instat_sid(season, league)
     team_list = teams or list(cfg.teams.keys())
     out: dict[str, dict[str, Any]] = {}
     for tri in team_list:
@@ -522,14 +538,17 @@ def _team_id_to_tricode() -> dict[int, str]:
     return {row["id"]: row["triCode"] for row in resp.json().get("data", [])}
 
 
-def fetch_league_team_official_stats(season_id: int = 20252026) -> dict[str, dict[str, Any]]:
+def fetch_league_team_official_stats(season_id: int | str | None = None) -> dict[str, dict[str, Any]]:
     """One cheap call (NHL's own official team-summary endpoint) covering all 32
     teams at once - real PP%/PK%/faceoff%/GF-GA per game, no InStat download
     needed. This is what makes the League Percentiles section real instead of
     a flat, ungraded bar."""
+    from .leagues import nhl_api_season_id
+
+    sid = int(season_id) if season_id is not None else int(nhl_api_season_id())
     resp = httpx.get(
         f"{NHL_STATS_API}/team/summary",
-        params={"cayenneExp": f"seasonId={season_id} and gameTypeId=2"},
+        params={"cayenneExp": f"seasonId={sid} and gameTypeId=2"},
         timeout=15.0, headers={"User-Agent": "PlayerCards/1.0"},
     )
     resp.raise_for_status()
@@ -557,7 +576,10 @@ def compute_official_stat_percentiles(
     return out
 
 
-def fetch_team_scoring_leaders(team: str, season_id: int = 20252026, limit: int = 5) -> list[dict[str, Any]]:
+def fetch_team_scoring_leaders(team: str, season_id: int | str | None = None, limit: int = 5) -> list[dict[str, Any]]:
+    from .leagues import nhl_api_season_id
+
+    sid = int(season_id) if season_id is not None else int(nhl_api_season_id())
     id_map = _team_id_to_tricode()
     team_id = next((tid for tid, tri in id_map.items() if tri == team.upper()), None)
     if team_id is None:
@@ -565,7 +587,7 @@ def fetch_team_scoring_leaders(team: str, season_id: int = 20252026, limit: int 
     resp = httpx.get(
         f"{NHL_STATS_API}/skater/summary",
         params={
-            "cayenneExp": f"seasonId={season_id} and gameTypeId=2 and teamId={team_id}",
+            "cayenneExp": f"seasonId={sid} and gameTypeId=2 and teamId={team_id}",
             "sort": '[{"property":"points","direction":"DESC"}]',
         },
         timeout=15.0, headers={"User-Agent": "PlayerCards/1.0"},
