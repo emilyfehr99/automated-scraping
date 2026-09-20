@@ -18,6 +18,18 @@ logger = logging.getLogger(__name__)
 CAP_CACHE_TTL = 86_400  # 24h
 
 CAPWAGES_BASE = "https://capwages.com/players"
+
+
+def _current_season_tag() -> str:
+    try:
+        from .leagues import detect_active_season
+
+        return detect_active_season("nhl")[0]
+    except Exception:
+        return "2025-26"
+
+
+CURRENT_SEASON = "2025-26"  # fallback; prefer _current_season_tag()
 CURRENT_SEASON = "2025-26"
 
 
@@ -32,16 +44,27 @@ def _slugify(name: str) -> str:
 
 def _slug_candidates(name: str) -> list[str]:
     parts = name.split()
+    if not parts:
+        return []
     if len(parts) < 2:
         return [_slugify(name)]
     first, last = parts[0], parts[-1]
     slugs = [
+        _slugify(name),
         _slugify(f"{first} {last}"),
         _slugify(f"{last} {first}"),
     ]
+    if len(parts) > 2:
+        # e.g. "Trevor van Riemsdyk" -> "trevor-van-riemsdyk", "van-riemsdyk-trevor", "trevor-riemsdyk"
+        surname_compound = " ".join(parts[1:])
+        slugs.insert(1, _slugify(f"{first} {surname_compound}"))
+        slugs.append(_slugify(f"{surname_compound} {first}"))
+        slugs.append(_slugify(f"{first} {last}"))
     if _first_name_matches(first, "egor"):
-        slugs.insert(0, _slugify(f"yegor {last}"))
+        slugs.insert(0, _slugify(f"yegor {' '.join(parts[1:])}"))
+        slugs.insert(1, _slugify(f"yegor {last}"))
     if _first_name_matches(first, "yegor"):
+        slugs.append(_slugify(f"egor {' '.join(parts[1:])}"))
         slugs.append(_slugify(f"egor {last}"))
     return list(dict.fromkeys(s for s in slugs if s))
 
@@ -116,7 +139,9 @@ def _fetch_page_props(slug: str) -> dict[str, Any] | None:
         resp = httpx.get(
             f"{CAPWAGES_BASE}/{slug}",
             timeout=20.0,
-            headers={"User-Agent": "PlayerCards/1.0"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
             follow_redirects=True,
         )
         if resp.status_code != 200:
@@ -135,7 +160,8 @@ def _fetch_page_props(slug: str) -> dict[str, Any] | None:
         return None
 
 
-def _season_row(contract: dict[str, Any], season: str = CURRENT_SEASON) -> dict[str, Any] | None:
+def _season_row(contract: dict[str, Any], season: str | None = None) -> dict[str, Any] | None:
+    season = season or _current_season_tag()
     for row in contract.get("details") or []:
         if str(row.get("season", "")).strip() == season:
             return row

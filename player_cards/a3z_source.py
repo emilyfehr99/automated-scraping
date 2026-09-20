@@ -49,14 +49,32 @@ def _load_a3z_modules():
 
 
 def resolve_a3z_season(a3z_season: str | None, instat_season_id: int | None = None) -> str:
-    """Pick the A3Z season tag aligned with InStat season when possible."""
+    """Pick the A3Z season tag aligned with InStat / active NHL season."""
     if a3z_season:
         return a3z_season.strip()
-    if instat_season_id == 36:
-        return "2025-26"
-    if instat_season_id == 34:
-        return "2024-25"
-    return DEFAULT_A3Z_SEASON
+    if instat_season_id is not None:
+        # Invert SEASON_TO_INSTAT offsets: 36=2025-26, +2 per year.
+        try:
+            from .leagues import SEASON_TO_INSTAT
+
+            for tag, sid in SEASON_TO_INSTAT.items():
+                if sid == instat_season_id and not tag.endswith("p"):
+                    return tag
+        except Exception:
+            pass
+        if instat_season_id == 36:
+            return "2025-26"
+        if instat_season_id == 34:
+            return "2024-25"
+        if instat_season_id >= 36 and (instat_season_id - 36) % 2 == 0:
+            yr = 2025 + (instat_season_id - 36) // 2
+            return f"{yr}-{str(yr + 1)[-2:]}"
+    try:
+        from .leagues import detect_active_season
+
+        return detect_active_season("nhl")[0]
+    except Exception:
+        return DEFAULT_A3Z_SEASON
 
 
 def _slug(name: str, team: str) -> str:
@@ -138,7 +156,7 @@ def _pick_metrics(profile: dict[str, Any], limit: int = 8) -> list[dict[str, Any
 
 def fetch_a3z_profile(
     player_name: str,
-    team: str,
+    team: str | None = None,
     season: str | None = None,
     *,
     pbp_team_games: int | None = None,
@@ -150,22 +168,37 @@ def fetch_a3z_profile(
     conn = connect()
     init_db(conn)
     slug = _slug(player_name, team)
-    if season:
-        row = conn.execute(
-            "SELECT slug, season, stats_json FROM players WHERE slug = ? AND season = ?",
-            (slug, season),
-        ).fetchone()
+    row = None
+    if team:
+        if season:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE slug = ? AND season = ?",
+                (slug, season),
+            ).fetchone()
+            if not row:
+                row = conn.execute(
+                    "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND team = ? AND season = ? LIMIT 1",
+                    (f"%{player_name}%", team.upper(), season),
+                ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE slug = ? OR (name LIKE ? AND team = ?) "
+                "ORDER BY last_synced DESC LIMIT 1",
+                (slug, f"%{player_name}%", team.upper()),
+            ).fetchone()
+
+    if not row:
+        if season:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND season = ? ORDER BY last_synced DESC LIMIT 1",
+                (f"%{player_name}%", season),
+            ).fetchone()
         if not row:
             row = conn.execute(
-                "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND team = ? AND season = ? LIMIT 1",
-                (f"%{player_name}%", team.upper(), season),
+                "SELECT slug, season, stats_json FROM players WHERE name LIKE ? ORDER BY last_synced DESC LIMIT 1",
+                (f"%{player_name}%",),
             ).fetchone()
-    else:
-        row = conn.execute(
-            "SELECT slug, season, stats_json FROM players WHERE slug = ? OR (name LIKE ? AND team = ?) "
-            "ORDER BY last_synced DESC LIMIT 1",
-            (slug, f"%{player_name}%", team.upper()),
-        ).fetchone()
+
     if not row:
         conn.close()
         return None

@@ -13,7 +13,7 @@ import httpx
 from .disk_cache import cache_path, load_json, save_json
 from .pwhl_cutout import ensure_pwhl_cutout
 from .pwhl_vitals import enrich_vitals
-from .leagues import PWHL_HOCKEYTECH_SEASON, PWHL_HOCKEYTECH_TEAM_IDS, team_full_name
+from .leagues import PWHL_HOCKEYTECH_TEAM_IDS, detect_pwhl_hockeytech_season, team_full_name
 from .photo_layout import fetch_photo
 
 HT_KEY = "446521baf8c38984"
@@ -460,7 +460,8 @@ def refresh_pwhl_card_photo(bio: dict[str, Any]) -> dict[str, Any]:
     return refresh_pwhl_bio(bio)
 
 
-def _fetch_ht_roster(ht_team_id: str, season_id: int = PWHL_HOCKEYTECH_SEASON) -> list[dict[str, Any]]:
+def _fetch_ht_roster(ht_team_id: str, season_id: int | None = None) -> list[dict[str, Any]]:
+    season_id = int(season_id if season_id is not None else detect_pwhl_hockeytech_season())
     cache_file = cache_path("pwhl", "rosters", f"{ht_team_id}_{season_id}_v2.json")
     hit = load_json(cache_file, ttl_seconds=ROSTER_TTL)
     if isinstance(hit, list):

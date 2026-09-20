@@ -24,7 +24,7 @@ from .instat_pbp_fetch import (
     team_pbp_dir,
     try_fast_pbp_cache,
 )
-from .leagues import LEAGUES, get_league, instat_season_id, list_teams, team_full_name
+from .leagues import get_league, instat_season_id, list_teams, nhl_api_season_id, team_full_name
 from .pbp_display import _pbp_values, compute_team_metric_percentiles
 from .pbp_metrics import aggregate_player_pbp
 from .pbp_team_cache import warm_team_pbp
@@ -35,6 +35,14 @@ from .qoc_qot import compute_league_context
 logger = logging.getLogger(__name__)
 
 NHL_API = "https://api-web.nhle.com/v1"
+
+
+def roster_season() -> str:
+    """NHL API roster season id — rolls automatically with detect_active_season."""
+    return nhl_api_season_id()
+
+
+# Back-compat for imports; prefer roster_season().
 ROSTER_SEASON = "20252026"
 
 
@@ -56,6 +64,8 @@ def fetch_nhl_roster(team: str, season: str | None = None) -> list[dict[str, Any
             pass
     elif season and season.isdigit() and len(season) == 8:
         season_id = season
+    else:
+        season_id = roster_season()
 
     url = f"{NHL_API}/roster/{tri}/{season_id}" if season_id else f"{NHL_API}/roster/{tri}/current"
     resp = httpx.get(

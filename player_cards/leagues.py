@@ -83,6 +83,7 @@ PROSPECT_INSTAT_TEAM_IDS: dict[str, int] = {
 }
 
 # HockeyTech / LeagueStat (assets.leaguestat.com/pwhl/{size}/{player_id}.jpg)
+# Prefer detect_pwhl_hockeytech_season() — this constant is a fallback only.
 PWHL_HOCKEYTECH_SEASON = 8
 PWHL_HOCKEYTECH_TEAM_IDS: dict[str, str] = {
     "BPF": "1",
@@ -231,14 +232,124 @@ LEAGUES: dict[str, LeagueConfig] = {
 
 
 _SEASON_DETECTION_CACHE: dict[str, Any] = {"time": 0.0, "result": ("2025-26", 36)}
+_PWHL_SEASON_CACHE: dict[str, Any] = {"time": 0.0, "result": PWHL_HOCKEYTECH_SEASON}
+
+
+def season_tag_from_nhl_id(raw_sid: str | int) -> str:
+    """Convert NHL API season id (20252026) to tag (2025-26)."""
+    text = str(raw_sid).strip()
+    if len(text) == 8 and text.isdigit():
+        yr = int(text[:4])
+        return f"{yr}-{str(yr + 1)[-2:]}"
+    if "-" in text:
+        return text
+    raise ValueError(f"Unrecognized NHL season id: {raw_sid!r}")
+
+
+def nhl_api_season_id(season_tag: str | None = None) -> str:
+    """Convert tag (2025-26) to NHL API season id (20252026)."""
+    tag = (season_tag or detect_active_season("nhl")[0]).strip()
+    if len(tag) == 8 and tag.isdigit():
+        return tag
+    start = int(tag.split("-")[0])
+    return f"{start}{start + 1}"
+
+
+def _http_json(url: str, *, timeout: float = 12.0) -> Any:
+    """JSON GET with httpx when available, else stdlib urllib."""
+    try:
+        import httpx
+
+        r = httpx.get(url, follow_redirects=True, timeout=timeout)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    try:
+        import json
+        import urllib.request
+
+        req = urllib.request.Request(url, headers={"User-Agent": "PlayerCards/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _detect_nhl_season_from_calendar() -> tuple[str, int] | None:
+    """Pick active NHL season from standings-season start/end dates."""
+    from datetime import date
+
+    data = _http_json("https://api-web.nhle.com/v1/standings-season", timeout=8.0)
+    if not isinstance(data, dict):
+        return None
+    seasons = data.get("seasons") or []
+    if not seasons:
+        return None
+
+    today_raw = str(data.get("currentDate") or "")
+    try:
+        today = date.fromisoformat(today_raw[:10]) if today_raw else date.today()
+    except ValueError:
+        today = date.today()
+
+    parsed: list[tuple[int, date, date]] = []
+    for row in seasons:
+        raw_id = row.get("id")
+        try:
+            sid_int = int(raw_id)
+            start = date.fromisoformat(str(row.get("standingsStart"))[:10])
+            end = date.fromisoformat(str(row.get("standingsEnd"))[:10])
+        except Exception:
+            continue
+        parsed.append((sid_int, start, end))
+    if not parsed:
+        return None
+
+    # Exact window (regular season in progress).
+    for sid_int, start, end in sorted(parsed, key=lambda x: x[0], reverse=True):
+        if start <= today <= end:
+            tag = season_tag_from_nhl_id(sid_int)
+            return tag, instat_season_id(tag, "nhl")
+
+    # Offseason: keep the latest season that has already started.
+    started = [p for p in parsed if p[1] <= today]
+    if started:
+        sid_int = max(started, key=lambda x: x[0])[0]
+        tag = season_tag_from_nhl_id(sid_int)
+        return tag, instat_season_id(tag, "nhl")
+
+    # Pre-history fallback: earliest upcoming season.
+    sid_int = min(parsed, key=lambda x: x[0])[0]
+    tag = season_tag_from_nhl_id(sid_int)
+    return tag, instat_season_id(tag, "nhl")
+
+
+def _detect_nhl_season_from_standings() -> tuple[str, int] | None:
+    """Use standings/now when the league has rolled and games exist."""
+    data = _http_json("https://api-web.nhle.com/v1/standings/now", timeout=8.0)
+    if not isinstance(data, dict):
+        return None
+    st = data.get("standings") or []
+    if not st:
+        return None
+    raw_sid = str(st[0].get("seasonId") or "")
+    if len(raw_sid) != 8 or not raw_sid.isdigit():
+        return None
+    # Trust standings season id once any team has played, or always if calendar failed.
+    gp = sum(int(row.get("gamesPlayed") or 0) for row in st)
+    if gp <= 0:
+        return None
+    tag = season_tag_from_nhl_id(raw_sid)
+    return tag, instat_season_id(tag, "nhl")
 
 
 def detect_active_season(league: str | None = "nhl") -> tuple[str, int]:
     """Detect current active season dynamically (with 5-minute memory TTL).
 
-    When 1 GP occurs in a new season, NHL official standings/schedule reflects
-    the new season (e.g. 20262027) and the tool automatically rolls over.
-    Can always be overridden via PLAYER_CARDS_SEASON / INSTAT_SEASON_ID env vars.
+    Uses the NHL standings-season calendar so rollover happens on the new
+    season's start date (even at 0 GP), not only after the first game.
+    Override with PLAYER_CARDS_SEASON / INSTAT_SEASON_ID when needed.
     """
     env_season = os.getenv("PLAYER_CARDS_SEASON", "").strip()
     env_instat = os.getenv("INSTAT_SEASON_ID", "").strip()
@@ -247,29 +358,70 @@ def detect_active_season(league: str | None = "nhl") -> tuple[str, int]:
         return env_season, sid
 
     import time
+
     now = time.time()
     if now - _SEASON_DETECTION_CACHE["time"] < 300.0:
         return _SEASON_DETECTION_CACHE["result"]
 
-    try:
-        import httpx
-        r = httpx.get("https://api-web.nhle.com/v1/standings/now", follow_redirects=True, timeout=3.0)
-        if r.status_code == 200:
-            st = r.json().get("standings", [])
-            if st and st[0].get("gamesPlayed", 0) > 0:
-                raw_sid = str(st[0].get("seasonId", ""))
-                if len(raw_sid) == 8 and raw_sid.isdigit():
-                    yr = int(raw_sid[:4])
-                    season_tag = f"{yr}-{str(yr+1)[-2:]}"
-                    sid = 36 + (yr - 2025) * 2
-                    _SEASON_DETECTION_CACHE["time"] = now
-                    _SEASON_DETECTION_CACHE["result"] = (season_tag, sid)
-                    return season_tag, sid
-    except Exception:
-        pass
+    key = (league or "nhl").strip().lower()
+    detected: tuple[str, int] | None = None
+    if key in ("nhl", "prospect", ""):
+        detected = _detect_nhl_season_from_calendar() or _detect_nhl_season_from_standings()
+    elif key == "pwhl":
+        # PWHL InStat season tags track the same year label as NHL.
+        detected = _detect_nhl_season_from_calendar() or _detect_nhl_season_from_standings()
+
+    if detected:
+        _SEASON_DETECTION_CACHE["time"] = now
+        _SEASON_DETECTION_CACHE["result"] = detected
+        return detected
 
     _SEASON_DETECTION_CACHE["time"] = now
     return _SEASON_DETECTION_CACHE["result"]
+
+
+def detect_pwhl_hockeytech_season() -> int:
+    """Active PWHL HockeyTech regular-season id (auto-advances each year)."""
+    import time
+
+    now = time.time()
+    if now - _PWHL_SEASON_CACHE["time"] < 300.0:
+        return int(_PWHL_SEASON_CACHE["result"])
+
+    data = _http_json(
+        "https://lscluster.hockeytech.com/feed/"
+        "?feed=modulekit&view=seasons&key=446521baf8c38984&client_code=pwhl&fmt=json",
+        timeout=15.0,
+    )
+    seasons = ((data or {}).get("SiteKit") or {}).get("Seasons") or []
+    nhl_tag, _ = detect_active_season("nhl")
+    start_yr = nhl_tag.split("-")[0] if "-" in nhl_tag else ""
+
+    chosen: int | None = None
+    for row in seasons:
+        name = str(row.get("season_name") or "")
+        if "Regular Season" not in name:
+            continue
+        try:
+            sid = int(row.get("season_id"))
+        except Exception:
+            continue
+        if start_yr and start_yr in name:
+            chosen = sid
+            break
+        if chosen is None:
+            chosen = sid  # seasons list is newest-first
+
+    if chosen is None and seasons:
+        try:
+            chosen = int(seasons[0].get("season_id"))
+        except Exception:
+            chosen = PWHL_HOCKEYTECH_SEASON
+
+    result = chosen if chosen is not None else PWHL_HOCKEYTECH_SEASON
+    _PWHL_SEASON_CACHE["time"] = now
+    _PWHL_SEASON_CACHE["result"] = result
+    return int(result)
 
 
 def normalize_team_abbrev(league: str | None, team_abbrev: str) -> str:

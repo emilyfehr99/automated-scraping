@@ -2,7 +2,8 @@
 """Decide whether a player-cards CI rebuild is needed.
 
 Compares live NHL + PWHL completed-game fingerprints against the previous
-successful run's fingerprint. Exit 0 always; writes GitHub Actions outputs.
+successful run's fingerprint. Season id changes (year-to-year rollover) always
+trigger a rebuild. Exit 0 always; writes GitHub Actions outputs.
 """
 
 from __future__ import annotations
@@ -15,13 +16,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-UA = "PlayerCardsNewDataCheck/1.0"
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+UA = "PlayerCardsFreshness/1.0"
 PWHL_KEY = "446521baf8c38984"
-NHL_STANDINGS = "https://api-web.nhle.com/v1/standings/now"
-PWHL_SEASONS = (
-    f"https://lscluster.hockeytech.com/feed/"
-    f"?feed=modulekit&view=seasons&key={PWHL_KEY}&client_code=pwhl&fmt=json"
-)
 
 
 def _get_json(url: str, timeout: float = 20.0) -> dict[str, Any]:
@@ -31,32 +31,36 @@ def _get_json(url: str, timeout: float = 20.0) -> dict[str, Any]:
 
 
 def nhl_fingerprint() -> dict[str, Any]:
-    data = _get_json(NHL_STANDINGS)
+    """Use calendar-based active season + standings GP for that season."""
+    from player_cards.leagues import detect_active_season, nhl_api_season_id
+
+    tag, instat_sid = detect_active_season("nhl")
+    api_sid = nhl_api_season_id(tag)
+
+    data = _get_json("https://api-web.nhle.com/v1/standings/now")
     standings = data.get("standings") or []
-    season_id = str((standings[0] or {}).get("seasonId") or "") if standings else ""
-    gp_sum = sum(int(row.get("gamesPlayed") or 0) for row in standings)
+    # Prefer GP from standings when they match the active season; else 0 (new season).
+    gp_sum = 0
+    standing_sid = str((standings[0] or {}).get("seasonId") or "") if standings else ""
+    if standing_sid == api_sid:
+        gp_sum = sum(int(row.get("gamesPlayed") or 0) for row in standings)
+
     return {
         "league": "nhl",
-        "season_id": season_id,
+        "season_tag": tag,
+        "season_id": api_sid,
+        "instat_season_id": instat_sid,
         "games_played_sum": gp_sum,
+        "standings_season_id": standing_sid,
         "team_count": len(standings),
     }
 
 
-def _pwhl_regular_season_id() -> str:
-    data = _get_json(PWHL_SEASONS)
-    seasons = (data.get("SiteKit") or {}).get("Seasons") or []
-    for row in seasons:
-        name = str(row.get("season_name") or "")
-        if "Regular Season" in name:
-            return str(row.get("season_id"))
-    if seasons:
-        return str(seasons[0].get("season_id"))
-    return "8"
-
-
 def pwhl_fingerprint() -> dict[str, Any]:
-    season_id = _pwhl_regular_season_id()
+    from player_cards.leagues import detect_active_season, detect_pwhl_hockeytech_season
+
+    season_tag, instat_sid = detect_active_season("pwhl")
+    season_id = str(detect_pwhl_hockeytech_season())
     url = (
         f"https://lscluster.hockeytech.com/feed/"
         f"?feed=modulekit&view=schedule&key={PWHL_KEY}"
@@ -67,7 +71,9 @@ def pwhl_fingerprint() -> dict[str, Any]:
     final = sum(1 for g in games if str(g.get("final") or "") == "1")
     return {
         "league": "pwhl",
+        "season_tag": season_tag,
         "season_id": season_id,
+        "instat_season_id": instat_sid,
         "final_games": final,
         "scheduled_games": len(games),
     }
@@ -77,11 +83,15 @@ def live_fingerprint() -> dict[str, Any]:
     nhl = nhl_fingerprint()
     pwhl = pwhl_fingerprint()
     return {
-        "version": 1,
+        "version": 2,
+        "nhl_season_tag": nhl["season_tag"],
         "nhl_season_id": nhl["season_id"],
+        "nhl_instat_season_id": nhl["instat_season_id"],
         "nhl_games_played_sum": nhl["games_played_sum"],
         "nhl_team_count": nhl["team_count"],
+        "pwhl_season_tag": pwhl["season_tag"],
         "pwhl_season_id": pwhl["season_id"],
+        "pwhl_instat_season_id": pwhl["instat_season_id"],
         "pwhl_final_games": pwhl["final_games"],
         "pwhl_scheduled_games": pwhl["scheduled_games"],
     }
@@ -100,13 +110,29 @@ def load_previous(path: Path | None) -> dict[str, Any] | None:
 def comparable(fp: dict[str, Any]) -> dict[str, Any]:
     """Fields that gate rebuilds (ignore timestamps / metadata)."""
     keys = (
-        "version",
         "nhl_season_id",
         "nhl_games_played_sum",
         "pwhl_season_id",
         "pwhl_final_games",
     )
     return {k: fp.get(k) for k in keys}
+
+
+def change_reason(prev: dict[str, Any], live: dict[str, Any]) -> str:
+    reasons: list[str] = []
+    if prev.get("nhl_season_id") != live.get("nhl_season_id"):
+        reasons.append(
+            f"NHL season {prev.get('nhl_season_id')} → {live.get('nhl_season_id')}"
+        )
+    if prev.get("pwhl_season_id") != live.get("pwhl_season_id"):
+        reasons.append(
+            f"PWHL season {prev.get('pwhl_season_id')} → {live.get('pwhl_season_id')}"
+        )
+    if prev.get("nhl_games_played_sum") != live.get("nhl_games_played_sum"):
+        reasons.append("new NHL games")
+    if prev.get("pwhl_final_games") != live.get("pwhl_final_games"):
+        reasons.append("new PWHL games")
+    return ", ".join(reasons) or "fingerprint changed"
 
 
 def _write_output(key: str, value: str) -> None:
@@ -143,7 +169,7 @@ def main() -> int:
         reason = "no previous fingerprint"
         should_build = True
     elif comparable(prev) != comparable(live):
-        reason = "new games or season change"
+        reason = change_reason(prev, live)
         should_build = True
     else:
         reason = "no new NHL/PWHL completed games since last build"
@@ -160,8 +186,8 @@ def main() -> int:
     _write_output(
         "summary",
         (
-            f"nhl_gp={live.get('nhl_games_played_sum')} "
-            f"pwhl_final={live.get('pwhl_final_games')} "
+            f"nhl={live.get('nhl_season_tag')} gp={live.get('nhl_games_played_sum')} "
+            f"pwhl={live.get('pwhl_season_id')} final={live.get('pwhl_final_games')} "
             f"({reason})"
         ),
     )

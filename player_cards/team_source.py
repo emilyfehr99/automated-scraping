@@ -13,7 +13,7 @@ import httpx
 
 import pandas as pd
 
-from .build_store import ROSTER_SEASON
+from .build_store import roster_season
 from .instat_pbp_fetch import ensure_team_pbp_files, team_pbp_dir
 from .leagues import team_full_name
 from .pbp_display import _pbp_values, _pct_rank
@@ -34,8 +34,9 @@ logger = logging.getLogger(__name__)
 NHL_API = "https://api-web.nhle.com/v1"
 
 
-def fetch_team_roster_by_position(team: str, season: str = ROSTER_SEASON) -> dict[str, list[dict[str, Any]]]:
+def fetch_team_roster_by_position(team: str, season: str | None = None) -> dict[str, list[dict[str, Any]]]:
     tri = team.upper()
+    season = season or roster_season()
     resp = httpx.get(
         f"{NHL_API}/roster/{tri}/{season}",
         timeout=20.0,
@@ -81,8 +82,23 @@ def aggregate_team_skater_averages(
     """Average per-game PBP rate metrics across the team's rostered forwards+D.
     Same _pbp_values() shape as individual skater cards - just averaged over
     the roster instead of shown per player."""
+    from collections import defaultdict
+    from .disk_cache import cache_path, load_json, save_json
+    from .instat_source import _match_player_name
+    from .pbp_metrics import (
+        COUNT_MAP,
+        PASS_ACTIONS,
+        _is_assist_shot,
+        _is_turnover,
+        _resolve_team_name,
+        _xg,
+    )
+    from .pbp_team_cache import pbp_files_fingerprint
+    from .qoc_qot import compute_microstat_game_score
+
     roster = fetch_team_roster_by_position(team)
     skaters = roster["forwards"] + roster["defensemen"]
+    skater_names = [s["name"] for s in skaters]
 
     pbp_dir = team_pbp_dir(team, league=league, a3z_season=season, season_id=instat_season_id)
     meta = ensure_team_pbp_files(
@@ -93,17 +109,121 @@ def aggregate_team_skater_averages(
     match_ids = meta.get("match_ids") or []
     team_games = len(match_ids) if match_ids else (len(files) or None)
 
-    import concurrent.futures
+    if files:
+        warm_team_pbp(files)
+
+    fp = pbp_files_fingerprint(files)
+    cache_file = cache_path("team_skater_averages", fp, f"{league}-v1-{team.upper()}.json")
+    hit = load_json(cache_file, ttl_seconds=86400)
+    if isinstance(hit, dict) and hit.get("averages"):
+        hit["files"] = files
+        return hit
+
+    team_full = team_full_name(league, team)
+    totals: dict[str, dict[str, float]] = {n: defaultdict(float) for n in skater_names}
+    played: dict[str, int] = {n: 0 for n in skater_names}
+
+    for _path, df in get_team_frames(files):
+        tm = _resolve_team_name(df, team_full)
+        if not tm:
+            continue
+        if "player" not in df.columns or "action" not in df.columns:
+            continue
+
+        try:
+            gs_df = compute_microstat_game_score(df, tm)
+        except Exception:
+            gs_df = None
+        if gs_df is not None and not gs_df.empty:
+            for _, row in gs_df.iterrows():
+                raw = str(row.get("player") or "")
+                for n in skater_names:
+                    if _match_player_name(raw, n):
+                        totals[n]["Microstat Game Score"] += float(row.get("game_score") or 0)
+                        totals[n]["Microstat Offense"] += float(row.get("offense_gs") or 0)
+                        totals[n]["Microstat Defense"] += float(row.get("defense_gs") or 0)
+                        break
+
+        team_mask = df["team"].astype(str).apply(lambda x, _tm=tm: _is_team_match(x, _tm))
+        sub = df.loc[team_mask]
+        if sub.empty:
+            continue
+
+        raw_players = sub["player"].astype(str)
+        mapped = {}
+        for raw in raw_players.unique():
+            for n in skater_names:
+                if _match_player_name(raw, n):
+                    mapped[raw] = n
+                    break
+        if not mapped:
+            continue
+
+        sub = sub[raw_players.isin(mapped.keys())].copy()
+        sub["_roster"] = sub["player"].astype(str).map(mapped)
+        played_tonight = set(sub["_roster"].unique())
+        for n in played_tonight:
+            played[n] += 1
+
+        acts = sub["action"].astype(str).str.strip()
+        for act, label in COUNT_MAP.items():
+            h = sub.loc[acts == act]
+            if h.empty:
+                continue
+            for n, cnt in h.groupby("_roster").size().items():
+                totals[n][label] += float(cnt)
+
+        # Fast single-pass Chance Assists & One Timers
+        game_sub = sub.copy()
+        if "start" in game_sub.columns:
+            game_sub["start"] = pd.to_numeric(game_sub["start"], errors="coerce")
+            game_sub = game_sub.sort_values(["half", "start"]).reset_index(drop=True)
+        g_acts = game_sub["action"].astype(str).tolist()
+        g_rost = game_sub["_roster"].tolist()
+        g_starts = game_sub["start"].tolist() if "start" in game_sub.columns else [None] * len(game_sub)
+        g_px = pd.to_numeric(game_sub.get("pos_x"), errors="coerce").tolist()
+        g_py = pd.to_numeric(game_sub.get("pos_y"), errors="coerce").tolist()
+        g_xg = [_xg(float(px), float(py)) if pd.notna(px) and pd.notna(py) else 0.0 for px, py in zip(g_px, g_py)]
+
+        for i, act in enumerate(g_acts):
+            if not _is_assist_shot(act):
+                continue
+            shooter = g_rost[i]
+            if shooter and act != "Blocked shots":
+                shot_time = g_starts[i]
+                for j in range(i - 1, max(i - 4, -1), -1):
+                    if _is_turnover(g_acts[j]):
+                        break
+                    if g_acts[j] in PASS_ACTIONS:
+                        if g_rost[j] != shooter:
+                            if shot_time is not None and g_starts[j] is not None:
+                                if float(shot_time) - float(g_starts[j]) <= 1.0:
+                                    totals[shooter]["One Timers"] += 1.0
+                            elif j == i - 1:
+                                totals[shooter]["One Timers"] += 1.0
+                        break
+                    if _is_assist_shot(g_acts[j]):
+                        break
+            is_chance = g_xg[i] >= 0.08 or (pd.notna(g_px[i]) and g_px[i] >= 70 and pd.notna(g_py[i]) and 30 <= g_py[i] <= 55)
+            if not is_chance:
+                continue
+            for j in range(i - 1, max(i - 4, -1), -1):
+                if g_acts[j] in PASS_ACTIONS:
+                    passer = g_rost[j]
+                    if passer and passer != shooter:
+                        totals[passer]["Chance Assists"] += 1.0
+                    break
+                if _is_turnover(g_acts[j]) or _is_assist_shot(g_acts[j]):
+                    break
 
     per_player: dict[str, dict[str, float]] = {}
-    
-    args_list = [(p, team, files, team_games, league) for p in skaters]
-
-    with concurrent.futures.ProcessPoolExecutor() as pool:
-        results = pool.map(_process_team_skater, args_list)
-        for name, res in results:
-            if res:
-                per_player[name] = res
+    tg = team_games or (len(files) or 1)
+    for n in skater_names:
+        if played[n] == 0:
+            continue
+        per_game = {k: round(v / tg, 2) for k, v in totals[n].items()}
+        vals = _pbp_values(per_game)
+        per_player[n] = {k: v for k, v in vals.items() if not str(k).startswith("_")}
 
     averages: dict[str, float | None] = {}
     if per_player:
@@ -114,7 +234,7 @@ def aggregate_team_skater_averages(
             vals = [v[k] for v in per_player.values() if v.get(k) is not None]
             averages[k] = round(sum(vals) / len(vals), 3) if vals else None
 
-    return {
+    result = {
         "averages": averages,
         "player_count": len(per_player),
         "roster_size": len(skaters),
@@ -122,6 +242,9 @@ def aggregate_team_skater_averages(
         "per_player": per_player,
         "files": files,
     }
+    if result.get("averages"):
+        save_json(cache_file, result)
+    return result
 
 
 def compute_team_totals(per_player: dict[str, dict[str, float]], games: int | None) -> dict[str, float]:

@@ -21,7 +21,7 @@ from .html_renderer import write_player_card_html
 from .instat_pbp_fetch import ensure_team_pbp_files, team_pbp_dir, try_fast_pbp_cache
 from .instat_source import _match_player_name, discover_team_pbp_files
 from .leagues import get_league, team_full_name
-from .nhl_bio import MUG_SEASON, fetch_nhl_bio, fetch_player_season_teams, fetch_undrafted_prospect_bio
+from .nhl_bio import mug_season, fetch_nhl_bio, fetch_player_season_teams, fetch_undrafted_prospect_bio
 from .nhl_instat import instat_season_id as resolve_instat_season_id
 from .pbp_display import _pbp_values, build_pbp_display_profile, compute_team_metric_percentiles
 from .pbp_metrics import aggregate_player_pbp, aggregate_player_pbp_multi
@@ -291,7 +291,7 @@ def _store_pbp_incomplete(profile: dict[str, Any]) -> bool:
     player_id = bio.get("player_id")
     if not player_id or not sources.get("nhl"):
         return False
-    log_teams = fetch_player_season_teams(int(player_id), nhl_season=MUG_SEASON)
+    log_teams = fetch_player_season_teams(int(player_id), nhl_season=mug_season())
     if not log_teams:
         return False
     expected_gp = sum(log_teams.values())
@@ -370,7 +370,7 @@ def _player_pbp_teams(player_id: int | None, team: str, *, league: str, bio: dic
         if clubs:
             return clubs
     if cfg.uses_nhl_api and player_id:
-        log_teams = fetch_player_season_teams(player_id, nhl_season=MUG_SEASON)
+        log_teams = fetch_player_season_teams(player_id, nhl_season=mug_season())
         if log_teams:
             return sorted(log_teams.keys())
     return [tri]
@@ -616,6 +616,38 @@ def _resolve_pbp_files(
             }
         )
         return base_files, merged, list(base_games.keys()) or teams, base_groups
+
+    if not all_files and player_name:
+        try:
+            from .pbp_harvest import harvest_player_pbp
+
+            prefer = _season_pbp_clubs(bio, team) if bio else teams
+            harvested = harvest_player_pbp(
+                player_name,
+                prefer_clubs=prefer,
+                league=league,
+                materialize=True,
+            )
+            h_groups = list(harvested.get("file_groups") or [])
+            h_files = list(harvested.get("all_files") or [])
+            h_games = dict(harvested.get("games_by_team") or {})
+            if h_files:
+                meta = {
+                    "source": "local_harvest",
+                    "output_dir": str(pbp_dir),
+                    "files": [str(f) for f in h_files],
+                    "cached": len(h_files),
+                    "match_ids": [],
+                    "complete": True,
+                    "ephemeral": False,
+                    "pbp_teams": list(h_games.keys()) or teams,
+                    "games_by_team": h_games,
+                    "expected_pbp_clubs": prefer,
+                    "missing_pbp_clubs": [],
+                }
+                return h_files, meta, list(h_games.keys()) or teams, h_groups
+        except Exception as exc:
+            logger.warning("Fallback harvest failed for %s: %s", player_name, exc)
 
     if not all_files:
         logger.warning("No PBP files found for %s (league=%s, detail=%s)", team, league, download_errors)
@@ -1148,21 +1180,27 @@ def _attach_nhle_projection(profile: dict[str, Any]) -> None:
                 data = resp.json()
                 b_date = data.get("birthDate")
                 b_year = int(b_date.split("-")[0]) if b_date else 2006
+                from nhle_model.project import is_valid_competitive_league
                 for s in data.get("seasonTotals", []):
+                    if s.get("gameTypeId") not in (2, None):
+                        continue
+                    s_lg = s.get("leagueAbbrev", "Unknown")
+                    if not is_valid_competitive_league(s_lg):
+                        continue
                     s_yr = int(str(s.get("season"))[:4]) if s.get("season") else b_year + 18
                     gp = int(s.get("gamesPlayed") or 0)
                     pts = int(s.get("points") or 0)
-                    if gp > 0:
+                    if gp >= 5:
                         career_history.append({
                             "season": s.get("season"),
                             "age": max(15, min(22, s_yr - b_year)),
-                            "league_name": s.get("leagueAbbrev", "Unknown"),
+                            "league_name": s_lg,
                             "team_name": (s.get("teamName") or {}).get("default", ""),
                             "games_played": gp,
                             "goals": int(s.get("goals") or 0),
                             "assists": int(s.get("assists") or 0),
                             "points": pts,
-                            "points_per_game": round(pts / gp, 3),
+                            "points_per_game": round(pts / gp, 3) if gp > 0 else 0.0,
                         })
         except Exception as e:
             logger.debug("NHL landing career fetch failed for %s: %s", player_name, e)
@@ -1212,11 +1250,16 @@ def _attach_nhle_projection(profile: dict[str, Any]) -> None:
         db_path = Path(__file__).resolve().parent.parent / "nhle_model" / "nhle_database.db"
         if db_path.exists():
             db = NHLeDatabase(str(db_path))
+            pos_clean = str(bio.get("position") or "F").upper()
+            is_def = pos_clean in ("D", "LD", "RD", "DEF", "DEFENSE", "DEFENCE")
+            def_h = 74 if is_def else 73
+            def_w = 207 if is_def else 200
+
             vitals = {
-                "position": bio.get("position", "F"),
-                "height_inches": bio.get("height_inches", 72),
-                "weight_lbs": bio.get("weight_lbs", 185),
-                "age": bio.get("age", 18),
+                "position": pos_clean,
+                "height_inches": int(bio.get("height_inches") or def_h),
+                "weight_lbs": int(bio.get("weight_lbs") or def_w),
+                "age": int(bio.get("age") or 18),
                 "shoots": bio.get("shoots", "L"),
                 "draft_overall": draft_overall,
             }

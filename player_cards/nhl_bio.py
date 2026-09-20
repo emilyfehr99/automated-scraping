@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 import re
 import unicodedata
@@ -13,6 +14,16 @@ logger = logging.getLogger(__name__)
 
 NHL_API = "https://api-web.nhle.com/v1"
 NHL_SEARCH = "https://search.d3.nhle.com/api/v1/search/player"
+
+
+def mug_season() -> str:
+    """Current NHL API season id for mugs/logos (auto-rolls each season)."""
+    from .leagues import nhl_api_season_id
+
+    return nhl_api_season_id()
+
+
+# Back-compat alias; prefer mug_season() so defaults stay fresh across seasons.
 MUG_SEASON = "20252026"
 GENERIC_SKATER = "https://assets.nhle.com/mgl/nhl/images/headshots/current/168x168/skater.jpg"
 EP_AUTOCOMPLETE = "https://autocomplete.eliteprospects.com/all"
@@ -34,7 +45,7 @@ def _norm(name: str) -> str:
 def team_logo_url(team: str, *, dark: bool = False) -> str:
     tri = team.upper()
     variant = "dark" if dark else "light"
-    return f"https://assets.nhle.com/logos/nhl/svg/{tri}_{variant}.svg?season={MUG_SEASON}"
+    return f"https://assets.nhle.com/logos/nhl/svg/{tri}_{variant}.svg?season={mug_season()}"
 
 
 def team_logo_png_url(team: str) -> str:
@@ -48,6 +59,7 @@ def team_logo_png_url(team: str) -> str:
     return f"https://a.espncdn.com/i/teamlogos/nhl/500/{slug}.png"
 
 
+@functools.lru_cache(maxsize=512)
 def search_eliteprospects_team_logo(team_name: str) -> str | None:
     """Find team logo URL from EliteProspects for junior/NCAA/European clubs.
 
@@ -88,6 +100,7 @@ def search_eliteprospects_team_logo(team_name: str) -> str | None:
     return None
 
 
+@functools.lru_cache(maxsize=512)
 def fetch_eliteprospects_player(player_name: str) -> dict[str, Any] | None:
     """Resolve an undrafted/amateur prospect from EliteProspects autocomplete."""
     if not player_name:
@@ -179,8 +192,11 @@ def fetch_undrafted_prospect_bio(
         career_clubs = [club] + [c for c in career_clubs if c != club]
         pbp_clubs = [club] + [c for c in pbp_clubs if c != club]
 
-    season_clubs = current_season_by_club(profile, season="2025-26")
-    ep_totals = season_scoring_totals(profile, season="2025-26")
+    from .leagues import detect_active_season
+
+    season_tag, _ = detect_active_season("nhl")
+    season_clubs = current_season_by_club(profile, season=season_tag)
+    ep_totals = season_scoring_totals(profile, season=season_tag)
     dual_roster = bool(profile.get("dual_roster")) or len(season_clubs) >= 2
 
     ep_id = profile.get("ep_id")
@@ -235,6 +251,7 @@ def _first_name_matches(query_first: str, hit_first: str) -> bool:
     return {q, h} <= {"egor", "yegor"}
 
 
+@functools.lru_cache(maxsize=512)
 def search_player(name: str, *, active: bool = True, team: str | None = None) -> dict[str, Any] | None:
     resp = httpx.get(
         NHL_SEARCH,
@@ -276,6 +293,26 @@ def search_player(name: str, *, active: bool = True, team: str | None = None) ->
     # Require first name match or full name match so different first names (e.g. Ashton vs Maddox) are not matched
     if best_score >= 60:
         return ranked[0]
+
+    # Fallback to querying by last name (common when first name is a nickname or variant, e.g. Matthew -> Matt)
+    if target_last and len(target_last) >= 3:
+        try:
+            r_last = httpx.get(
+                NHL_SEARCH,
+                params={"culture": "en-us", "limit": 12, "active": str(active).lower(), "q": target_last},
+                timeout=12.0,
+                headers={"User-Agent": "PlayerCards/1.0"},
+            )
+            if r_last.status_code == 200:
+                last_results = r_last.json()
+                if last_results:
+                    ranked_last = sorted(last_results, key=_score, reverse=True)
+                    best_last_score, _ = _score(ranked_last[0])
+                    if best_last_score >= 60:
+                        return ranked_last[0]
+        except Exception:
+            pass
+
     return None
 
 
@@ -303,7 +340,7 @@ def inches_to_height(inches: int | float | None) -> str:
 
 
 def _season_mug_url(team: str, player_id: int) -> str:
-    return f"https://assets.nhle.com/mugs/nhl/{MUG_SEASON}/{team.upper()}/{player_id}.png"
+    return f"https://assets.nhle.com/mugs/nhl/{mug_season()}/{team.upper()}/{player_id}.png"
 
 
 def _hero_image_url(landing: dict[str, Any], player_id: int) -> str | None:
@@ -418,7 +455,22 @@ def refresh_nhl_card_photo(bio: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def fetch_nhl_bio(player_name: str, team: str | None = None) -> dict[str, Any]:
+def fetch_nhl_bio(
+    player_name: str,
+    team: str | None = None,
+    *,
+    refresh: bool = False,
+) -> dict[str, Any]:
+    from .disk_cache import cache_path, load_json, save_json
+
+    norm_name = re.sub(r"[^\w]+", "-", player_name.strip().lower())
+    team_suffix = f"-{team.upper()}" if team else ""
+    c_path = cache_path("nhl_bio", f"{norm_name}{team_suffix}.json")
+    if not refresh:
+        cached = load_json(c_path, ttl_seconds=86400 * 7)
+        if isinstance(cached, dict) and cached.get("name") and cached.get("player_id"):
+            return cached
+
     hit = search_player(player_name, team=team)
     if not hit:
         # Prospects who aren't on an active NHL roster yet don't show up
@@ -437,7 +489,7 @@ def fetch_nhl_bio(player_name: str, team: str | None = None) -> dict[str, Any]:
     mug = _normalize_mug_url(landing.get("headshot"), photo_tri, pid)
     photo_url, photo_kind = best_card_photo_url(landing, photo_tri, pid, player_name=name)
 
-    return {
+    res = {
         "player_id": pid,
         "name": name,
         "team": display_tri,
@@ -456,16 +508,32 @@ def fetch_nhl_bio(player_name: str, team: str | None = None) -> dict[str, Any]:
         "birth_city": _text(landing.get("birthCity")),
         "birth_country": landing.get("birthCountry", ""),
         "draft_details": landing.get("draftDetails"),
+        "draft_year": (landing.get("draftDetails") or {}).get("year"),
+        "draft_round": (landing.get("draftDetails") or {}).get("round"),
+        "draft_pick": (landing.get("draftDetails") or {}).get("pickInRound"),
+        "draft_overall": (landing.get("draftDetails") or {}).get("overallPick") or (landing.get("draftDetails") or {}).get("pick"),
         "season_totals": landing.get("seasonTotals"),
     }
+    save_json(c_path, res)
+    return res
 
 
 def fetch_player_season_teams(
     player_id: int,
     *,
-    nhl_season: str = MUG_SEASON,
+    nhl_season: str | None = None,
+    refresh: bool = False,
 ) -> dict[str, int]:
     """Regular-season games played per NHL team abbrev (handles mid-season trades)."""
+    from .disk_cache import cache_path, load_json, save_json
+
+    nhl_season = nhl_season or mug_season()
+    c_path = cache_path("nhl_game_logs", f"{player_id}-{nhl_season}.json")
+    if not refresh:
+        cached = load_json(c_path, ttl_seconds=86400 * 7)
+        if isinstance(cached, dict):
+            return cached
+
     resp = httpx.get(
         f"{NHL_API}/player/{player_id}/game-log/{nhl_season}/2",
         timeout=20.0,
@@ -477,4 +545,5 @@ def fetch_player_season_teams(
         tri = str(game.get("teamAbbrev") or "").upper()
         if tri:
             counts[tri] = counts.get(tri, 0) + 1
+    save_json(c_path, counts)
     return counts
