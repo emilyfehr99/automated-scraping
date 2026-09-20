@@ -225,6 +225,74 @@ def _cap_box_html(cap: dict[str, Any] | None) -> str:
     )
 
 
+def _edge_box_html(edge: dict[str, Any] | None) -> str:
+    """Render NHL EDGE tracking box for the top-right header."""
+    if not edge or not isinstance(edge, dict):
+        return ""
+
+    top_spd = edge.get("top_speed_mph")
+    top_spd_pct = edge.get("top_speed_pct")
+    bursts = edge.get("bursts_over_20")
+    bursts_pct = edge.get("bursts_pct")
+    top_shot = edge.get("top_shot_mph")
+    top_shot_pct = edge.get("top_shot_pct")
+    dist = edge.get("distance_miles")
+    dist_pct = edge.get("distance_pct")
+
+    if top_spd is None and bursts is None and top_shot is None and dist is None:
+        return ""
+
+    def _pill(pct: int | None) -> str:
+        if pct is None:
+            return '<em class="edge-pill">—</em>'
+        cls = _pct_class(pct / 100.0)
+        return f'<em class="edge-pill {cls}">{pct}%</em>'
+
+    rows = []
+    if top_spd is not None:
+        rows.append(
+            f'<div class="edge-box__row">'
+            f'<span class="edge-box__lbl">Top Speed</span>'
+            f'<span class="edge-box__val">{top_spd}<small>MPH</small></span>'
+            f'{_pill(top_spd_pct)}'
+            f'</div>'
+        )
+    if bursts is not None:
+        rows.append(
+            f'<div class="edge-box__row">'
+            f'<span class="edge-box__lbl">20+ Bursts</span>'
+            f'<span class="edge-box__val">{bursts}</span>'
+            f'{_pill(bursts_pct)}'
+            f'</div>'
+        )
+    if top_shot is not None:
+        rows.append(
+            f'<div class="edge-box__row">'
+            f'<span class="edge-box__lbl">Top Shot</span>'
+            f'<span class="edge-box__val">{top_shot}<small>MPH</small></span>'
+            f'{_pill(top_shot_pct)}'
+            f'</div>'
+        )
+    if dist is not None:
+        rows.append(
+            f'<div class="edge-box__row">'
+            f'<span class="edge-box__lbl">Distance</span>'
+            f'<span class="edge-box__val">{dist}<small>MI</small></span>'
+            f'{_pill(dist_pct)}'
+            f'</div>'
+        )
+
+    return (
+        f'<div class="edge-box">'
+        f'<div class="edge-box__head">'
+        f'<span>NHL Edge Tracking</span>'
+        f'<span class="edge-box__pctl-sub">PCTL</span>'
+        f'</div>'
+        f'<div class="edge-box__rows">{"".join(rows)}</div>'
+        f'</div>'
+    )
+
+
 def _faceoff_win_pct(per_game: dict) -> float | None:
     won, lost = per_game.get("Faceoffs Won"), per_game.get("Faceoffs Lost")
     if won is None or lost is None:
@@ -610,8 +678,9 @@ h1 {{
 .gs-hero {{
   background: var(--elite-fill); color: var(--elite-fill-text);
   padding: 8px 18px; text-align: center;
-  border-radius: 8px 0 0 8px;
+  border-radius: 8px;
   min-width: 88px;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
 }}
 .gs-hero__val {{
   font-family: 'Russo One', sans-serif; font-size: 2.4rem; line-height: 1;
@@ -620,35 +689,77 @@ h1 {{
   font-size: 0.5rem; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; margin-top: 2px;
 }}
-.sub-scores {{
-  display: flex; flex-direction: column; justify-content: center;
-  gap: 4px; padding: 8px 14px;
-  background: #fff; border: 2px solid var(--accent);
-  border-left: none; border-radius: 0 8px 8px 0;
+.edge-box {{
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 172px;
+  max-width: 235px;
+  flex-shrink: 0;
 }}
-.sub-scores div {{
-  font-family: 'Russo One', sans-serif; font-size: 0.95rem; color: var(--ink);
+.edge-box__head {{
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 6px;
+}}
+.edge-box__pctl-sub {{
+  font-size: 0.44rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}}
+.edge-box__rows {{
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}}
+.edge-box__row {{
+  display: grid;
+  grid-template-columns: 1fr auto 32px;
+  align-items: baseline;
+  gap: 6px;
+}}
+.edge-box__lbl {{
+  font-size: 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
   white-space: nowrap;
 }}
-.sub-scores em {{
+.edge-box__val {{
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.72rem;
+  color: var(--ink);
+  text-align: right;
+  white-space: nowrap;
+}}
+.edge-box__val small {{
+  font-family: Inter, sans-serif;
+  font-size: 0.46rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}}
+.edge-pill {{
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.62rem;
   font-style: normal;
+  text-align: right;
+  white-space: nowrap;
 }}
-.sub-scores em.pct-elite {{ color: var(--elite-em); }}
-.sub-scores em.pct-strong {{ color: var(--primary); }}
-.sub-scores em.pct-weak {{ color: #b44; }}
-.sub-scores span {{ color: var(--muted); font-family: Inter; font-size: 0.55rem;
-  font-weight: 600; letter-spacing: 0.08em; margin-right: 4px; }}
-.ctx-box {{
-  text-align: center; font-size: 0.62rem; color: var(--muted);
-  line-height: 1.6;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  min-width: 56px;
-}}
-
-.ctx-box b {{
-  font-family: 'Russo One', sans-serif; font-size: 1rem;
-  color: var(--ink); margin-left: 4px;
-}}
+.edge-pill.pct-elite {{ color: var(--elite-em); }}
+.edge-pill.pct-strong {{ color: var(--primary); }}
+.edge-pill.pct-mid {{ color: #718096; }}
+.edge-pill.pct-weak {{ color: #b44; }}
 .ribbon {{
   height: 4px;
   background: linear-gradient(90deg, var(--primary), var(--accent));
@@ -989,8 +1100,10 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
     games_ctx = profile.get("games") or {}
     per_game = pbp.get("per_game") or {}
     sections = a3z.get("sections") or {}
-    pbp_only = not league_cfg.uses_a3z
-    has_a3z = bool((profile.get("sources") or {}).get("a3z")) and not pbp_only
+    src = profile.get("sources") or {}
+    # Prefer sources flag so PLAYER_CARDS_USE_A3Z rollback still renders A3Z layout.
+    pbp_only = not bool(src.get("a3z"))
+    has_a3z = bool(src.get("a3z"))
 
     pbp_skated = games_ctx.get("pbp_skated_games", pbp.get("games_played", 0))
     pbp_team_games = games_ctx.get("pbp_team_games", pbp.get("games", 0))
@@ -1007,6 +1120,8 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
     if pbp_only:
         if league == "prospect":
             pillar_tag = "Team rates · <span>per game · bar width = roster %ile</span>"
+        elif league == "nhl":
+            pillar_tag = "InStat microstats · <span>per game · roster %ile</span>"
         else:
             pillar_tag = "Team percentiles · <span>per game</span>"
 
@@ -1015,7 +1130,7 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
         off_lbl = "OFF %"
         def_lbl = "DEF %"
     else:
-        pillar_tag = "League percentiles · <span>per 60 · A3Z</span>"
+        pillar_tag = "League percentiles · <span>per 60</span>"
         pct_footer = f"<span>{toi_disp} 5v5 Time on Ice</span>" if toi_disp != "—" else "<span>5v5 Time on Ice</span>"
         snapshot_tag = "Profile snapshot · <span>percentile rank</span>"
         off_lbl = "OFF"
@@ -1028,29 +1143,22 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
         or _metric_lookup(sections, "defense_composite")
         or _composite_gs_metric(sections, DEFENSE_GS_KEYS)
     )
-    gs_sub = ""
-    if pbp_only:
-        hero_val = hero.get("value")
-        gs_disp = (
-            f"{float(hero_val):.1f}"
-            if isinstance(hero_val, (int, float))
-            else "—"
-        )
-        gs_lbl = "Game Score"
-        hero_pct = _pct_num(hero.get("percentile"))
-        if hero_pct is not None:
-            gs_sub = f"{hero_pct}th %ile on team"
-    elif has_a3z:
-        hero_val = hero.get("value")
-        gs_disp = (
-            f"{float(hero_val):.1f}"
-            if isinstance(hero_val, (int, float))
-            else "—"
-        )
-        gs_lbl = "Game Score"
+    hero_val = hero.get("value")
+    hero_pct = _pct_num(hero.get("percentile"))
+    gs_lbl = "Game Score"
+    if isinstance(hero_val, (int, float)):
+        gs_disp = f"{float(hero_val):.1f}"
+    elif hero_pct is not None:
+        gs_disp = str(hero_pct)
     else:
-        gs_disp = "—" if _pct_num(hero.get("percentile")) is None else str(_pct_num(hero.get("percentile")))
-        gs_lbl = "Percentile"
+        gs_disp = "—"
+
+    gs_sub = ""
+    if hero_pct is not None:
+        if pbp_only:
+            gs_sub = f"{hero_pct}th %ile on team"
+        else:
+            gs_sub = f"{hero_pct}th %ile"
     if offense.get("percentile") is not None:
         off_disp = f"{_pct_num(offense.get('percentile'))}%"
     elif offense.get("value") is not None and isinstance(offense["value"], (int, float)):
@@ -1172,10 +1280,21 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
     else:
         cap_html = _cap_box_html(profile.get("cap")) if league_cfg.uses_cap else ""
 
+    # NHL EDGE stays on for NHL cards even when microstats are InStat-PBP.
+    edge_html = _edge_box_html(profile.get("edge")) if league == "nhl" else ""
+
     pillars = []
-    pillar_bars = PWHL_PILLAR_BARS if pbp_only else PILLAR_BARS
-    # PBP-only leagues (PWHL, junior/prospect without A3Z) show rates so pillar
-    # "Shots" matches the shot-map total, not a bare percentile integer.
+    # NHL has one-timer tagging; PWHL / other PBP leagues use the PWHL pillar set.
+    if league == "nhl":
+        pillar_bars = PILLAR_BARS
+        highlight_tiles = HIGHLIGHT_TILES
+    elif pbp_only:
+        pillar_bars = PWHL_PILLAR_BARS
+        highlight_tiles = PWHL_HIGHLIGHT_TILES
+    else:
+        pillar_bars = PILLAR_BARS
+        highlight_tiles = HIGHLIGHT_TILES
+    # PBP microstats show rates so pillar "Shots" matches the shot-map total.
     show_rates = bool(pbp_only) or league == "prospect"
     for pillar in pillar_bars:
         rows = "".join(
@@ -1185,7 +1304,6 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
         pillars.append(_pillar_col(pillar["title"], _pillar_avg(sections, pillar["keys"]), rows))
 
     highlights = []
-    highlight_tiles = PWHL_HIGHLIGHT_TILES if pbp_only else HIGHLIGHT_TILES
     for key, label in highlight_tiles:
         if key == "defense_composite":
             m = defense
@@ -1425,15 +1543,8 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
           <div class="gs-hero__lbl">{html.escape(gs_lbl)}</div>
           {gs_sub_html}
         </div>
-        <div class="sub-scores">
-          <div><span>{html.escape(off_lbl)}</span><em class="{off_tier}">{html.escape(off_disp)}</em></div>
-          <div><span>{html.escape(def_lbl)}</span><em class="{def_tier}">{html.escape(def_disp)}</em></div>
-        </div>
       </div>
-      <div class="ctx-box">
-        <div>QOC<b>{html.escape(qoc_disp)}</b></div>
-        <div>QOT<b>{html.escape(qot_disp)}</b></div>
-      </div>
+      {edge_html}
       </div>
     </header>
     <div class="ribbon"></div>

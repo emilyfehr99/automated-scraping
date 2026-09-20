@@ -1,4 +1,4 @@
-"""NHL player microstat cards — NHL API + A3Z + InStat PBP."""
+"""Player microstat cards — NHL/PWHL API + InStat PBP (optional A3Z via PLAYER_CARDS_USE_A3Z)."""
 
 from __future__ import annotations
 

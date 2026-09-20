@@ -85,111 +85,135 @@ def _window_has(tg: pd.DataFrame, idx: int, lookahead: int, actions: set[str], t
 
 
 def compute_microstat_game_score(df: pd.DataFrame, team_name: str) -> pd.DataFrame:
-    """Per-player microstat game score for one team in one game (R port)."""
-    team_df = df[(df["team"] == team_name) & df["player"].notna() & (df["player"] != "")].copy()
+    """Per-player microstat game score for one team in one game.
+
+    InStat-derived formula (Clarkson / internal R port). Each counted event
+    contributes +1 to the relevant bucket; totals are unweighted sums:
+
+      Offense GS =
+          Scoring_Chances + Shot_Assists + Zone_Entries + Carry_ins
+        + Carries_with_Chances + Dump_in_Chances + DZ_Shots + NZ_Shots
+        + Shots_off_Rush + Shots_off_Forecheck
+
+      Defense GS =
+          Possession_Exits + Forecheck_Recoveries + NZ_Turnovers
+
+      Game Score = Offense GS + Defense GS
+                 (+ any other counted event keys on the player that game)
+
+    Event definitions (from InStat PBP actions / location windows):
+      Scoring_Chances     — Shots from home-plate (px≥50, 11≤py≤14)
+      Shot_Assists        — Pass immediately followed by a teammate Shot
+      Zone_Entries        — Entries / via stickhandling / pass / dump-in
+      Carry_ins           — Entries via stickhandling or pass (controlled)
+      Carries_with_Chances— Stickhandle entry with a Shot in next 10 events
+      Dump_in_Chances     — Dump-in entry with a Shot in next 10 events
+      Forecheck_Recoveries— Dump-in followed by OZ battle/shot/pass/goal window
+      Possession_Exits    — Controlled breakouts (pass/stickhandle) from DZ
+      DZ_Shots / NZ_Shots — DZ/NZ recoveries that lead to a Shot within 10
+      NZ_Turnovers        — NZ puck losses / inaccurate passes
+      Shots_off_Rush/FC   — Shot preceded by rush vs cycle/forecheck context
+
+    A3Z publishes a related proprietary Game Score; we do not use their
+    weights. This is our reproducible InStat PBP implementation.
+    """
+    team_mask = (df["team"] == team_name) & df["player"].notna() & (df["player"] != "")
+    team_df = df[team_mask]
     if team_df.empty:
-        return pd.DataFrame(columns=["player", "game_score"])
+        return pd.DataFrame(columns=["player", "game_score", "offense_gs", "defense_gs"])
 
     skaters = [
         p for p in team_df["player"].unique()
         if p and not _is_probable_goalie(p, team_df)
     ]
     if not skaters:
-        return pd.DataFrame(columns=["player", "game_score"])
+        return pd.DataFrame(columns=["player", "game_score", "offense_gs", "defense_gs"])
 
     tg = team_df[team_df["player"].isin(skaters)].reset_index(drop=True)
-    tg_idx = tg.index.tolist()
+    if tg.empty:
+        return pd.DataFrame(columns=["player", "game_score", "offense_gs", "defense_gs"])
 
-    def _count(mask: pd.Series, col: str) -> pd.Series:
-        return tg.loc[mask, "player"].value_counts().rename(col)
+    actions = tg["action"].astype(str).tolist()
+    players = tg["player"].astype(str).tolist()
+    teams = tg["team"].astype(str).tolist()
+    n_rows = len(actions)
 
-    pos_x = tg.get("pos_x", pd.Series(0, index=tg.index))
-    pos_y = tg.get("pos_y", pd.Series(0, index=tg.index))
-    scoring = _count(
-        (tg["action"] == "Shots") & (pos_x >= 50) & (pos_y >= 11) & (pos_y <= 14),
-        "Scoring_Chances",
-    )
+    pos_x = pd.to_numeric(tg.get("pos_x"), errors="coerce").fillna(0).tolist()
+    pos_y = pd.to_numeric(tg.get("pos_y"), errors="coerce").fillna(0).tolist()
 
-    assist_idx = [i for i in tg_idx if tg.at[i, "action"] == "Passes" and i < len(tg) - 1 and tg.at[i + 1, "action"] == "Shots"]
-    shot_assists = tg.loc[assist_idx, "player"].value_counts().rename("Shot_Assists") if assist_idx else pd.Series(dtype=int)
+    counts: dict[str, dict[str, int]] = {p: defaultdict(int) for p in skaters}
 
-    zone_entries = tg[tg["action"].isin(
-        ["Entries", "Entries via stickhandling", "Entries via pass", "Entries via dump in"]
-    )]["player"].value_counts().rename("Zone_Entries")
+    def _has_window(idx: int, lookahead: int, target_acts: set[str]) -> bool:
+        end = min(idx + lookahead + 1, n_rows)
+        for k in range(idx + 1, end):
+            if actions[k] in target_acts and teams[k] == team_name:
+                return True
+        return False
 
-    carry_ins = tg[tg["action"].isin(["Entries", "Entries via stickhandling", "Entries via pass"])]["player"].value_counts().rename("Carry_ins")
+    shots_set = {"Shots"}
+    fc_window_set = {"Puck battles in OZ", "Shots", "Goals", "Passes"}
+    offense_type = [("Rush" if a in RUSH_ACTIONS else ("Cycle/Forecheck" if a in CYCLE_ACTIONS else None)) for a in actions]
 
-    carry_idx = tg.index[tg["action"] == "Entries via stickhandling"].tolist()
-    carry_hits = [i for i in carry_idx if _window_has(tg, i, 10, {"Shots"}, team_name)]
-    carry_chance = tg.loc[carry_hits, "player"].value_counts().rename("Carries_with_Chances") if carry_hits else pd.Series(dtype=int)
+    for i in range(n_rows):
+        act = actions[i]
+        p = players[i]
+        px, py = pos_x[i], pos_y[i]
 
-    dump_idx = tg.index[tg["action"] == "Entries via dump in"].tolist()
-    dump_hits = [i for i in dump_idx if _window_has(tg, i, 10, {"Shots"}, team_name)]
-    dump_chance = tg.loc[dump_hits, "player"].value_counts().rename("Dump_in_Chances") if dump_hits else pd.Series(dtype=int)
+        if act == "Shots":
+            if px >= 50 and 11 <= py <= 14:
+                counts[p]["Scoring_Chances"] += 1
+            for k in range(1, 11):
+                j = i - k
+                if j < 0:
+                    break
+                ot = offense_type[j]
+                if ot == "Rush":
+                    counts[p]["Shots_off_Rush"] += 1
+                    break
+                elif ot == "Cycle/Forecheck":
+                    counts[p]["Shots_off_Forecheck"] += 1
+                    break
+        elif act == "Passes":
+            if i < n_rows - 1 and actions[i + 1] == "Shots":
+                counts[p]["Shot_Assists"] += 1
 
-    poss_exits = tg[
-        tg["action"].isin(["Breakouts via stickhandling", "Breakouts via pass"]) & (tg["pos_x"] <= DZ_MAX)
-    ]["player"].value_counts().rename("Possession_Exits")
+        if act in ("Entries", "Entries via stickhandling", "Entries via pass", "Entries via dump in"):
+            counts[p]["Zone_Entries"] += 1
+        if act in ("Entries", "Entries via stickhandling", "Entries via pass"):
+            counts[p]["Carry_ins"] += 1
+        if act == "Entries via stickhandling" and _has_window(i, 10, shots_set):
+            counts[p]["Carries_with_Chances"] += 1
+        elif act == "Entries via dump in":
+            if _has_window(i, 10, shots_set):
+                counts[p]["Dump_in_Chances"] += 1
+            if _has_window(i, 10, fc_window_set):
+                counts[p]["Forecheck_Recoveries"] += 1
 
-    dz_idx = tg.index[(tg["action"] == "Puck recoveries in DZ") & (tg["pos_x"] <= DZ_MAX)].tolist()
-    dz_hits = [i for i in dz_idx if _window_has(tg, i, 10, {"Shots"}, team_name)]
-    dz_shots = tg.loc[dz_hits, "player"].value_counts().rename("DZ_Shots") if dz_hits else pd.Series(dtype=int)
+        if act in ("Breakouts via stickhandling", "Breakouts via pass") and px <= DZ_MAX:
+            counts[p]["Possession_Exits"] += 1
+        elif act == "Puck recoveries in DZ" and px <= DZ_MAX:
+            if _has_window(i, 10, shots_set):
+                counts[p]["DZ_Shots"] += 1
+        elif act == "Puck recoveries" and DZ_MAX < px <= NZ_MAX:
+            if _has_window(i, 10, shots_set):
+                counts[p]["NZ_Shots"] += 1
+        elif act in ("Puck losses in NZ", "Inaccurate passes") and DZ_MAX < px <= NZ_MAX:
+            counts[p]["NZ_Turnovers"] += 1
 
-    nz_idx = tg.index[(tg["action"] == "Puck recoveries") & (tg["pos_x"] > DZ_MAX) & (tg["pos_x"] <= NZ_MAX)].tolist()
-    nz_hits = [i for i in nz_idx if _window_has(tg, i, 10, {"Shots"}, team_name)]
-    nz_shots = tg.loc[nz_hits, "player"].value_counts().rename("NZ_Shots") if nz_hits else pd.Series(dtype=int)
+    rows = []
+    for p in skaters:
+        c = counts[p]
+        total_gs = sum(c.values())
+        off_gs = sum(c[col] for col in MICROSTAT_OFFENSE_COLS if col in c)
+        def_gs = sum(c[col] for col in MICROSTAT_DEFENSE_COLS if col in c)
+        rows.append({
+            "player": p,
+            "game_score": float(total_gs),
+            "offense_gs": float(off_gs),
+            "defense_gs": float(def_gs),
+        })
 
-    nz_turnovers = tg[
-        tg["action"].isin(["Puck losses in NZ", "Inaccurate passes"])
-        & (tg["pos_x"] > DZ_MAX)
-        & (tg["pos_x"] <= NZ_MAX)
-    ]["player"].value_counts().rename("NZ_Turnovers")
-
-    df_off = tg.copy()
-    df_off["offense_type"] = None
-    df_off.loc[df_off["action"].isin(RUSH_ACTIONS), "offense_type"] = "Rush"
-    df_off.loc[df_off["action"].isin(CYCLE_ACTIONS), "offense_type"] = "Cycle/Forecheck"
-    lead_type = []
-    for i in range(len(df_off)):
-        if df_off.iloc[i]["action"] != "Shots":
-            lead_type.append(np.nan)
-            continue
-        found = np.nan
-        for k in range(1, 11):
-            j = i - k
-            if j < 0:
-                break
-            ot = df_off.iloc[j]["offense_type"]
-            if pd.notna(ot):
-                found = ot
-                break
-        lead_type.append(found)
-    df_off["offense_lead"] = lead_type
-    rush_shots = df_off[df_off["offense_lead"] == "Rush"]["player"].value_counts().rename("Shots_off_Rush")
-    forec_shots = df_off[df_off["offense_lead"] == "Cycle/Forecheck"]["player"].value_counts().rename("Shots_off_Forecheck")
-
-    fc_hits = [
-        i for i in dump_idx
-        if _window_has(tg, i, 10, {"Puck battles in OZ", "Shots", "Goals", "Passes"}, team_name)
-    ]
-    fc_recoveries = tg.loc[fc_hits, "player"].value_counts().rename("Forecheck_Recoveries") if fc_hits else pd.Series(dtype=int)
-
-    parts = [
-        scoring, shot_assists, zone_entries, carry_ins, carry_chance, dump_chance,
-        poss_exits, dz_shots, nz_shots, nz_turnovers, rush_shots, forec_shots, fc_recoveries,
-    ]
-    out = pd.DataFrame({"player": skaters}).set_index("player")
-    for s in parts:
-        if s is not None and len(s):
-            out = out.join(s.to_frame(), how="left")
-    out = out.fillna(0)
-    metric_cols = list(out.columns)
-    off_cols = [c for c in MICROSTAT_OFFENSE_COLS if c in out.columns]
-    def_cols = [c for c in MICROSTAT_DEFENSE_COLS if c in out.columns]
-    out["game_score"] = out[metric_cols].sum(axis=1)
-    out["offense_gs"] = out[off_cols].sum(axis=1) if off_cols else 0.0
-    out["defense_gs"] = out[def_cols].sum(axis=1) if def_cols else 0.0
-    return out.reset_index()[["player", "game_score", "offense_gs", "defense_gs"]]
+    return pd.DataFrame(rows)
 
 
 def _lookup_gs(player: str, game_id: str, gs_game: dict[tuple[str, str], float], gs_season: dict[str, float]) -> float:

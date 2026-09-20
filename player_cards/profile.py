@@ -1,4 +1,4 @@
-"""Merge NHL bio + A3Z microstats + full PBP microstats into one card profile."""
+"""Merge league bio + InStat PBP microstats into one card profile (optional A3Z)."""
 
 from __future__ import annotations
 
@@ -1025,13 +1025,18 @@ def build_player_card_profile(
                 len(pct_by_name),
             )
 
-    if cfg.uses_a3z:
+    # Default: InStat PBP microstats (includes GS / offense / defense / pillars).
+    # Optional rollback: PLAYER_CARDS_USE_A3Z=1 restores All Three Zones when available.
+    use_a3z = (
+        cfg.uses_a3z
+        or os.environ.get("PLAYER_CARDS_USE_A3Z", "").strip().lower() in ("1", "true", "yes")
+    )
+    if use_a3z:
         a3z = fetch_a3z_profile(bio["name"], tri, season=season, pbp_team_games=(pbp or {}).get("games"))
         if a3z:
             a3z = merge_deployment_context(a3z, deployment)
             a3z_from_api = True
         else:
-            # No A3Z row (common early season / missing DB) → InStat PBP microstats.
             a3z = build_pbp_display_profile(
                 pbp,
                 deployment,
@@ -1062,6 +1067,7 @@ def build_player_card_profile(
             "league": league,
             "nhl": cfg.uses_nhl_api,
             "a3z": a3z_from_api,
+            "microstat_source": "a3z" if a3z_from_api else "instat_pbp",
             "pbp_percentiles": bool(a3z) and not a3z_from_api,
             "pbp": pbp is not None,
             "cap": cap is not None,

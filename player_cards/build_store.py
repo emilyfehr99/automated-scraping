@@ -184,7 +184,7 @@ def build_team(
     logger.info("Building %s %s — %s players", league, tri, len(roster))
 
     pct_by_player: dict[str, dict[str, float | None]] = {}
-    if not cfg.uses_a3z and pbp_files:
+    if pbp_files:
         pct_by_player = _team_pbp_percentiles(roster, pbp_files, tri, league=league, team_games=team_game_count)
 
     built = 0

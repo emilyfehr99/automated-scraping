@@ -127,7 +127,11 @@ def build_pbp_display_profile(
                 }
             )
     sections["Context"] = context
-    sections["Game Score"] = [_metric("microstat_game_score", "Game Score")]
+    sections["Game Score"] = [
+        _metric("microstat_game_score", "Game Score"),
+        _metric(OFFENSE_GS_KEY, "Offense GS"),
+        _metric(DEFENSE_GS_KEY, "Defense GS"),
+    ]
     sections["GS Composite"] = [
         _metric(OFFENSE_GS_KEY, "Offence"),
         _metric(DEFENSE_GS_KEY, "Defence"),

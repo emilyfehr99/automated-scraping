@@ -29,18 +29,29 @@ def _issues_for_profile(profile: dict[str, Any], *, name: str = "card") -> list[
     gp = int(pbp.get("games_played") or 0)
     games = int(pbp.get("games") or gp or 0) or 1
     league = str(profile.get("league") or "").lower()
-    pbp_only = league in {"pwhl", "prospect"} or src.get("card_kind") in {
-        "junior_player",
-        "nhl_prospect",
-        "pwhl_player",
-    } or bool(bio.get("undrafted"))
+    pbp_only = (
+        league in {"pwhl", "prospect", "nhl"}
+        or src.get("microstat_source") == "instat_pbp"
+        or src.get("card_kind") in {
+            "junior_player",
+            "nhl_prospect",
+            "pwhl_player",
+            "nhl_player",
+        }
+        or bool(bio.get("undrafted"))
+        or not src.get("a3z", False)
+    )
+
+    pos = str(bio.get("position") or "").strip().upper()
+    if pos in {"G", "GOALIE", "GOALTENDER"} or src.get("card_kind") in {"nhl_goalie", "junior_goalie"}:
+        return []
 
     if not pbp:
         return [f"{name}: no pbp block (skip skater checks)"]
 
     ng, gl = _split_shots(shots)
-    sc = int(pbp.get("shot_count") or -1)
-    goals = int(pbp.get("goals") or -1)
+    sc = int(pbp["shot_count"]) if pbp.get("shot_count") is not None else -1
+    goals = int(pbp["goals"]) if pbp.get("goals") is not None else -1
     if sc != len(shots):
         issues.append(f"shot_count {sc} != len(shots) {len(shots)}")
     if len(shots) != len(ng) + len(gl):
