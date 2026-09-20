@@ -11,8 +11,9 @@ concurrency:
 
 on:
   schedule:
-    # Weekly Sunday 8am UTC (3am CT / 4am ET)
-    - cron: "0 8 * * 0"
+    # Sunday 2:00 AM Central (07:00 UTC during CDT). ~3h build finishes by ~5 AM CT,
+    # well before 7 AM CT. NHL shards 1-8 + PWHL shard 9.
+    - cron: "0 7 * * 0"
   workflow_dispatch:
     inputs:
       shard:
@@ -23,9 +24,20 @@ on:
         description: "Optional comma team list (overrides shard), e.g. UTA,PIT"
         required: false
         default: ""
+      force:
+        description: "Force rebuild even when no new NHL/PWHL games are detected"
+        required: false
+        default: "false"
+        type: boolean
+      seed_fingerprint_only:
+        description: "Only compute/save data fingerprint (no auth/build). Use once after deploy."
+        required: false
+        default: "false"
+        type: boolean
 
 permissions:
   contents: read
+  actions: read
 
 env:
   PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
@@ -33,7 +45,97 @@ env:
   SKIP_PHOTO_PREWARM: "1"
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should_build: ${{ steps.gate.outputs.should_build }}
+      reason: ${{ steps.gate.outputs.reason }}
+      summary: ${{ steps.gate.outputs.summary }}
+      seed_only: ${{ steps.flags.outputs.seed_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Resolve flags
+        id: flags
+        env:
+          SEED: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_fingerprint_only || 'false' }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+        run: |
+          echo "seed_only=$SEED" >> "$GITHUB_OUTPUT"
+          echo "force=$FORCE" >> "$GITHUB_OUTPUT"
+          echo "seed_only=$SEED force=$FORCE"
+
+      - name: Restore previous data fingerprint
+        uses: actions/cache/restore@v5
+        with:
+          path: .ci/data-fingerprint.json
+          key: player-cards-data-fp-${{ github.run_id }}
+          restore-keys: |
+            player-cards-data-fp-
+
+      - name: Check for new NHL / PWHL games
+        id: gate
+        env:
+          FORCE: ${{ steps.flags.outputs.force }}
+          SEED_ONLY: ${{ steps.flags.outputs.seed_only }}
+        run: |
+          mkdir -p .ci
+          FORCE_FLAG=""
+          if [ "$FORCE" = "true" ] && [ "$SEED_ONLY" != "true" ]; then
+            FORCE_FLAG="--force"
+          fi
+          python3 scripts/ci_check_player_cards_freshness.py \
+            --previous .ci/data-fingerprint.json \
+            --write-live .ci/live-fingerprint.json \
+            $FORCE_FLAG
+          if [ "$SEED_ONLY" = "true" ]; then
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "reason=seed_fingerprint_only" >> "$GITHUB_OUTPUT"
+            echo "summary=seeded live fingerprint without rebuild" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload live fingerprint
+        uses: actions/upload-artifact@v5
+        with:
+          name: live-data-fingerprint
+          path: .ci/live-fingerprint.json
+          retention-days: 30
+
+  seed-fingerprint:
+    needs: check
+    if: needs.check.outputs.seed_only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download live fingerprint
+        uses: actions/download-artifact@v5
+        with:
+          name: live-data-fingerprint
+          path: .ci
+
+      - name: Canonicalize fingerprint path
+        run: |
+          cp .ci/live-fingerprint.json .ci/data-fingerprint.json
+          cat .ci/data-fingerprint.json
+
+      - name: Persist fingerprint for next scheduled run
+        uses: actions/cache/save@v5
+        with:
+          path: .ci/data-fingerprint.json
+          key: player-cards-data-fp-${{ github.run_id }}
+
+      - name: Upload data fingerprint artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: data-fingerprint
+          path: .ci/data-fingerprint.json
+          retention-days: 90
+
   plan:
+    needs: check
+    if: needs.check.outputs.should_build == 'true' && needs.check.outputs.seed_only != 'true'
     runs-on: ubuntu-latest
     outputs:
       full_build: ${{ steps.set.outputs.full_build }}
@@ -85,7 +187,8 @@ jobs:
           PY
 
   auth:
-    needs: plan
+    needs: [check, plan]
+    if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -132,7 +235,8 @@ jobs:
           retention-days: 1
 
   build-shard:
-    needs: [plan, auth]
+    needs: [check, plan, auth]
+    if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
@@ -263,10 +367,10 @@ jobs:
           compression-level: 0
 
   merge:
-    needs: [plan, build-shard]
+    needs: [check, plan, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
+    if: needs.check.outputs.should_build == 'true' && needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -341,11 +445,43 @@ jobs:
           retention-days: 90
           path: .player-cards-data/card_store.db
 
+  record-fingerprint:
+    needs: [check, merge]
+    if: needs.check.outputs.should_build == 'true' && needs.merge.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download live fingerprint
+        uses: actions/download-artifact@v5
+        with:
+          name: live-data-fingerprint
+          path: .ci
+
+      - name: Canonicalize fingerprint path
+        run: |
+          mkdir -p .ci
+          cp .ci/live-fingerprint.json .ci/data-fingerprint.json
+          echo "Persisting fingerprint:"
+          cat .ci/data-fingerprint.json
+
+      - name: Persist fingerprint for next scheduled run
+        uses: actions/cache/save@v5
+        with:
+          path: .ci/data-fingerprint.json
+          key: player-cards-data-fp-${{ github.run_id }}
+
+      - name: Upload data fingerprint artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: data-fingerprint
+          path: .ci/data-fingerprint.json
+          retention-days: 90
+
   line-chemistry:
-    needs: [plan, build-shard]
+    needs: [check, plan, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    if: needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
+    if: needs.check.outputs.should_build == 'true' && needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
