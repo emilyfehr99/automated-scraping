@@ -160,79 +160,65 @@ def fetch_a3z_profile(
     season: str | None = None,
     *,
     pbp_team_games: int | None = None,
-    allow_prior_season: bool = True,
 ) -> dict[str, Any] | None:
-    """Load A3Z microstats for a player.
+    """Load current-season A3Z microstats for a player.
 
-    Early in a new season A3Z often has no usable rows until ~30 team GP.
-    When the current season is not ready (or has no row), fall back to the
-    prior season's A3Z profile and flag ``prior_season_fallback``.
+    Returns None when A3Z is not ready yet (~30 team GP) or no row exists;
+    callers should use InStat PBP display metrics instead — never prior-season A3Z.
     """
-    from .leagues import a3z_current_season_ready, prior_season_tag
+    from .leagues import a3z_current_season_ready
+
+    if season and not a3z_current_season_ready(season, team_games=pbp_team_games):
+        return None
 
     connect, init_db, build_player_profile = _load_a3z_modules()
     if connect is None:
         return None
 
-    requested = (season or "").strip() or None
-    seasons_to_try: list[str | None] = []
-    if requested:
-        ready = a3z_current_season_ready(requested, team_games=pbp_team_games)
-        if ready:
-            seasons_to_try = [requested]
-            if allow_prior_season:
-                seasons_to_try.append(prior_season_tag(requested))
-        elif allow_prior_season:
-            seasons_to_try = [prior_season_tag(requested), requested]
-        else:
-            seasons_to_try = [requested]
-    else:
-        seasons_to_try = [None]
-
     conn = connect()
     init_db(conn)
     slug = _slug(player_name, team)
-
     row = None
-    used_season: str | None = None
-    for try_season in seasons_to_try:
-        if team:
-            if try_season:
+    if team:
+        if season:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE slug = ? AND season = ?",
+                (slug, season),
+            ).fetchone()
+            if not row:
                 row = conn.execute(
-                    "SELECT slug, season, stats_json FROM players WHERE slug = ? AND season = ?",
-                    (slug, try_season),
+                    "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND team = ? AND season = ? LIMIT 1",
+                    (f"%{player_name}%", team.upper(), season),
                 ).fetchone()
-                if not row:
-                    row = conn.execute(
-                        "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND team = ? AND season = ? LIMIT 1",
-                        (f"%{player_name}%", team.upper(), try_season),
-                    ).fetchone()
-            else:
-                row = conn.execute(
-                    "SELECT slug, season, stats_json FROM players WHERE slug = ? OR (name LIKE ? AND team = ?) "
-                    "ORDER BY last_synced DESC LIMIT 1",
-                    (slug, f"%{player_name}%", team.upper()),
-                ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE slug = ? OR (name LIKE ? AND team = ?) "
+                "ORDER BY last_synced DESC LIMIT 1",
+                (slug, f"%{player_name}%", team.upper()),
+            ).fetchone()
+
+    if not row:
+        if season:
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND season = ? ORDER BY last_synced DESC LIMIT 1",
+                (f"%{player_name}%", season),
+            ).fetchone()
         if not row:
-            if try_season:
-                row = conn.execute(
-                    "SELECT slug, season, stats_json FROM players WHERE name LIKE ? AND season = ? ORDER BY last_synced DESC LIMIT 1",
-                    (f"%{player_name}%", try_season),
-                ).fetchone()
-            else:
-                row = conn.execute(
-                    "SELECT slug, season, stats_json FROM players WHERE name LIKE ? ORDER BY last_synced DESC LIMIT 1",
-                    (f"%{player_name}%",),
-                ).fetchone()
-        if row:
-            used_season = str(row["season"] or try_season or "")
-            break
+            row = conn.execute(
+                "SELECT slug, season, stats_json FROM players WHERE name LIKE ? ORDER BY last_synced DESC LIMIT 1",
+                (f"%{player_name}%",),
+            ).fetchone()
 
     if not row:
         conn.close()
         return None
 
-    resolved_season = used_season or requested or row["season"]
+    # Never silently serve a different season than requested.
+    if season and str(row["season"] or "") != str(season):
+        conn.close()
+        return None
+
+    resolved_season = season or row["season"]
     profile = build_player_profile(conn, row["slug"], season=resolved_season)
     stats = json.loads(row["stats_json"])
     conn.close()
@@ -242,9 +228,6 @@ def fetch_a3z_profile(
         None,
     )
     a3z_games = profile.get("games")
-    prior_fallback = bool(
-        requested and resolved_season and resolved_season != requested
-    )
     return {
         "season": profile.get("season") or resolved_season,
         "games": a3z_games,
@@ -253,11 +236,8 @@ def fetch_a3z_profile(
         "metrics": _pick_metrics(profile),
         "sections": profile.get("sections"),
         "pbp_team_games": pbp_team_games,
-        "requested_season": requested,
-        "prior_season_fallback": prior_fallback,
         "aligned_with_pbp": (
-            (not prior_fallback)
-            and pbp_team_games is not None
+            pbp_team_games is not None
             and a3z_games is not None
             and int(pbp_team_games) == int(a3z_games)
         ),
