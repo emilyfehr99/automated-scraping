@@ -1047,7 +1047,6 @@ def build_player_card_profile(
         )
 
     games = build_game_context(pbp_files, pbp, a3z, a3z_season=season, pbp_meta=pbp_meta)
-    a3z_prior = bool(isinstance(a3z, dict) and a3z.get("prior_season_fallback"))
 
     return {
         "league": league,
@@ -1063,8 +1062,6 @@ def build_player_card_profile(
             "league": league,
             "nhl": cfg.uses_nhl_api,
             "a3z": a3z_from_api,
-            "a3z_prior_season_fallback": a3z_prior,
-            "a3z_lookup_season": (a3z or {}).get("season") if isinstance(a3z, dict) else None,
             "pbp_percentiles": bool(a3z) and not a3z_from_api,
             "pbp": pbp is not None,
             "cap": cap is not None,
