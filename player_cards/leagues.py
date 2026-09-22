@@ -156,8 +156,16 @@ SEASON_TO_INSTAT: dict[str, int] = {
     "2024-25": 34,
 }
 
-DEFAULT_SEASON = os.getenv("PLAYER_CARDS_SEASON", "2025-26").strip()
-DEFAULT_INSTAT_SEASON_ID = int(os.getenv("INSTAT_SEASON_ID", "36").strip())
+def _default_season_from_date() -> str:
+    """Derive current season tag from today's date (October rollover, no API call)."""
+    import datetime as _dt
+    today = _dt.date.today()
+    yr = today.year if today.month >= 10 else today.year - 1
+    return f"{yr}-{str(yr + 1)[-2:]}"
+
+
+DEFAULT_SEASON = os.getenv("PLAYER_CARDS_SEASON", _default_season_from_date()).strip()
+DEFAULT_INSTAT_SEASON_ID = int(os.getenv("INSTAT_SEASON_ID", "0").strip() or "0") or SEASON_TO_INSTAT.get(DEFAULT_SEASON, 36)
 
 
 @dataclass(frozen=True)
@@ -231,7 +239,20 @@ LEAGUES: dict[str, LeagueConfig] = {
 }
 
 
-_SEASON_DETECTION_CACHE: dict[str, Any] = {"time": 0.0, "result": ("2025-26", 36)}
+def _bootstrap_season_fallback() -> tuple[str, int]:
+    """Compute a best-guess season tag from the current date (no API call).
+    NHL seasons start in October; before October we're in the previous season.
+    """
+    import datetime as _dt
+    today = _dt.date.today()
+    start_yr = today.year if today.month >= 10 else today.year - 1
+    tag = f"{start_yr}-{str(start_yr + 1)[-2:]}"
+    # Inline InStat ID formula (avoids forward-ref to instat_season_id)
+    sid = SEASON_TO_INSTAT.get(tag, 36 + (start_yr - 2025) * 2)
+    return tag, sid
+
+
+_SEASON_DETECTION_CACHE: dict[str, Any] = {"time": 0.0, "result": _bootstrap_season_fallback()}
 _PWHL_SEASON_CACHE: dict[str, Any] = {"time": 0.0, "result": PWHL_HOCKEYTECH_SEASON}
 
 

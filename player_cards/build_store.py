@@ -42,8 +42,9 @@ def roster_season() -> str:
     return nhl_api_season_id()
 
 
-# Back-compat for imports; prefer roster_season().
-ROSTER_SEASON = "20252026"
+# Back-compat for imports; prefer roster_season(). Derived dynamically so it
+# rolls over automatically each season without requiring a code change.
+ROSTER_SEASON: str = roster_season()
 
 
 def _cache_skips_download(cached: dict[str, Any] | None, *, refresh: bool) -> bool:
