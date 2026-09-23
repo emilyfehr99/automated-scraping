@@ -30,10 +30,11 @@ from .png_export import html_to_png
 from .pwhl_bio import fetch_pwhl_bio, roster_from_pbp
 from .qoc_qot import compute_player_qoc_qot
 from .team_colors import get_team_colors
+from .leagues import DEFAULT_SEASON
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_A3Z_SEASON = "2025-26"
+DEFAULT_A3Z_SEASON = DEFAULT_SEASON
 AGG_CACHE_TTL = 7 * 86_400  # 7 days — invalidated by file fingerprint
 
 
@@ -766,9 +767,16 @@ def _enrich_stored_profile(profile: dict[str, Any]) -> dict[str, Any]:
     league = str(profile.get("league") or bio.get("league") or "nhl").lower()
     cfg = get_league(league)
 
-    if cfg.uses_cap and not profile.get("cap"):
+    if cfg.uses_cap:
+        # Always refresh CapWages (team page / unconfirmed extensions) so store
+        # cards don't keep a stale AAV after a new signing.
         pname = bio.get("name") or profile.get("player_name") or ""
-        cap = fetch_cap_info(pname, player_id=bio.get("player_id"))
+        cap = fetch_cap_info(
+            pname,
+            player_id=bio.get("player_id"),
+            live=True,
+            team=bio.get("team"),
+        )
         if cap:
             profile["cap"] = cap
 
@@ -910,7 +918,13 @@ def build_player_card_profile(
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         cap_future = (
-            pool.submit(fetch_cap_info, bio["name"], player_id=bio.get("player_id"))
+            pool.submit(
+                fetch_cap_info,
+                bio["name"],
+                bio.get("player_id"),
+                live=True,
+                team=tri,
+            )
             if cfg.uses_cap
             else None
         )

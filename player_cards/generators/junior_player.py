@@ -22,6 +22,20 @@ def generate(
     team: str | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
+    from player_cards.nhl_bio import fetch_nhl_bio
+
+    pos = kwargs.get("position")
+    if not pos:
+        try:
+            bio = fetch_nhl_bio(name)
+            pos = bio.get("position")
+        except Exception:
+            pos = None
+    if str(pos or "").strip().upper() in {"G", "GOALIE", "GOALTENDER"}:
+        from . import junior_goalie
+
+        return junior_goalie.generate(name, team=team, **kwargs)
+
     from player_cards.profile import generate_player_card
 
     amateur_club = kwargs.pop("amateur_club", None) or team
@@ -29,9 +43,8 @@ def generate(
     kwargs.setdefault("league", "prospect")
     kwargs["undrafted"] = True if kwargs.get("undrafted") is None else kwargs.get("undrafted")
     kwargs.setdefault("pbp_source", "harvest")
-    if kwargs.get("use_store") is None:
-        kwargs["use_store"] = False
-    kwargs.setdefault("a3z_season", "2025-26")
+    from player_cards.leagues import DEFAULT_SEASON
+    kwargs.setdefault("a3z_season", DEFAULT_SEASON)
     return generate_player_card(
         name,
         team=None,
@@ -39,6 +52,7 @@ def generate(
         amateur_club=amateur_club,
         **kwargs,
     )
+
 
 
 def generate_batch(players: list[tuple[str, str]] | None = None) -> list[dict[str, Any]]:

@@ -7,9 +7,9 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from .leagues import DEFAULT_SEASON
 
-DEFAULT_A3Z_SEASON = "2025-26"
+DEFAULT_A3Z_SEASON = DEFAULT_SEASON
 
 CONTEXT_ALIASES: dict[str, list[str]] = {
     "qoc": ["qoc", "quality_of_competition", "competition", "qoc_pct"],

@@ -100,7 +100,14 @@ def _zone_color(sv_pct: float | None) -> str:
     return "#2c5a8a"
 
 
-def render_net_heatmap_html(heatmap_zones: dict[str, dict[str, Any]], games_tracked: int, total_shots: int) -> str:
+def render_net_heatmap_html(
+    heatmap_zones: dict[str, dict[str, Any]],
+    games_tracked: int,
+    total_shots: int,
+    *,
+    title: str = "Save % by Net Zone",
+    subtitle: str | None = None,
+) -> str:
     if not heatmap_zones or not total_shots:
         return '<div class="shot-map-empty">No zone-charted shot data</div>'
     w, h, pad = 300, 220, 10
@@ -121,11 +128,12 @@ def render_net_heatmap_html(heatmap_zones: dict[str, dict[str, Any]], games_trac
                 f'<text x="{x+cell_w/2:.1f}" y="{y+cell_h/2+24:.1f}" text-anchor="middle" font-size="7.5" fill="#fff" opacity="0.75">{d["shots"]} shots, {d["goals"]} goals</text>'
                 f"</g>"
             )
+    sub = subtitle or f"{games_tracked} InStat-charted games · {total_shots} shots"
     return f"""
     <div class="shot-map-panel">
       <div class="shot-map-header">
-        <div><div class="shot-map-title">Save % by Net Zone</div>
-        <div class="shot-map-sub">{games_tracked} InStat-charted games · {total_shots} shots</div></div>
+        <div><div class="shot-map-title">{html.escape(title)}</div>
+        <div class="shot-map-sub">{html.escape(sub)}</div></div>
       </div>
       <div class="shot-map-canvas">
         <svg viewBox="0 0 {w} {h}" class="shot-map-svg" xmlns="http://www.w3.org/2000/svg">
@@ -136,12 +144,15 @@ def render_net_heatmap_html(heatmap_zones: dict[str, dict[str, Any]], games_trac
     </div>"""
 
 
+
 def render_goalie_card_html(profile: dict[str, Any]) -> str:
     bio = profile["bio"]
-    colors = get_team_colors(bio["team"], league="nhl")
+    # Use colors already resolved in the profile (respects amateur club / prospect league)
+    colors = profile.get("colors") or get_team_colors(bio["team"], league=profile.get("league", "nhl"))
     primary, accent = colors["primary"], colors["accent"]
     light = colors.get("light", "#f1f5f9")
     theme = theme_text_vars(primary, accent)
+
 
     official = profile.get("official") or {}
     instat = profile.get("instat") or {}
@@ -179,15 +190,83 @@ def render_goalie_card_html(profile: dict[str, Any]) -> str:
     height = html.escape(bio.get("height") or "—")
     weight = bio.get("weight_lbs")
     weight_disp = f"{weight} lbs" if weight else "—"
-    team_name = html.escape(bio.get("team", ""))
-    vitals_line = f"G · {team_name} · 2025-26 · {height} · {html.escape(weight_disp)} · Catches {html.escape(str(catches))}"
+    team_name = html.escape(bio.get("team", "") or bio.get("amateur_club", ""))
 
-    cap_html = _cap_box_html(cap) if cap else ""
+    # Prospect/junior: show amateur club, league, height/weight, draft info
+    is_prospect = profile.get("league") == "prospect" or bio.get("undrafted") or profile.get("card_kind") == "junior_goalie"
+    if is_prospect:
+        draft_line = html.escape(bio.get("draft_info") or "Undrafted")
+        amateur_league = html.escape(bio.get("amateur_league") or ("NCAA" if "university" in (bio.get("amateur_club") or "").lower() else ""))
+        league_tag = f" · {amateur_league}" if amateur_league else ""
+        hw_bits = []
+        if height and height != "—":
+            hw_bits.append(height)
+        if weight_disp and weight_disp != "—":
+            hw_bits.append(html.escape(weight_disp))
+        hw_tag = f" · {' · '.join(hw_bits)}" if hw_bits else ""
+        vitals_line = f"G · {team_name}{league_tag}{hw_tag} · {draft_line} · Catches {html.escape(str(catches))}"
+    else:
+        season_tag = profile.get("season") if isinstance(profile, dict) else getattr(profile, "season", None)
+        if not season_tag:
+            try:
+                from .leagues import DEFAULT_SEASON
+                season_tag = DEFAULT_SEASON
+            except Exception:
+                season_tag = "2026-27"
+        vitals_line = f"G · {team_name} · {season_tag} · {height} · {html.escape(weight_disp)} · Catches {html.escape(str(catches))}"
 
-    # ── Hero block: SV% is the headline stat, colored by league percentile ──
+
+    if is_prospect:
+        dd = bio.get("draft_details") or {}
+        undrafted = bool(bio.get("undrafted")) or (
+            bio.get("draft_round") is None
+            and bio.get("draft_overall") is None
+            and not dd.get("year")
+            and "eligible" in str(bio.get("draft_info") or "").lower()
+        )
+        if undrafted or (not bio.get("draft_overall") and not dd.get("overallPick")):
+            now = datetime.now()
+            draft_year = bio.get("draft_year") or str(now.year if now.month >= 7 else now.year)
+            chl_line = bio.get("chl_draft_line") or bio.get("amateur_league") or ("NCAA" if "university" in (bio.get("amateur_club") or "").lower() else "CHL")
+            cap_html = (
+                f'<div class="cap-box">'
+                f'<div class="cap-box__head">Draft Status</div>'
+                f'<div class="cap-box__rows">'
+                f'<div class="cap-box__row"><span class="cap-box__lbl">NHL</span><span class="cap-box__val">Undrafted · {html.escape(str(draft_year))}</span></div>'
+                f'<div class="cap-box__row"><span class="cap-box__lbl">Club</span><span class="cap-box__val cap-box__val--wrap">{html.escape(str(team_name))}</span></div>'
+                f'<div class="cap-box__row cap-box__row--accent"><span class="cap-box__lbl">League</span><span class="cap-box__val cap-box__val--wrap">{html.escape(str(chl_line))}</span></div>'
+                f'</div></div>'
+            )
+        else:
+            round_val = bio.get("draft_round") or dd.get("round", "—")
+            pick_val = bio.get("draft_pick") or dd.get("pickInRound", "—")
+            overall_val = bio.get("draft_overall") or dd.get("overallPick", "—")
+            draft_team = bio.get("draft_team") or dd.get("teamAbbrev", "")
+            team_str = f" ({draft_team})" if draft_team else ""
+            cap_html = (
+                f'<div class="cap-box">'
+                f'<div class="cap-box__head">Draft Info</div>'
+                f'<div class="cap-box__rows">'
+                f'<div class="cap-box__row"><span class="cap-box__lbl">Amateur Club</span><span class="cap-box__val">{html.escape(str(team_name))}</span></div>'
+                f'<div class="cap-box__row"><span class="cap-box__lbl">Selection</span><span class="cap-box__val">Rd {round_val}, Pick {pick_val}</span></div>'
+                f'<div class="cap-box__row cap-box__row--accent"><span class="cap-box__lbl">Overall</span><span class="cap-box__val">#{overall_val} Overall{team_str}</span></div>'
+                f'</div></div>'
+            )
+    else:
+        cap_html = _cap_box_html(cap) if cap else ""
+
+
+    # ── Hero block: SV% is the headline stat ──
     sv_pct = official.get("save_pct")
     gs_disp = f"{sv_pct:.1f}" if isinstance(sv_pct, (int, float)) else "—"
-    gs_sub = f"{int(sv_pct_p*100)}th %ile of {pool_size} NHL goalies" if sv_pct_p is not None and pool_size else ""
+    # For prospect cards no league percentile population exists
+    if sv_pct_p is not None and pool_size:
+        gs_sub = f"{int(sv_pct_p*100)}th %ile of {pool_size} NHL goalies"
+    elif is_prospect:
+        gaa_v = official.get("gaa")
+        gs_sub = f"GAA {gaa_v:.2f} · {official.get('shots_against', 0)} shots faced" if gaa_v is not None else ""
+    else:
+        gs_sub = ""
 
     from .html_renderer import _pct_class, _pct_num
     es_disp = "—" if _pct_num(es_sv_pct_p) is None else str(_pct_num(es_sv_pct_p))
@@ -198,32 +277,53 @@ def render_goalie_card_html(profile: dict[str, Any]) -> str:
     gp = official.get("games_played", "—")
     w, l, otl = official.get("wins", "—"), official.get("losses", "—"), official.get("ot_losses", "—")
 
-    # ── Pillar 1: percentile-backed metrics (real league population) ──
-    pillar1_rows = "".join([
-        _bar_row("SV% (Overall)", _m(sv_pct_p)),
-        _bar_row("SV% (5-on-5)", _m(es_sv_pct_p)),
-        _bar_row("Scoring-Chance SV%", _m(sc_sv_pct_p)),
-        _bar_row("GSAx", _m(gsax_p)),
-    ])
-    pillar1 = _pillar_col("League Percentiles", _pillar_avg_of([sv_pct_p, es_sv_pct_p, sc_sv_pct_p, gsax_p]), pillar1_rows)
 
-    # ── Pillars 2/3: raw situational SV% (no league population to percentile against) ──
-    def raw_row(label: str, key: str) -> str:
-        d = situational.get(key) or {}
-        return _raw_bar_row(label, d.get("sv_pct"), low_sample=bool(d.get("low_sample")))
+    # ── Pillar 1, 2, 3 ──
+    ov_sv = situational.get("sv_pct_overall")
+    ev_d = situational.get("even_strength", {})
+    pk_d = situational.get("penalty_kill", {})
+    pp_d = situational.get("power_play", {})
+    hd_d = situational.get("high_danger", {})
+    med_d = situational.get("medium", {})
+    lng_d = situational.get("long_range", {})
+    slot_d = situational.get("slot", {})
+    rush_d = situational.get("rush", {})
+    royal_d = situational.get("royal_road", {})
+    cycle_d = situational.get("cycle", {})
+    flank_d = situational.get("flank", {})
+
+    if sv_pct_p is not None and not is_prospect:
+        pillar1_rows = "".join([
+            _bar_row("SV% (Overall)", _m(sv_pct_p)),
+            _bar_row("SV% (5-on-5)", _m(es_sv_pct_p)),
+            _bar_row("Scoring-Chance SV%", _m(sc_sv_pct_p)),
+            _bar_row("GSAx", _m(gsax_p)),
+        ])
+        pillar1 = _pillar_col("League Percentiles", _pillar_avg_of([sv_pct_p, es_sv_pct_p, sc_sv_pct_p, gsax_p]), pillar1_rows)
+    else:
+        pillar1_rows = "".join([
+            _raw_bar_row("Overall SV%", ov_sv),
+            _raw_bar_row("5v5 Even Strength", ev_d.get("sv_pct"), low_sample=bool(ev_d.get("low_sample"))),
+            _raw_bar_row("Penalty Kill (SH)", pk_d.get("sv_pct"), low_sample=bool(pk_d.get("low_sample"))),
+            _raw_bar_row("Power Play", pp_d.get("sv_pct"), low_sample=bool(pp_d.get("low_sample"))),
+        ])
+        pillar1 = _simple_pillar("Strength Splits (SV%)", pillar1_rows)
 
     pillar2_rows = "".join([
-        raw_row("High Danger", "high_danger"),
-        raw_row("Medium Range", "medium"),
-        raw_row("Long Range", "long_range"),
-        raw_row("Rush Chances", "rush"),
+        _raw_bar_row("High Danger (<15m)", hd_d.get("sv_pct"), low_sample=bool(hd_d.get("low_sample"))),
+        _raw_bar_row("Medium Range (15-25m)", med_d.get("sv_pct"), low_sample=bool(med_d.get("low_sample"))),
+        _raw_bar_row("Long Range (>25m)", lng_d.get("sv_pct"), low_sample=bool(lng_d.get("low_sample"))),
+        _raw_bar_row("Inner Slot Area", slot_d.get("sv_pct"), low_sample=bool(slot_d.get("low_sample"))),
     ])
+    pillar2 = _simple_pillar("Shot Danger (SV%)", pillar2_rows)
+
     pillar3_rows = "".join([
-        raw_row("Forecheck / Cycle", "cycle"),
-        raw_row("Royal Road", "royal_road"),
-        raw_row("Shots from Left", "left_side"),
-        raw_row("Shots from Right", "right_side"),
+        _raw_bar_row("Rush Chances", rush_d.get("sv_pct"), low_sample=bool(rush_d.get("low_sample"))),
+        _raw_bar_row("Royal Road (Cross-Slot)", royal_d.get("sv_pct"), low_sample=bool(royal_d.get("low_sample"))),
+        _raw_bar_row("Forecheck / Cycle", cycle_d.get("sv_pct"), low_sample=bool(cycle_d.get("low_sample"))),
+        _raw_bar_row("Perimeter / Flanks", flank_d.get("sv_pct"), low_sample=bool(flank_d.get("low_sample"))),
     ])
+    pillar3 = _simple_pillar("Tactical Sequences (SV%)", pillar3_rows)
 
     # ── Shot map ──
     raw_shots = profile.get("shots") or []
@@ -252,50 +352,135 @@ def render_goalie_card_html(profile: dict[str, Any]) -> str:
             rows.append(_rate_row(f"{k} ({d.get('shots',0)}){flag}", disp))
         return "".join(rows) if rows else _rate_row("No tracked data", "—")
 
-    # ── Season Summary: big stat tiles, not small text rows — this is headline
-    # data (record, GAA, shutouts) and should carry visual weight to match. ──
+    # ── Season Summary: big stat tiles ──
     gaa_val = official.get("gaa")
     gaa_disp = f"{gaa_val:.2f}" if isinstance(gaa_val, (int, float)) else "—"
     rebound_disp = f"{rebound_control:.1f}%" if rebound_control is not None else "—"
-    season_tiles = "".join([
-        _stat_tile("Games Played", str(gp)),
-        _stat_tile("Record (W-L-OTL)", f"{w}-{l}-{otl}"),
-        _stat_tile("GAA", gaa_disp),
-        _stat_tile("Shutouts", str(official.get("shutouts", "—"))),
-        _stat_tile("Rebound Control", rebound_disp),
-        _stat_tile("Shots Faced", str(situational.get("shots", "—"))),
-    ])
+    qs_v = official.get("quality_starts")
+    qs_pct_val = official.get("quality_start_pct")
+    qs_pct_str = f"{qs_pct_val:.0f}%" if isinstance(qs_pct_val, (int, float)) else "—"
+    qs_disp = f"{qs_v} ({qs_pct_str})" if qs_v is not None else "—"
 
-    # ── Real per-shot splits: handedness, style/attack/visibility, score+rebound detail ──
-    # Same .pillar layout as the percentile row above (not .rate-col), so both
-    # rows read as one consistent grid instead of two different systems.
-    handedness_pillar = _simple_pillar(
-        "Shooter Handedness / Wing",
-        split_rows(real_agg.get("handedness_splits", {}), ["vs_right_shot", "vs_left_shot", "off_wing", "on_wing", "short_side", "long_side"]),
-    )
-    attack_pillar = _simple_pillar(
-        "Style of Play / Attack Type / Visibility",
-        split_rows(real_agg.get("real_style_of_play", {}), ["Butterfly", "In Motion", "Beaten"])
-        + split_rows({**real_agg.get("by_attack_type", {}), **real_agg.get("by_visibility", {})}),
-    )
-    situation_pillar = _simple_pillar(
-        "Score Sit. (SV%) / Rebound Detail (% of saves)",
-        split_rows(real_agg.get("by_score_situation", {})) + split_rows(real_agg.get("save_detail_share", {}), metric="share_pct"),
+    if is_prospect:
+        saves_v = official.get("saves", "—")
+        season_tiles = "".join([
+            _stat_tile("Games Played", str(gp)),
+            _stat_tile("Saves", str(saves_v)),
+            _stat_tile("GAA", gaa_disp),
+            _stat_tile("Shutouts", str(official.get("shutouts", "—"))),
+            _stat_tile("Quality Starts", qs_disp),
+            _stat_tile("Shots Faced", str(situational.get("shots", official.get("shots_against", "—")))),
+        ])
+    else:
+        season_tiles = "".join([
+            _stat_tile("Games Played", str(gp)),
+            _stat_tile("Record (W-L-OTL)", f"{w}-{l}-{otl}"),
+            _stat_tile("GAA", gaa_disp),
+            _stat_tile("Shutouts", str(official.get("shutouts", "—"))),
+            _stat_tile("Quality Starts", qs_disp if qs_v is not None else rebound_disp),
+            _stat_tile("Shots Faced", str(situational.get("shots", official.get("shots_against", "—")))),
+        ])
+
+    # ── Bottom pillars & heatmap ──
+    if "handedness_splits" in real_agg and "Left Flank (Outside)" in real_agg["handedness_splits"]:
+        handedness_pillar = _simple_pillar(
+            "Lateral & Angle Splits (SV%)",
+            split_rows(real_agg.get("handedness_splits", {}), [
+                "Shots from Left", "Shots from Right", "Left Flank (Outside)", "Right Flank (Outside)", "Inner Slot Area"
+            ]),
+        )
+        attack_pillar = _simple_pillar(
+            "Save Posture & Technique (SV%)",
+            split_rows(real_agg.get("real_style_of_play", {}), [
+                "Butterfly Posture", "In Motion / Recovery", "Scramble / Beaten"
+            ]) + split_rows(real_agg.get("by_attack_type", {}), [
+                "High Danger (<15m)", "Medium Range (15-25m)", "Long Range (>25m)"
+            ]),
+        )
+        situation_pillar = _simple_pillar(
+            "Rebound & Workload Analytics",
+            split_rows(real_agg.get("save_detail_share", {}), metric="share_pct"),
+        )
+        heatmap_html = render_net_heatmap_html(
+            real_agg.get("heatmap_zones", {}),
+            games_tracked,
+            real_shots_n,
+            title="Save % by Ice Zone (Location & Range)",
+            subtitle=f"{games_tracked} games · {real_shots_n} shots against",
+        )
+        real_data_note = (
+            f'<div class="data-context data-context--minimal">'
+            f'<span>Heatmap, save posture, strength situations (5v5/PK/PP), tactical sequences (Rush/Cycle/Royal Road), and ice location splits '
+            f'derived from {real_shots_n} shots across {games_tracked} games in local InStat play-by-play tracking.</span>'
+            f'</div>'
+        )
+    else:
+        handedness_pillar = _simple_pillar(
+            "Shooter Handedness / Wing",
+            split_rows(real_agg.get("handedness_splits", {}), ["vs_right_shot", "vs_left_shot", "off_wing", "on_wing", "short_side", "long_side"]),
+        )
+        attack_pillar = _simple_pillar(
+            "Style of Play / Attack Type / Visibility",
+            split_rows(real_agg.get("real_style_of_play", {}), ["Butterfly", "In Motion", "Beaten"])
+            + split_rows({**real_agg.get("by_attack_type", {}), **real_agg.get("by_visibility", {})}),
+        )
+        situation_pillar = _simple_pillar(
+            "Score Sit. (SV%) / Rebound Detail (% of saves)",
+            split_rows(real_agg.get("by_score_situation", {})) + split_rows(real_agg.get("save_detail_share", {}), metric="share_pct"),
+        )
+        heatmap_html = render_net_heatmap_html(
+            real_agg.get("heatmap_zones", {}), games_tracked, real_shots_n
+        )
+        real_data_note = (
+            f'<div class="data-context data-context--minimal">'
+            f'<span>Heatmap, style of play, handedness/attack-type/visibility/score-situation splits above come from '
+            f'InStat\'s real per-shot goalie tracking ({games_tracked} of {gp if isinstance(gp,(int,str)) else "—"} games this '
+            f'goalie played were shot-charted at this level of detail — InStat doesn\'t run this tracking for every game, '
+            f'unlike the always-on play-by-play export the rest of the card uses). Not a proxy or estimate where shown.</span>'
+            f'</div>'
+            if games_tracked else
+            '<div class="data-context data-context--minimal"><span>No InStat per-shot goalie tracking available for this player this season.</span></div>'
+        )
+
+    pillars_section_tag = (
+        f"Situational Save % · <span>{official.get('shots_against', situational.get('shots', 0))} shots across {gp} games</span>"
+        if (is_prospect or sv_pct_p is None) else
+        f"League percentiles · <span>vs. {pool_size or '—'} NHL goalies, min 10 GP</span>"
     )
 
-    heatmap_html = render_net_heatmap_html(
-        real_agg.get("heatmap_zones", {}), games_tracked, real_shots_n
-    )
-    real_data_note = (
-        f'<div class="data-context data-context--minimal">'
-        f'<span>Heatmap, style of play, handedness/attack-type/visibility/score-situation splits above come from '
-        f'InStat\'s real per-shot goalie tracking ({games_tracked} of {gp if isinstance(gp,(int,str)) else "—"} games this '
-        f'goalie played were shot-charted at this level of detail — InStat doesn\'t run this tracking for every game, '
-        f'unlike the always-on play-by-play export the rest of the card uses). Not a proxy or estimate where shown.</span>'
-        f'</div>'
-        if games_tracked else
-        '<div class="data-context data-context--minimal"><span>No InStat per-shot goalie tracking available for this player this season.</span></div>'
-    )
+    ev_sv = (situational.get("even_strength") or {}).get("sv_pct")
+    rush_sv = (situational.get("rush") or {}).get("sv_pct")
+    reb_ctrl = situational.get("rebound_control_pct")
+    ctx_qs = official.get("quality_start_pct")
+    ctx_qs_str = f"{ctx_qs:.0f}%" if isinstance(ctx_qs, (int, float)) else "—"
+
+    if sv_pct_p is not None and not is_prospect:
+        sub_scores_html = (
+            f'<div><span>5v5</span><em class="{es_tier}">{es_disp}</em></div>'
+            f'<div><span>SC</span><em class="{sc_tier}">{sc_disp}</em></div>'
+        )
+        ctx_box_html = (
+            f'<div class="ctx-box">'
+            f'<div>GAA<b>{gaa_disp}</b></div>'
+            f'<div>SO<b>{html.escape(str(official.get("shutouts", "—")))}</b></div>'
+            f'</div>'
+        )
+    else:
+        sub_scores_html = (
+            f'<div><span>5v5 EV</span><em>{f"{ev_sv:.1f}%" if ev_sv is not None else "—"}</em></div>'
+            f'<div><span>Rush</span><em>{f"{rush_sv:.1f}%" if rush_sv is not None else "—"}</em></div>'
+            f'<div><span>Reb. Ctrl</span><em>{f"{reb_ctrl:.1f}%" if reb_ctrl is not None else "—"}</em></div>'
+        )
+        ctx_box_html = (
+            f'<div class="ctx-box">'
+            f'<div>GAA<b>{gaa_disp}</b></div>'
+            f'<div>SO<b>{html.escape(str(official.get("shutouts", "—")))}</b></div>'
+            f'<div>QS%<b>{ctx_qs_str}</b></div>'
+            f'</div>'
+        )
+
+
+
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -304,6 +489,65 @@ def render_goalie_card_html(profile: dict[str, Any]) -> str:
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Russo+One&display=swap" rel="stylesheet">
 <style>
 {shared_card_css(primary, accent, theme, light)}
+.hero-block {{ display: flex; align-items: stretch; gap: 0; }}
+.hero-block .gs-hero {{ border-top-right-radius: 0; border-bottom-right-radius: 0; }}
+.sub-scores {{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: none;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 6px 12px;
+  min-width: 105px;
+}}
+.sub-scores > div {{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}}
+.sub-scores span {{
+  font-size: 0.52rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}}
+.sub-scores em {{
+  font-family: 'Russo One', sans-serif;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--ink);
+}}
+.ctx-box {{
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-width: 90px;
+  gap: 3px;
+}}
+.ctx-box > div {{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.52rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}}
+.ctx-box b {{
+  font-family: 'Russo One', sans-serif;
+  font-size: 0.75rem;
+  color: var(--ink);
+}}
 .g-tile-row {{ background: #fff; border-bottom: 1px solid var(--line); padding: 14px 20px 16px; }}
 .g-tile-row .section-tag {{ padding: 0 0 8px; }}
 .g-tile-grid {{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }}
@@ -335,26 +579,21 @@ def render_goalie_card_html(profile: dict[str, Any]) -> str:
           {f'<div class="gs-hero__sub">{html.escape(gs_sub)}</div>' if gs_sub else ""}
         </div>
         <div class="sub-scores">
-          <div><span>5v5</span><em class="{es_tier}">{es_disp}</em></div>
-          <div><span>SC</span><em class="{sc_tier}">{sc_disp}</em></div>
+          {sub_scores_html}
         </div>
       </div>
-      <div class="ctx-box">
-        <div>GAA<b>{gaa_disp}</b></div>
-        <div>SO<b>{html.escape(str(official.get("shutouts", "—")))}</b></div>
-      </div>
+      {ctx_box_html}
       </div>
     </header>
     <div class="ribbon"></div>
     <div class="main-grid">
       <div class="pillars-wrap">
-        <div class="section-tag">League percentiles · <span>vs. {pool_size or "—"} NHL goalies, min 10 GP</span></div>
-        <div class="pillars">{pillar1}
-          <div class="pillar"><div class="pillar__head"><span class="pillar__title">Shot Location (raw SV%)</span></div><div class="pillar__rows">{pillar2_rows}</div></div>
-          <div class="pillar"><div class="pillar__head"><span class="pillar__title">Situation (raw SV%)</span></div><div class="pillar__rows">{pillar3_rows}</div></div>
-        </div>
+        <div class="section-tag">{pillars_section_tag}</div>
+        <div class="pillars">{pillar1}{pillar2}{pillar3}</div>
       </div>
+
       <div class="shot-wrap">{shot_html}</div>
+
     </div>
     <div class="g-tile-row">
       <div class="section-tag">Season summary</div>

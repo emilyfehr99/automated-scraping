@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Any
+from .leagues import DEFAULT_SEASON
 
-REGULAR_SEASON = "2025-26"
-PLAYOFF_SEASON = "2025-26p"
+REGULAR_SEASON = DEFAULT_SEASON
+PLAYOFF_SEASON = f"{DEFAULT_SEASON}p"
 
 
 def infer_a3z_season(pbp_files: list[Path]) -> str:
@@ -15,15 +16,21 @@ def infer_a3z_season(pbp_files: list[Path]) -> str:
     if not pbp_files:
         return REGULAR_SEASON
     joined = " ".join(str(p).lower() for p in pbp_files)
-    if "playoff" in joined:
+    
+    # Check for explicit playoff indicator
+    is_playoff = "playoff" in joined
+    
+    # Regex match any season tag like 2025-26, 2026-27, 2024-25p, etc.
+    m = re.search(r"\b(20\d\d-\d\d(p)?)\b", joined)
+    if m:
+        tag = m.group(1)
+        if is_playoff and not tag.endswith("p"):
+            return f"{tag}p"
+        return tag
+        
+    if is_playoff:
         return PLAYOFF_SEASON
-    if re.search(r"2025-26p", joined):
-        return PLAYOFF_SEASON
-    if re.search(r"2024-25p", joined):
-        return "2024-25p"
-    if re.search(r"2025-26", joined):
-        return REGULAR_SEASON
-    return PLAYOFF_SEASON
+    return REGULAR_SEASON
 
 
 def build_game_context(

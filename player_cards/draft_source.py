@@ -7,13 +7,20 @@ from typing import Any
 import httpx
 
 from .disk_cache import cache_path, load_json, save_json
-from .nhl_bio import _norm, _first_name_matches
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_draft_picks(year: int = 2026) -> list[dict[str, Any]]:
+def _current_draft_year() -> int:
+    now = datetime.now()
+    return now.year if now.month >= 7 else now.year
+
+
+def fetch_draft_picks(year: int | None = None) -> list[dict[str, Any]]:
     """Fetch all draft picks for a given year from the NHL API with a 24h disk cache."""
+    if year is None:
+        year = _current_draft_year()
     path = cache_path("draft", f"picks_{year}.json")
     # Cache for 24 hours (86400 seconds)
     hit = load_json(path, ttl_seconds=86400)
@@ -39,8 +46,10 @@ def fetch_draft_picks(year: int = 2026) -> list[dict[str, Any]]:
     return []
 
 
-def find_draft_pick(player_name: str, year: int = 2026) -> dict[str, Any] | None:
+def find_draft_pick(player_name: str, year: int | None = None) -> dict[str, Any] | None:
     """Find a prospect's draft selection details by name."""
+    if year is None:
+        year = _current_draft_year()
     picks = fetch_draft_picks(year)
     if not picks:
         return None
