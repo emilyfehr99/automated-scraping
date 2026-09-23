@@ -31,14 +31,20 @@ for _pwhl in (ROOT.parent / "pwhl-analytics", VENDOR_PIPELINE):
         sys.path.insert(0, str(_pwhl))
         break
 
-# PBP lives in GitHub Actions cache at PLAYER_CARDS_WORK_ROOT (not Desktop).
+# PBP: ~/Desktop/My Analytics Work/{Team}/Instat_API_Downloads/ (or PLAYER_CARDS_WORK_ROOT)
 _GH_PBP_ROOT = ROOT / ".player-cards-data"
 if _GH_PBP_ROOT.is_dir() and not os.environ.get("PLAYER_CARDS_WORK_ROOT"):
     if any(_GH_PBP_ROOT.glob("**/Instat_API_Downloads/*_pbp.csv")):
         os.environ["PLAYER_CARDS_WORK_ROOT"] = str(_GH_PBP_ROOT)
 
-from player_cards.instat_source import NHL_TEAM_SEARCH, _match_player_name  # noqa: E402
+from player_cards.instat_source import NHL_TEAM_SEARCH  # noqa: E402
 from player_cards.leagues import player_cards_work_root  # noqa: E402
+from player_cards.pbp_catalog import (  # noqa: E402
+    catalog_games,
+    dedupe_by_match_id,
+    load_dataframe,
+    summary as pbp_summary,
+)
 
 from pipeline.line_pairing_engine import (  # noqa: E402
     UnitKey,
@@ -47,13 +53,21 @@ from pipeline.line_pairing_engine import (  # noqa: E402
     _event_counts_for_units,
     _identify_goalies,
     _pack_unit,
+    _short_label,
     _sweep_segments,
     _unit_seconds,
 )
 
 OUT_DIR = Path(__file__).resolve().parent / "outputs"
 NHL_API = "https://api-web.nhle.com/v1"
-ROSTER_SEASON = "20252026"
+try:
+    from player_cards.leagues import nhl_api_season_id, detect_active_season
+    ROSTER_SEASON = nhl_api_season_id()
+except Exception:
+    import datetime as _dt
+    _today = _dt.date.today()
+    _start_yr = _today.year if _today.month >= 10 else _today.year - 1
+    ROSTER_SEASON = f"{_start_yr}{_start_yr+1}"
 
 DZ_LIMIT = 22.86
 NZ_LIMIT = 38.10
@@ -73,6 +87,8 @@ RETRIEVAL_ACTIONS = frozenset({"Puck recoveries in DZ", "Puck recoveries"})
 SHOT_ACTIONS = frozenset({"Shots", "Shots on goal", "Goals", "Missed shots"})
 
 SKILL_KEYS = ("entry_rate", "retrieval_rate", "exit_rate", "pass_rate", "shot_xg_rate")
+NHL_TEAM_NAMES = frozenset(NHL_TEAM_SEARCH.values())
+CHEM_INDEX_TOP_N = 8
 
 
 def _norm(s: str) -> str:
@@ -93,49 +109,16 @@ def _xg(px: float, py: float) -> float:
     return 1.0 / (1.0 + math.exp(-z))
 
 
-def discover_nhl_pbp_files() -> list[Path]:
-    """One PBP file per game_id from PLAYER_CARDS_WORK_ROOT (GitHub Actions cache layout)."""
-    root = Path(os.environ.get("PLAYER_CARDS_WORK_ROOT", "") or player_cards_work_root())
-    by_game: dict[str, Path] = {}
-    for team_full in NHL_TEAM_SEARCH.values():
-        d = root / team_full / "Instat_API_Downloads"
-        if not d.is_dir():
-            continue
-        for fp in d.glob("*_pbp.csv"):
-            gid = _game_id_from_path(fp)
-            prev = by_game.get(gid)
-            if prev is None or fp.stat().st_size > prev.stat().st_size:
-                by_game[gid] = fp
-    return sorted(by_game.values(), key=lambda p: p.name)
-
-
-def _game_id_from_path(p: Path) -> str:
-    m = re.search(r"_(\d+)_pbp\.csv$", p.name)
-    return m.group(1) if m else p.stem
-
-
-def load_pbp(files: list[Path]) -> pd.DataFrame:
-    parts: list[pd.DataFrame] = []
-    for fp in files:
-        try:
-            df = pd.read_csv(fp)
-        except Exception:
-            continue
-        if df.empty:
-            continue
-        gid = _game_id_from_path(fp)
-        df = df.copy()
-        df["game_id"] = gid
-        df["pos_x"] = pd.to_numeric(df.get("pos_x"), errors="coerce")
-        df["pos_y"] = pd.to_numeric(df.get("pos_y"), errors="coerce")
-        if "start" in df.columns:
-            df["start"] = pd.to_numeric(df["start"], errors="coerce")
-        parts.append(df)
-    if not parts:
-        return pd.DataFrame()
-    out = pd.concat(parts, ignore_index=True)
-    sort_cols = [c for c in ("game_id", "half", "start") if c in out.columns]
-    return out.sort_values(sort_cols).reset_index(drop=True)
+def load_nhl_pbp() -> pd.DataFrame:
+    """Full deduped NHL season via player_cards.pbp_catalog."""
+    df = load_dataframe(league="nhl", dedupe_games=True)
+    if df.empty:
+        return df
+    df["pos_x"] = pd.to_numeric(df.get("pos_x"), errors="coerce")
+    df["pos_y"] = pd.to_numeric(df.get("pos_y"), errors="coerce")
+    if "start" in df.columns:
+        df["start"] = pd.to_numeric(df["start"], errors="coerce")
+    return df
 
 
 def attach_xg(df: pd.DataFrame) -> pd.DataFrame:
@@ -346,6 +329,7 @@ def build_unit_records(
         for u in units.get("all_lines", []):
             players = tuple(u["players"])
             rec = dict(u)
+            rec["unit"] = _short_label(list(players))
             rec["team"] = team
             rec["complementarity"] = complementarity_score(players, skills, "line")
             rec["pass_links"] = pass_density(players, edge_counter)
@@ -356,6 +340,7 @@ def build_unit_records(
         for u in units.get("all_pairings", []):
             players = tuple(u["players"])
             rec = dict(u)
+            rec["unit"] = _short_label(list(players))
             rec["team"] = team
             rec["complementarity"] = complementarity_score(players, skills, "pairing")
             rec["pass_links"] = pass_density(players, edge_counter)
@@ -367,9 +352,14 @@ def build_unit_records(
     return all_lines, all_pairs
 
 
-def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[str, Any]:
-    """Correlate chemistry metrics with on-ice xGF%."""
-    rows = []
+def _is_nhl_team(team: str) -> bool:
+    return str(team).strip() in NHL_TEAM_NAMES
+
+
+def _filter_validation_units(
+    units: list[dict[str, Any]], *, min_shots: int = 8
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for u in units:
         if u.get("toi_sec", 0) < 300:
             continue
@@ -383,6 +373,71 @@ def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[s
         if xgf_pct is None or (isinstance(xgf_pct, float) and math.isnan(xgf_pct)):
             continue
         rows.append(u)
+    return rows
+
+
+def _compute_chemistry_index(
+    comp: np.ndarray, pass60: np.ndarray
+) -> np.ndarray:
+    """Chem = 0.6*z(complementarity) + 0.4*z(pass_links_per60) within cohort."""
+    chem_index = np.zeros(len(comp), dtype=float)
+    comp_mu, comp_sd = comp.mean(), comp.std()
+    pass_mu, pass_sd = pass60.mean(), pass60.std()
+    if comp_sd > 1e-9:
+        chem_index += 0.6 * (comp - comp_mu) / comp_sd
+    if pass_sd > 1e-9:
+        chem_index += 0.4 * (pass60 - pass_mu) / pass_sd
+    return chem_index
+
+
+def _serialize_unit(u: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "unit": u["unit"],
+        "team": u["team"],
+        "chemistry_index": u.get("chemistry_index"),
+        "xgf_pct": u["xgf_pct"],
+        "complementarity": u.get("complementarity"),
+        "pass_links_per60": u.get("pass_links_per60"),
+        "toi_min": u.get("toi_min"),
+    }
+
+
+def _top_by_chemistry(
+    enriched: list[dict[str, Any]], *, nhl_only: bool = False
+) -> list[dict[str, Any]]:
+    pool = [u for u in enriched if _is_nhl_team(u["team"])] if nhl_only else enriched
+    return [
+        _serialize_unit(u)
+        for u in sorted(pool, key=lambda u: u.get("chemistry_index") or -999, reverse=True)[
+            :CHEM_INDEX_TOP_N
+        ]
+    ]
+
+
+def _bottom_by_chemistry(
+    enriched: list[dict[str, Any]], *, nhl_only: bool = False
+) -> list[dict[str, Any]]:
+    pool = [u for u in enriched if _is_nhl_team(u["team"])] if nhl_only else enriched
+    return [
+        _serialize_unit(u)
+        for u in sorted(pool, key=lambda u: u.get("chemistry_index") or 999)[
+            :CHEM_INDEX_TOP_N
+        ]
+    ]
+
+
+def merge_chemistry_index(
+    units: list[dict[str, Any]], enriched: list[dict[str, Any]]
+) -> None:
+    """Attach chemistry_index from validation cohort back onto full unit list."""
+    lookup = {(u["unit"], u["team"]): u.get("chemistry_index") for u in enriched}
+    for u in units:
+        u["chemistry_index"] = lookup.get((u["unit"], u["team"]))
+
+
+def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[str, Any]:
+    """Correlate chemistry metrics with on-ice xGF%."""
+    rows = _filter_validation_units(units, min_shots=min_shots)
 
     if len(rows) < 10:
         return {"n": len(rows), "error": "insufficient units"}
@@ -403,14 +458,12 @@ def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[s
             return float("nan")
         return float(np.corrcoef(a, b)[0, 1])
 
-    # Combined chemistry index (z-scored)
-    comp_mu, comp_sd = comp.mean(), comp.std()
-    pass_mu, pass_sd = pass60.mean(), pass60.std()
-    chem_index = np.zeros(len(rows))
-    if comp_sd > 1e-9:
-        chem_index += 0.6 * (comp - comp_mu) / comp_sd
-    if pass_sd > 1e-9:
-        chem_index += 0.4 * (pass60 - pass_mu) / pass_sd
+    chem_index = _compute_chemistry_index(comp, pass60)
+    enriched = []
+    for u, ci in zip(rows, chem_index):
+        rec = dict(u)
+        rec["chemistry_index"] = round(float(ci), 3)
+        enriched.append(rec)
 
     w = toi / toi.sum()
     x_mean = np.average(chem_index, weights=w)
@@ -424,19 +477,18 @@ def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[s
     ss_tot = np.average((xgf - y_mean) ** 2, weights=w)
     r2 = 1 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0
 
-    # High vs low chemistry quartile comparison
     q75 = float(np.percentile(chem_index, 75))
     q25 = float(np.percentile(chem_index, 25))
-    high = [u for u, c in zip(rows, chem_index) if c >= q75]
-    low = [u for u, c in zip(rows, chem_index) if c <= q25]
+    high = [u for u, c in zip(enriched, chem_index) if c >= q75]
+    low = [u for u, c in zip(enriched, chem_index) if c <= q25]
 
     def _mean_xgf_pct(group: list[dict[str, Any]]) -> float:
         if not group:
             return float("nan")
         return float(np.mean([u["xgf_pct"] for u in group]))
 
-    top = sorted(rows, key=lambda u: u.get("xgf_pct") or 0, reverse=True)[:8]
-    bottom = sorted(rows, key=lambda u: u.get("xgf_pct") or 0)[:8]
+    top_xgf = sorted(enriched, key=lambda u: u.get("xgf_pct") or 0, reverse=True)[:CHEM_INDEX_TOP_N]
+    bottom_xgf = sorted(enriched, key=lambda u: u.get("xgf_pct") or 0)[:CHEM_INDEX_TOP_N]
 
     return {
         "n_units": len(rows),
@@ -449,35 +501,90 @@ def validate_model(units: list[dict[str, Any]], *, min_shots: int = 8) -> dict[s
         "slope_chemistry_to_xgf_pct": round(float(slope), 3),
         "high_chem_quartile_mean_xgf_pct": round(_mean_xgf_pct(high), 1),
         "low_chem_quartile_mean_xgf_pct": round(_mean_xgf_pct(low), 1),
-        "top_xgf_units": [
-            {"unit": u["unit"], "team": u["team"], "xgf_pct": u["xgf_pct"],
-             "complementarity": u.get("complementarity"), "pass_links_per60": u.get("pass_links_per60"),
-             "toi_min": u.get("toi_min")}
-            for u in top
-        ],
-        "bottom_xgf_units": [
-            {"unit": u["unit"], "team": u["team"], "xgf_pct": u["xgf_pct"],
-             "complementarity": u.get("complementarity"), "pass_links_per60": u.get("pass_links_per60"),
-             "toi_min": u.get("toi_min")}
-            for u in bottom
-        ],
+        "top_xgf_units": [_serialize_unit(u) for u in top_xgf],
+        "bottom_xgf_units": [_serialize_unit(u) for u in bottom_xgf],
+        "top_chemistry_units": _top_by_chemistry(enriched, nhl_only=False),
+        "bottom_chemistry_units": _bottom_by_chemistry(enriched, nhl_only=False),
+        "top_chemistry_units_nhl": _top_by_chemistry(enriched, nhl_only=True),
+        "bottom_chemistry_units_nhl": _bottom_by_chemistry(enriched, nhl_only=True),
+        "_enriched_units": enriched,
     }
+
+
+def _records_from_csv(path: Path) -> list[dict[str, Any]]:
+    """Load unit CSV and fix unit labels from full InStat player names."""
+    import ast
+
+    df = pd.read_csv(path)
+    records: list[dict[str, Any]] = []
+    for _, row in df.iterrows():
+        rec = row.to_dict()
+        players_raw = rec.get("players")
+        if isinstance(players_raw, str):
+            try:
+                players = ast.literal_eval(players_raw)
+            except (SyntaxError, ValueError):
+                players = []
+        else:
+            players = players_raw or []
+        if players:
+            rec["players"] = players
+            rec["unit"] = _short_label([str(p) for p in players])
+        if pd.isna(rec.get("chemistry_index")):
+            rec["chemistry_index"] = None
+        records.append(rec)
+    return records
+
+
+def refresh_from_csv() -> dict[str, Any]:
+    """Recompute validation + chemistry rankings from existing CSV outputs (fast)."""
+    summary_path = OUT_DIR / "analysis_summary.json"
+    if not summary_path.exists():
+        raise SystemExit(f"Missing {summary_path}; run full analysis first.")
+
+    summary = json.loads(summary_path.read_text())
+    lines = _records_from_csv(OUT_DIR / "forward_lines.csv")
+    pairs = _records_from_csv(OUT_DIR / "defensive_pairs.csv")
+
+    line_val = validate_model(lines)
+    pair_val = validate_model(pairs)
+    merge_chemistry_index(lines, line_val.pop("_enriched_units", []))
+    merge_chemistry_index(pairs, pair_val.pop("_enriched_units", []))
+
+    summary["forward_lines"]["n_units"] = len(lines)
+    summary["forward_lines"]["validation"] = line_val
+    summary["defensive_pairs"]["n_units"] = len(pairs)
+    summary["defensive_pairs"]["validation"] = pair_val
+
+    summary_path.write_text(json.dumps(summary, indent=2))
+    pd.DataFrame(lines).to_csv(OUT_DIR / "forward_lines.csv", index=False)
+    pd.DataFrame(pairs).to_csv(OUT_DIR / "defensive_pairs.csv", index=False)
+
+    print(json.dumps({
+        "refreshed": True,
+        "lines": line_val.get("n_units"),
+        "pairs": pair_val.get("n_units"),
+        "top_line_chem_nhl": line_val.get("top_chemistry_units_nhl", [])[:3],
+        "top_pair_chem_nhl": pair_val.get("top_chemistry_units_nhl", [])[:3],
+    }, indent=2))
+    return summary
 
 
 def run() -> dict[str, Any]:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    work_root = os.environ.get("PLAYER_CARDS_WORK_ROOT") or str(player_cards_work_root())
+    cat = pbp_summary()
+    work_root = cat.get("work_root", str(player_cards_work_root()))
     print(f"PLAYER_CARDS_WORK_ROOT={work_root}")
-    files = discover_nhl_pbp_files()
-    if not files:
-        raise SystemExit(
-            "No InStat PBP CSVs found. Sync from GitHub Actions:\n"
-            "  python research/line_chemistry_passing_networks/sync_pbp_from_actions.py\n"
-            "Or set PLAYER_CARDS_WORK_ROOT to .player-cards-data after unpacking pbp-cache-shard-*.tar.gz"
-        )
-    print(f"Found {len(files)} unique NHL games (deduped by game_id)")
+    print(f"PBP catalog: {cat.get('unique_games')} unique games, {cat.get('file_rows')} files")
 
-    df = load_pbp(files)
+    df = load_nhl_pbp()
+    if df.empty:
+        raise SystemExit(
+            "No InStat PBP CSVs found. Run once:\n"
+            "  python scripts/sync_player_cards_ci.py\n"
+            "Or: PYTHONPATH=. python3 scripts/pbp_query.py summary"
+        )
+
     df = attach_xg(df)
     teams = sorted(df["team"].dropna().unique().tolist())
     print(f"Loaded {df['game_id'].nunique()} games, {len(teams)} team labels")
@@ -490,6 +597,8 @@ def run() -> dict[str, Any]:
     lines, pairs = build_unit_records(df, teams, position_by_player, skills, pass_edges)
     line_val = validate_model(lines)
     pair_val = validate_model(pairs)
+    merge_chemistry_index(lines, line_val.pop("_enriched_units", []))
+    merge_chemistry_index(pairs, pair_val.pop("_enriched_units", []))
 
     # Skill z-scores for paper tables
     skill_table = sorted(
@@ -498,15 +607,21 @@ def run() -> dict[str, Any]:
         reverse=True,
     )[:30]
 
+    nhl_games = dedupe_by_match_id([g for g in catalog_games() if (g.league or "") == "nhl"])
+    teams_with_cache = len({g.team for g in nhl_games if g.team})
+
     summary = {
         "dataset": {
             "n_games": int(df["game_id"].nunique()),
             "n_events": len(df),
-            "n_pbp_files": len(files),
-            "n_teams_with_data": len({p for p in NHL_TEAM_SEARCH.values()
-                                      if (player_cards_work_root() / p / "Instat_API_Downloads").is_dir()}),
-            "season": "2025-26",
-            "source": "InStat/Hudl PBP + NHL API rosters",
+            "n_pbp_files": cat.get("file_rows"),
+            "n_unique_games_catalog": cat.get("unique_games"),
+            "n_teams_with_data": teams_with_cache,
+            "date_min": cat.get("date_min"),
+            "date_max": cat.get("date_max"),
+            "work_root": work_root,
+            "season": (detect_active_season("nhl")[0] if "detect_active_season" in globals() else "active"),
+            "source": "InStat/Hudl PBP (pbp_catalog) + NHL API rosters",
         },
         "pass_network": {
             "n_inferred_edges": len(pass_edges),
@@ -539,4 +654,16 @@ def run() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    run()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Line/pair chemistry analysis")
+    parser.add_argument(
+        "--refresh-from-csv",
+        action="store_true",
+        help="Recompute unit labels, chemistry rankings, and JSON from existing CSVs",
+    )
+    args = parser.parse_args()
+    if args.refresh_from_csv:
+        refresh_from_csv()
+    else:
+        run()
