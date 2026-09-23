@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Sync NHL InStat PBP from GitHub Actions pbp-cache-shard-*.tar.gz artifacts."""
+"""Sync NHL InStat PBP from GitHub Actions pbp-cache-shard-*.tar.gz artifacts.
+
+Prefer: python scripts/sync_player_cards_ci.py (PBP + merged card store).
+"""
 
 from __future__ import annotations
 
@@ -14,7 +17,7 @@ from pathlib import Path
 REPO = "emilyfehr99/automated-scraping"
 WORKFLOW = "player-cards-build.yml"
 DEFAULT_ROOT = Path(__file__).resolve().parents[2] / ".player-cards-data"
-NHL_SHARDS = range(1, 9)
+NHL_SHARDS = range(1, 10)
 
 
 def _run(cmd: list[str]) -> str:

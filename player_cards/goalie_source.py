@@ -102,6 +102,10 @@ async def fetch_goalie_instat_summary(
     season_id: int,
 ) -> dict[str, Any] | None:
     """Season-aggregate SV%/GSAx/scoring-chance splits for one goalie, straight from InStat."""
+    import os
+    if not os.getenv("ALLOW_INSTAT_LOGIN"):
+        return None
+
     try:
         from playwright.async_api import async_playwright
         from instat_api import InStatAPI

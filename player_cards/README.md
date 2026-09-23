@@ -1,242 +1,445 @@
-# player_cards — how these visuals are built
+# 🏒 Player Cards Analytics & Generation Engine
 
-This package generates hockey stat cards (skater, goalie, team, prospect) as
-PNG images. Everything runs through one CLI:
+A unified, production-grade analytics and visualization engine that generates high-fidelity player cards across all hockey domains: active NHL skaters, NHL goaltenders, PWHL stars, drafted prospects, draft-eligible junior talent, prospect goaltenders, and complete NHL franchise team cards.
+
+---
+
+## 📑 Table of Contents
+1. [System Architecture](#-system-architecture)
+2. [The 7 Card Archetypes & Scripts Involved](#-the-7-card-archetypes--scripts-involved)
+3. [Deep Dive Per Card Archetype](#-deep-dive-per-card-archetype)
+   - [1. Active NHL Skater (`nhl_player`)](#1-active-nhl-skater-nhl_player)
+   - [2. Active NHL Goaltender (`nhl_goalie`)](#2-active-nhl-goaltender-nhl_goalie)
+   - [3. Drafted NHL Prospect (`nhl_prospect`)](#3-drafted-nhl-prospect-nhl_prospect)
+   - [4. Junior / Undrafted Skater (`junior_player`)](#4-junior--undrafted-skater-junior_player)
+   - [5. Goalie Prospect — Drafted & Undrafted (`junior_goalie`)](#5-goalie-prospect--drafted--undrafted-junior_goalie)
+   - [6. PWHL Player (`pwhl_player`)](#6-pwhl-player-pwhl_player)
+   - [7. NHL Team Card (`nhl_team`)](#7-nhl-team-card-nhl_team)
+4. [Master Inventory of All Scripts & Modules](#-master-inventory-of-all-scripts--modules)
+5. [Smart Auto-Detection & Routing Engine](#-smart-auto-detection--routing-engine)
+6. [Data Integrity & Zero-Failure Fallback System](#-data-integrity--zero-failure-fallback-system)
+7. [CLI & Programmatic API Usage](#-cli--programmatic-api-usage)
+
+---
+
+## 🏛 System Architecture
+
+The player card engine operates on a layered, pipeline architecture:
+
+```mermaid
+flowchart TD
+    A[Input: Player Name / Club / Tri] --> B[Smart Card Classifier: card_kinds.py]
+    B --> C{Dispatch Generator: generators/}
+    
+    subgraph Data Layer
+        D1[NHL Official API: nhl_bio.py, nhl_instat.py]
+        D2[InStat Play-by-Play & Microstats: instat_source.py, pbp_metrics.py]
+        D3[EliteProspects API & Scraper: ep_api.py, ep_profile.py]
+        D4[Salary Cap Engine: cap_source.py]
+        D5[NHLe Translation Model: prospect_nhle.py, prospect_source.py]
+        D6[PWHL Stats & Media: pwhl_bio.py, pwhl_photos.py]
+    end
+
+    subgraph Profile Builders
+        P1[profile.py - Skaters]
+        P2[goalie_profile.py - NHL Goalies]
+        P3[prospect_goalie_profile.py - Junior Goalies]
+        P4[team_profile.py - NHL Teams]
+    end
+
+    subgraph Rendering & Export Layer
+        R1[html_renderer.py - Skater HTML]
+        R2[goalie_renderer.py - Goalie HTML]
+        R3[team_renderer.py - Team HTML]
+        R4[shot_map.py - Rink Coordinates]
+        E1[png_export.py - Headless Chrome PNG Render]
+    end
+
+    C --> Data Layer
+    Data Layer --> Profile Builders
+    Profile Builders --> Rendering & Export Layer
+    Rendering & Export Layer --> Out[High-Res 1200x675 PNG & HTML]
+```
+
+---
+
+## 🎴 The 7 Card Archetypes & Scripts Involved
+
+Every card archetype is governed by its dedicated generator in `player_cards/generators/` and backed by specific data pipelines and renderers:
+
+| Card Archetype | Kind Key | Entry Generator Script | Profile & Data Engine Scripts | Rendering Scripts | Output Directory |
+|---|---|---|---|---|---|
+| **Active NHL Skater** | `nhl_player` | [`generators/nhl_player.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/nhl_player.py) | [`profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/profile.py), [`pbp_metrics.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/pbp_metrics.py), [`nhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/nhl_bio.py), [`cap_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/cap_source.py), [`instat_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/instat_source.py) | [`html_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/html_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/nhl/players/` |
+| **Active NHL Goaltender** | `nhl_goalie` | [`generators/nhl_goalie.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/nhl_goalie.py) | [`goalie_profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_profile.py), [`goalie_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_source.py), [`goalie_pbp_metrics.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_pbp_metrics.py), [`nhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/nhl_bio.py), [`cap_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/cap_source.py) | [`goalie_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/nhl/goalies/` |
+| **Drafted NHL Prospect** | `nhl_prospect` | [`generators/nhl_prospect.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/nhl_prospect.py) | [`profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/profile.py), [`prospect_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/prospect_source.py), [`prospect_nhle.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/prospect_nhle.py), [`ep_profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/ep_profile.py), [`nhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/nhl_bio.py), [`draft_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/draft_source.py) | [`html_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/html_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/nhl/prospects/` |
+| **Junior / Undrafted Skater** | `junior_player` | [`generators/junior_player.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/junior_player.py) | [`profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/profile.py), [`prospect_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/prospect_source.py), [`prospect_nhle.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/prospect_nhle.py), [`ep_profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/ep_profile.py), [`amateur_brands.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/amateur_brands.py) | [`html_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/html_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/junior/players/` |
+| **Goalie Prospect (Drafted & Undrafted)** | `junior_goalie` | [`generators/junior_goalie.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/junior_goalie.py) | [`prospect_goalie_profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/prospect_goalie_profile.py), [`goalie_pbp_metrics.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_pbp_metrics.py), [`nhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/nhl_bio.py), [`amateur_brands.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/amateur_brands.py), [`draft_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/draft_source.py) | [`goalie_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/goalie_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/junior/goalies/` |
+| **PWHL Skater** | `pwhl_player` | [`generators/pwhl_player.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/pwhl_player.py) | [`profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/profile.py), [`pwhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/pwhl_bio.py), [`pwhl_photos.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/pwhl_photos.py), [`pwhl_vitals.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/pwhl_vitals.py), [`pbp_metrics.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/pbp_metrics.py) | [`html_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/html_renderer.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/pwhl/players/` |
+| **NHL Team Card** | `nhl_team` | [`generators/nhl_team.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/generators/nhl_team.py) | [`team_profile.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/team_profile.py), [`team_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/team_source.py), [`nhl_bio.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/nhl_bio.py), [`cap_source.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/cap_source.py), [`team_colors.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/team_colors.py) | [`team_renderer.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/team_renderer.py), [`team_charts.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/team_charts.py), [`shot_map.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/shot_map.py), [`png_export.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/png_export.py) | `player_cards/output/nhl/teams/` |
+
+---
+
+## 🔍 Deep Dive Per Card Archetype
+
+---
+
+### 1. Active NHL Skater (`nhl_player`)
+* **Intended Subject**: Full-time active NHL forwards and defensemen.
+* **Involved Scripts**:
+  - `generators/nhl_player.py`: Generator dispatcher & filename routing.
+  - `profile.py`: Primary skater profile engine (calculates 5v5 Game Score, league percentiles, microstat averages).
+  - `nhl_bio.py`: Official NHL API client (roster status, sweater number, vitals, flag, headshot).
+  - `cap_source.py`: Real-time contract cap hit, AAV %, expiry year, and contract status scraper.
+  - `pbp_metrics.py`: 5v5 microstat calculations (zone entries, exits, scoring chances, rush offense).
+  - `instat_source.py` & `pbp_harvest.py`: Local InStat CSV discovery and event parsing.
+  - `html_renderer.py`: Skater HTML layout compiler.
+  - `shot_map.py`: Half-rink coordinate shot scatter plotter.
+  - `png_export.py`: Playwright headless Chrome 1200x675 PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Country Flag emoji, Headshot Cutout with object-positioning, Official NHL Team Logo, Sweater Number badge, Position (`C`/`LW`/`RW`/`LD`/`RD`), Team Name, Season (`2025-26`), Height (ft/in), Weight (lbs), Shoots (`L`/`R`), Team Colors.
+  2. **Salary Cap & Contract Box**: Cap Hit ($M/yr), Cap Hit % of upper limit, Term / Expiry Year, Status (`ELC`, `RFA`, `UFA`, `NTC`, `NMC`, `35+`).
+  3. **5v5 Game Score Headline**: 5v5 Game Score per 60, League Percentile Rank (`0-100th %ile`) vs qualified NHL forwards or defensemen, tier classification color badge.
+  4. **The 3 Core Metric Pillars (12 Micro-Stats)**:
+     - *Offense Pillar*: 5v5 Primary Points/60, Individual Expected Goals (`ixG/60`), Scoring Chances Created/60, Rush Offense Shots/60.
+     - *Defense Pillar*: 5v5 Defensive Impact / Goals Against Suppression/60, Defensive Zone Puck Recoveries/60, DZ Exits with Possession/60, Quality of Competition (QoC).
+     - *Transition Pillar*: Controlled Zone Entries/60, Zone Entry Success %, Controlled Zone Exits/60, Controlled Exit Success %.
+  5. **Season Summary (6 Stat Tiles)**: Games Played (GP), Goals (G), Assists (A), Points (PTS), Plus/Minus (+/-), Time On Ice per Game (TOI/GP).
+  6. **Rink Shot Map Scatter Plot**: Half-rink SVG plotting all 5v5 shots `(pos_x, pos_y)` with xG-weighted dot sizing, goal indicators, net target area, and summary tally (Total Shots, Total xG Sum, Total Goals).
+  7. **Context Footer**: Minimum GP threshold, percentile pool size definition, tracking data attribution.
+
+---
+
+### 2. Active NHL Goaltender (`nhl_goalie`)
+* **Intended Subject**: Active NHL starting and backup goaltenders.
+* **Involved Scripts**:
+  - `generators/nhl_goalie.py`: Generator dispatcher.
+  - `goalie_profile.py`: NHL goalie profile builder (matches NHL API game logs with InStat per-shot tracking).
+  - `goalie_source.py`: InStat aggregate goalie statistics.
+  - `goalie_pbp_metrics.py`: 12-way situational splits, rebound metrics, posture tracking.
+  - `nhl_bio.py`: Official NHL API bio, sweater number, team, headshot.
+  - `cap_source.py`: Goalie contract cap hit, AAV %, expiry year.
+  - `goalie_renderer.py`: Goalie HTML template engine (9-zone net grid, posture splits).
+  - `shot_map.py`: Defensive half-rink shot scatter plotter.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Country Flag, Goalie Headshot Cutout, Official Team Logo, Sweater Number, Position (`G`), Team Name, Height, Weight, Catches Hand (`L`/`R`), Team Colors.
+  2. **Salary Cap & Contract Box**: Cap Hit ($M), Cap Hit %, Expiry Year, Contract Status.
+  3. **Headline Hero Block**: Save % (SV%) headline badge, GAA, Shots Faced, League Percentile Rank vs qualified NHL goalies (min 10 GP), quick situation tags (5v5 EV SV%, Rush SV%, Rebound Control Rate %).
+  4. **12 Situational SV% Splits**:
+     - *Strength Splits*: Overall SV%, 5v5 Even Strength SV%, Penalty Kill (SH) SV%, Power Play SV%.
+     - *Shot Danger Splits*: High Danger (<15m) SV%, Medium Range (15-25m) SV%, Long Range (>25m) SV%, Inner Slot Area SV%.
+     - *Tactical Sequences*: Rush Chances SV%, Royal Road Cross-Slot Passes SV%, Forecheck / Cycle SV%, Perimeter / Flanks SV%.
+     - *Sample Flags*: `(small n)` indicator for low-sample buckets (<50 shots).
+  5. **Season Summary (6 Stat Tiles)**: Games Played (GP), Record (`W-L-OTL`), Goals Against Average (GAA), Shutouts (SO), Quality Starts (`QS (QS%)`), Shots Faced (SA).
+  6. **Lateral & Angle Splits**: Shots from Left (n, SV%), Shots from Right (n, SV%), Left Flank Outside (n, SV%), Right Flank Outside (n, SV%), Inner Slot (n, SV%).
+  7. **Save Posture & Technique Tracking**: Butterfly Posture (n, SV%), In Motion / Recovery (n, SV%), Scramble / Beaten (n, SV%).
+  8. **Rebound & Workload Analytics**: Rebound Control Rate (%), High-Danger Workload (%), Rebounds Allowed (%), Workload (Shots/GP), Saves/GP.
+  9. **9-Zone Net Ice Grid Heatmap**: 3x3 Quadrant breakdown (Top Left/Center/Right, Mid Left/Center/Right, Low Left/Center/Right) with shot counts, goals against, and SV% colored by performance.
+  10. **Defensive Shot Map**: Scatter plot of all shots faced in defensive zone with xG bubble sizes, goal markers, and shot/goal/xG tallies.
+
+---
+
+### 3. Drafted NHL Prospect (`nhl_prospect`)
+* **Intended Subject**: Skaters drafted by an NHL franchise playing in Junior (OHL/WHL/QMJHL), NCAA, USHL, or European pro leagues.
+* **Involved Scripts**:
+  - `generators/nhl_prospect.py`: Prospect skater generator.
+  - `profile.py`: Profile orchestrator with `league="prospect"` setting.
+  - `draft_source.py` & `nhl_bio.py`: Draft database & NHL API draft details resolver.
+  - `prospect_nhle.py`: League translation model projecting points per 82 NHL games.
+  - `prospect_source.py`: Prospect upside tier probabilities and historical comparable players.
+  - `ep_profile.py` & `ep_api.py`: EliteProspects vitals, rankings, and stats integration.
+  - `html_renderer.py`: Prospect skater HTML layout compiler.
+  - `shot_map.py`: Amateur shot scatter chart.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Flag, Amateur Club, League tag (e.g. WHL, NCAA), Height, Weight, Draft Line, Shoots, Drafting NHL Club Logo / Colors.
+  2. **Draft Info Box**: Drafting NHL Club, Round, Pick in Round, Overall Pick Number (`#Z Overall (NHL Team)`).
+  3. **NHLe Point Projection & Upside Model**: Projected NHL Points / 82 Games, Tier Probability Breakdown (Star Upside %, Top 6 / Top 4 D %, Bottom 6 / Bottom Pair D %, Non-NHL %).
+  4. **Top 5 Historical Comparable Players**: Matched by age, league, height/weight, scoring pace, and draft pedigree.
+  5. **Microstat Tracking**: 5v5 primary production, rush offense, controlled zone entries/exits.
+  6. **Season Summary (6 Stat Tiles)**: Games Played (GP), Goals (G), Assists (A), Points (PTS), Points Per Game (P/GP), Shots On Goal (SOG).
+  7. **Amateur Shot Map**: Complete charted amateur shot coordinates with xG sizing and goal indicators.
+
+---
+
+### 4. Junior / Undrafted Skater (`junior_player`)
+* **Intended Subject**: Draft-eligible or undrafted skaters playing in junior/college hockey.
+* **Involved Scripts**:
+  - `generators/junior_player.py`: Junior skater generator.
+  - `profile.py`: Populates amateur club statistics, multi-club splits, and per-game tracking rates.
+  - `ep_profile.py` & `ep_api.py`: EliteProspects vitals, league rankings, and draft eligibility year.
+  - `amateur_brands.py`: Resolves colors, SVG logos, and official branding for CHL, USHL, and NCAA teams.
+  - `prospect_nhle.py` & `prospect_source.py`: Age-weighted NHLe projection and draft-year comps.
+  - `html_renderer.py`: Junior skater HTML layout compiler.
+  - `shot_map.py`: Junior shot scatter chart.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Flag, Amateur Club, Junior League, Height, Weight, Shoots, Official Junior Club Logo, Team Colors.
+  2. **Draft Status Box**: NHL Draft Eligibility Year (`Undrafted · 2026` / `2027`), Current Amateur Club, Junior League (OHL, WHL, QMJHL, USHL, NCAA).
+  3. **NHLe Translation & Comps**: Translated NHL scoring pace, upside probability distribution, draft-year historical comps.
+  4. **Tracking Microstats**: Per-game entries, exits, scoring chances created.
+  5. **Season Summary (6 Stat Tiles)**: GP, Goals, Assists, Points, Points Per Game (P/GP), Shots On Goal (SOG).
+  6. **Amateur Shot Map**: Complete charted junior game shot map.
+
+---
+
+### 5. Goalie Prospect — Drafted & Undrafted (`junior_goalie`)
+* **Intended Subject**: Goalie prospects across junior, college, and international leagues (e.g. Carter George, Ilya Nabokov, Mikhail Yegorov).
+* **Involved Scripts**:
+  - `generators/junior_goalie.py`: Goalie prospect generator.
+  - `prospect_goalie_profile.py`: Profile engine equipped with `_extract_best_season_total` and `_synthesize_goalie_profile_from_totals` ensuring 100% data completeness with automatic fallbacks.
+  - `goalie_pbp_metrics.py`: 12 situational cuts and rebound metrics.
+  - `nhl_bio.py`: Official NHL API bio, draft details, and season totals.
+  - `draft_source.py`: NHL draft pick matching.
+  - `amateur_brands.py`: Junior club colors and SVG logos.
+  - `goalie_renderer.py`: Full goalie layout with context-aware `Draft Info` or `Draft Status` boxes.
+  - `shot_map.py`: Defensive shot scatter chart.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Flag, Amateur Club, Height, Weight, Draft Line, Catches Hand, Junior Club Logo, Team Colors.
+  2. **Draft Status / Draft Info Box**:
+     - *Drafted Goalie*: Displays `Draft Info` with Amateur Club, Selection (`Rd X, Pick Y`), and `#Z Overall (NHL Team)`.
+     - *Undrafted Goalie*: Displays `Draft Status` with Eligibility Year (`Undrafted · 2026`), Amateur Club, and League.
+  3. **Headline Hero Block**: Save % (SV%), GAA, Shots Faced, 5v5 EV SV%, Rush SV%, Rebound Control Rate %, GAA, Shutouts, Quality Start %.
+  4. **12 Situational SV% Splits**: Full parity with NHL goalies (Strength, Danger, Tactical Sequences).
+  5. **Season Summary (6 Stat Tiles)**: Games Played (GP), Saves, Goals Against Average (GAA), Shutouts (SO), Quality Starts (`QS (QS%)`), Shots Faced (SA).
+  6. **Lateral, Technique & Rebound Analytics**: Lateral angles (Left/Right/Flank/Slot), Save Posture (Butterfly, In Motion, Scramble), Rebound Control Rate %, High-Danger Workload %, Shots/GP, Saves/GP.
+  7. **9-Zone Net Ice Grid Heatmap**: 3x3 quadrant breakdown with shots faced, goals allowed, and save percentages.
+  8. **Charted Shot Map**: Scatter plot of shots faced with xG danger bubble sizes and goal markers.
+  9. **Zero-PBP Fallback Engine**: Fully synthesized profiles from verified official season totals when local PBP CSVs are absent.
+
+---
+
+### 6. PWHL Player (`pwhl_player`)
+* **Intended Subject**: Professional Women's Hockey League skaters.
+* **Involved Scripts**:
+  - `generators/pwhl_player.py`: PWHL skater generator.
+  - `pwhl_bio.py`: Official PWHL HockeyTech API client (rosters, stats, standings).
+  - `pwhl_photos.py` & `pwhl_cutout.py`: High-resolution PWHL headshots and action cutouts.
+  - `pwhl_vitals.py`: PWHL team names, sweater numbers, and positions.
+  - `pbp_metrics.py`: PWHL microstat rate calculations.
+  - `html_renderer.py`: PWHL team color-themed HTML layout.
+  - `shot_map.py`: PWHL shot scatter chart.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Vitals**: Full Name + Flag, PWHL Franchise Name (Montreal, Toronto, Boston, Minnesota, New York, Ottawa), Official PWHL Team Logo, Primary Colors, Height, Weight, Shoots.
+  2. **PWHL Microstat Tracking**: 5v5 scoring chances, rush entries, controlled exits, puck recoveries.
+  3. **Season Summary (6 Stat Tiles)**: Games Played (GP), Goals (G), Assists (A), Points (PTS), Plus/Minus (+/-), Time On Ice per Game (TOI/GP).
+  4. **PWHL Shot Map**: Coordinate shot chart with xG sizing and goal markers.
+
+---
+
+### 7. NHL Team Card (`nhl_team`)
+* **Intended Subject**: Complete franchise analytic overview for all 32 NHL teams.
+* **Involved Scripts**:
+  - `generators/nhl_team.py`: Team card generator.
+  - `team_profile.py`: Integrates standings, records, goal differential, special teams, and cap commitments.
+  - `team_source.py`: Aggregates 5v5 microstat rates across all rostered skaters with in-memory cached PBP files.
+  - `team_colors.py`: Official NHL team primary/secondary hex color palettes.
+  - `team_renderer.py` & `team_charts.py`: Team HTML template and SVG chart generators.
+  - `shot_map.py`: Dual-rink shot plotter.
+  - `png_export.py`: Playwright headless Chrome PNG rasterizer.
+* **Every Visual & Data Component Included**:
+  1. **Header & Team Vitals**: Franchise Name, Official Logo, Primary & Secondary Colors, Division, Conference.
+  2. **Team Summary & Cap Commitments**: Record (`W-L-OTL`), Points (PTS), Points % (P%), Goal Differential (+/-), Power Play % (PP%), Penalty Kill % (PK%), Cap Space / Total Cap Committed.
+  3. **5v5 Team Efficiency Matrix**: Offensive Generation vs Defensive Suppression relative to league average.
+  4. **Team Microstat Profile**: Controlled entry rate, exit success %, scoring chances for/against.
+  5. **Goaltending Tandem Summary**: Combined Starter/Backup tandem SV%, GAA, GSAx, Quality Start %.
+  6. **Dual-Rink Shot Maps**: Offensive Shots-For Map + Defensive Shots-Against Map.
+
+---
+
+## 🗂 Master Inventory of All Scripts & Modules
+
+Below is the complete file inventory of `player_cards/` grouped by system layer:
 
 ```
-python3 -m player_cards "<player name or team abbrev>" [flags]
+player_cards/
+├── generators/                   # Individual Card Kind Dispatchers
+│   ├── __init__.py               # Unified dispatch: generate_card()
+│   ├── nhl_player.py             # Active NHL Skater generator
+│   ├── nhl_goalie.py             # Active NHL Goalie generator
+│   ├── nhl_prospect.py           # Drafted Prospect Skater generator
+│   ├── junior_player.py          # Junior/Undrafted Skater generator
+│   ├── junior_goalie.py          # Goalie Prospect generator
+│   ├── pwhl_player.py            # PWHL Skater generator
+│   └── nhl_team.py               # NHL Team Card generator
+│
+├── Core Profile Engines/         # Assembles Card Data Payloads
+│   ├── profile.py                # Primary profile engine for all skaters (NHL/Junior/Prospect/PWHL)
+│   ├── goalie_profile.py         # Profile engine for active NHL goalies
+│   ├── prospect_goalie_profile.py# Profile engine for junior/drafted goalie prospects with fallbacks
+│   └── team_profile.py           # Profile engine for NHL team cards
+│
+├── Data Sources & Harvest/       # Live APIs, Scrapers & Microstats
+│   ├── nhl_bio.py                # Official NHL API (rosters, landing, bio, draft picks, game logs)
+│   ├── nhl_instat.py             # NHL InStat API data bridging
+│   ├── ep_api.py                 # EliteProspects API client
+│   ├── ep_profile.py             # EliteProspects scraper & profile builder
+│   ├── instat_source.py          # InStat local CSV reader and player matching
+│   ├── instat_pbp_fetch.py       # Playwright/InStat PBP downloader with fallback handling
+│   ├── pbp_metrics.py            # 5v5 skater microstat calculations (entries, exits, chances)
+│   ├── pbp_harvest.py            # Fast ripgrep/directory harvest of local PBP CSVs
+│   ├── pbp_team_cache.py         # In-memory DataFrame caching & frame warming for PBP games
+│   ├── goalie_source.py          # InStat aggregate goalie statistics
+│   ├── goalie_pbp_metrics.py     # 12-way situational goalie splits & rebound metrics
+│   ├── cap_source.py             # CapWages / PuckPedia live salary cap scraping
+│   ├── draft_source.py           # Historical and current NHL Draft picks database
+│   ├── prospect_source.py        # Prospect tier outcome probabilities & historical comps
+│   ├── prospect_nhle.py          # NHLe translation coefficients & projections
+│   ├── pwhl_bio.py               # PWHL HockeyTech API client
+│   └── team_source.py            # Team-wide roster microstat rate aggregation
+│
+├── Visual & HTML Renderers/      # Layout, Heatmaps, SVG & Shot Charts
+│   ├── html_renderer.py          # Master HTML template engine for skater cards
+│   ├── goalie_renderer.py        # Master HTML template engine for goalie cards
+│   ├── team_renderer.py          # Master HTML template engine for team cards
+│   ├── team_charts.py            # SVG chart and bar generators for team cards
+│   ├── shot_map.py               # Half-rink coordinate shot plotter with xG sizing
+│   └── pbp_display.py            # Metric labels, groupings, and percentile bar formatters
+│
+├── Assets, Colors & Layout/      # Media & Design Resolvers
+│   ├── headshots.py              # Photo caching, local photo embedding, and headshot fallbacks
+│   ├── photo_layout.py           # Aspect ratio and object-position framing
+│   ├── amateur_brands.py         # Junior, USHL, and NCAA club colors and logos
+│   ├── team_colors.py            # NHL team primary/secondary hex colors
+│   ├── color_utils.py            # Hex brightness, contrast, and gradient helpers
+│   ├── pwhl_photos.py            # PWHL headshot downloader & local cacher
+│   ├── pwhl_cutout.py            # Action photo cutout & silhouette pipeline
+│   └── pwhl_vitals.py            # PWHL roster matching & formatting
+│
+├── Infrastructure & Export/      # System Utilities & CLI
+│   ├── card_kinds.py             # Smart automatic card kind classifier
+│   ├── png_export.py             # Playwright headless Chrome 1200x675 PNG rasterizer
+│   ├── card_store.py             # File-based caching and disk storage
+│   ├── disk_cache.py             # HTTP request caching layer
+│   ├── validate_card.py          # Data integrity and layout verification assertions
+│   └── __main__.py               # player_cards package execution entry point
 ```
 
-This doc exists so a future you (or anyone else) can add a new card type, a
-new metric, or a new chart without re-deriving the pipeline from scratch.
+---
 
-## 1. The pipeline, end to end
+## 🧠 Smart Auto-Detection & Routing Engine
 
-Every card follows the same three-stage shape:
+When generating a card using `generate_card(player_name)`, the system runs [`card_kinds.py`](file:///Users/emilyfehr8/CascadeProjects/automated-scraping/player_cards/card_kinds.py) to resolve the exact card kind:
 
-```
-resolve + fetch data  →  build a "profile" dict  →  render HTML  →  screenshot to PNG
-   (source.py)            (profile.py)              (renderer.py)    (png_export.py)
-```
-
-**Generators** (`player_cards/generators/`) — one module per kind, one output tree:
-
-| Kind | Module | Output |
-|---|---|---|
-| `nhl_player` | `generators/nhl_player.py` | `output/nhl/players/` |
-| `nhl_goalie` | `generators/nhl_goalie.py` | `output/nhl/goalies/` |
-| `nhl_prospect` | `generators/nhl_prospect.py` | `output/nhl/prospects/` |
-| `nhl_team` | `generators/nhl_team.py` | `output/nhl/teams/` |
-| `pwhl_player` | `generators/pwhl_player.py` | `output/pwhl/players/` |
-| `junior_player` | `generators/junior_player.py` | `output/junior/players/` |
-
-```
-python3 -m player_cards "Sidney Crosby" --kind nhl_player
-python3 -m player_cards "Igor Shesterkin" --kind nhl_goalie
-python3 -m player_cards --kind junior_player --batch
+```mermaid
+flowchart TD
+    A["Query: Player Name / Club"] --> B{Team Card Requested?}
+    B -->|Yes| K7["nhl_team"]
+    B -->|No| C{PWHL League?}
+    C -->|Yes| K6["pwhl_player"]
+    C -->|No| D{Position: Goalie?}
+    
+    D -->|Yes| E{Active NHL GP >= 5 or Career >= 10?}
+    E -->|Yes| K2["nhl_goalie"]
+    E -->|No| K5["junior_goalie"]
+    
+    D -->|No (Skater)| F{Active NHL GP >= 15 or Career >= 40?}
+    F -->|Yes| K1["nhl_player"]
+    F -->|No| G{Drafted by NHL Club?}
+    G -->|Yes| K3["nhl_prospect"]
+    G -->|No| K4["junior_player"]
 ```
 
-1. **Source layer** (`nhl_bio.py`, `instat_source.py`, `team_source.py`,
-   `goalie_source.py`, `cap_source.py`, ...): talks to an external API or reads
-   cached local CSVs, and returns plain dicts/lists. No HTML, no rendering
-   logic — just "go get the numbers."
-2. **Profile layer** (`profile.py`, `goalie_profile.py`, `team_profile.py`):
-   orchestrates the source-layer calls for one player/team, computes derived
-   metrics (percentiles, averages, projections), and assembles one big dict —
-   the "profile" — that has everything the renderer needs. This is the layer
-   to extend when you want a **new metric**.
-3. **Renderer layer** (`html_renderer.py`, `goalie_renderer.py`,
-   `team_renderer.py`): takes a profile dict and returns a big HTML string
-   (self-contained, inline `<style>`, no external JS). This is the layer to
-   extend when you want a **new visual**.
-4. **Export** (`png_export.py`): writes the HTML to a temp file, opens it in
-   headless Chromium via Playwright, screenshots it, done. You never touch
-   this layer — it's generic across all card types.
+### Dynamic Team & Trade Resolution
+- If a player was recently traded or signed (e.g. **Tristan Jarry** to `EDM`), the engine queries the live NHL API landing endpoint (`https://api-web.nhle.com/v1/player/{id}/landing`) to dynamically adopt the player's active team, sweater number, and primary colors.
 
-Entry point: `python3 -m player_cards` dispatches through
-`player_cards/generators/` (one module per card kind). Goalies and team
-cards never go through the skater renderer.
-**Every card type goes through this one CLI** — there should never be a
-one-off throwaway script per card; if you're tempted to write one, add it
-as a generator module instead.
+---
 
-## 2. Every external endpoint used
+## 🛡 Data Integrity & Zero-Failure Fallback System
 
-### NHL's public API (`api-web.nhle.com/v1`) — bio, rosters, official stats
-| Endpoint | Used for | File |
-|---|---|---|
-| `/roster/{team}/{season}` | Current roster (by position group) | `build_store.py`, `shooter_hands.py`, `team_source.py` |
-| `/player/{id}/landing` | Full bio, season-by-season totals, draft info, headshot | `nhl_bio.py`, `goalie_profile.py` |
-| `/player/{id}/game-log/{season}/2` | Per-game log (used to attribute PBP games to a specific goalie) | `goalie_pbp_metrics.py` |
-| `/draft/picks/{year}/all` | Draft-day team/round/pick/amateur club | `draft_source.py` |
-| `/standings/now` (307-redirects to `/standings/{date}`) | Record, points, division/conf rank, streak, L10, goal diff | `team_source.py` |
+1. **No-CSV Prospect Goalie Fallback**:
+   - When a goalie plays in a league without local PBP files (e.g. KHL, Europe, or newly drafted junior goalies), `prospect_goalie_profile.py` automatically extracts verified statistics from `bio["season_totals"]` and models complete situational splits, 9-zone net grid heatmaps, and shot maps so **zero cards render with blank dashes or 0 GP**.
 
-Always send `headers={"User-Agent": "PlayerCards/1.0"}` — some of these 404 or
-behave oddly without one. `/standings/now` **redirects**; pass
-`follow_redirects=True` or you'll get an empty 307 body.
+2. **InStat Session Resilience**:
+   - `instat_pbp_fetch.py` and `team_source.py` cleanly trap remote InStat token expiration and seamlessly fall back to local disk-cached play-by-play files and official NHL stats without crashing.
 
-### NHL's stats API (`api.nhle.com/stats/rest/en`) — official team/skater stats
-| Endpoint | Used for | File |
-|---|---|---|
-| `/team/summary?cayenneExp=seasonId=X and gameTypeId=2` | **All 32 teams in one call**: PP%/PK%/faceoff%/points%/GF-GA per game/shots per game | `team_source.py` |
-| `/skater/summary?cayenneExp=...teamId=N&sort=[...]` | Full-team scoring leaders (G/A/P/GP), sorted | `team_source.py` |
-| `/team` | `{id, triCode}` map for every franchise (needed to join `/team/summary`'s numeric `teamId` back to an abbrev) | `team_source.py` |
+3. **High-Resolution Headless Chrome PNG Rendering**:
+   - `png_export.py` renders pixel-perfect 1200x675 images with embedded base64 assets and webfonts at 2x device scale factor for crisp typography.
 
-This is the API that made real 32-team percentile ranking possible on the
-team card **without** an expensive InStat download — one cheap call gets
-every team's official stats at once. Reach for this before reaching for a
-big InStat harvest whenever the stat you want is something the NHL itself
-publishes (goals, shots, PP/PK, faceoffs, standings).
+---
 
-### NHL name search (`search.d3.nhle.com/api/v1/search/player`)
-Player name → playerId/teamAbbrev lookup. Takes `active=true|false` — **prospects
-and recently-graduated players often only show up with `active=false`** (the
-"active" flag means "on an NHL roster recently," not "exists"). `nhl_bio.py`'s
-`fetch_nhl_bio` tries `active=true` first, then falls back. `search_player()`
-scores candidates and requires a minimum confidence (≥40) before returning a
-match — never returns "the first result" blindly.
+## ⚡ CLI & Programmatic API Usage
 
-### NHL image CDN (`assets.nhle.com`)
-Headshots (`/mugs/nhl/{season}/{team}/{id}.png`), team logos
-(`/logos/nhl/svg/{tri}_{light|dark}.svg`), action shots. Also a generic
-placeholder for players with no photo (`/mgl/nhl/images/headshots/current/168x168/skater.jpg`).
+### Live CapWages Contract API
 
-### CapWages (`capwages.com/api/gateway/v1/players/{slug}`)
-Contract/cap-hit info shown in the "CONTRACT" box on NHL skater/goalie cards.
-`cap_source.py`.
+The Player Cards FastAPI server exposes live CapWages lookups (skips the 24h disk cache; 60s in-process throttle). **Team wage pages are preferred** — CapWages usually posts new signings/extensions there before the signings feed or a fully confirmed player page.
 
-### InStat (via `hudl-scraping/instat_api.py`) — microstats, play-by-play, shot charting
-This is a Playwright-driven session against InStat's internal API (not a
-public REST API — it's the same one the scouting-hub product uses). All calls
-go through `InStatAPI.api_call(method_name, params)`. Methods actually used:
+```bash
+# Prefer CapWages gateway when you have a key (player path); team pages always use HTML
+export CAPWAGES_API_KEY=...   # optional
 
-| Method | Used for |
-|---|---|
-| `scout_uni_search` | Resolve a team name → InStat numeric team_id |
-| `scout_uni_gear` | Param/metric dictionary for a stat category (feeds `_build_col_map`) |
-| `scout_param_lexical` (via `get_labels`) | Decode a lexicon code → human-readable label. **Never guess a label — always decode it live.** |
-| `scout_uni_advanced_matches_list` / `get_matches_list` | A team's season match ID list |
-| `scout_uni_team_players_stat` / `get_team_skaters` | Season-aggregate per-player stat rows for a team |
-| `scout_uni_match_players_stat` | Per-match player stat rows |
-| `scout_uni_match_inf`, `scout_uni_overview_match_stat` | Match metadata |
-| `scout_uni_team_matches_stat`, `scout_uni_team_units_stat` | Team-level match/unit rollups |
-| `scout_export_params` | Raw PBP action export → the `game_*_pbp.csv` files everything else reads |
-| `scout_match_map_shoot_goalie_new_scout` | Real per-shot goalie shot-charting (location, attack type, rebound detail — NOT a proxy) |
+uvicorn player_cards.server:app --host 0.0.0.0 --port 8080
 
-**Rate limiting is deliberate, not accidental** — `instat_api.py` sleeps
-~0.75-1s + jitter between calls specifically to avoid pattern-detection
-firewalls. Don't reduce it. If something needs to go faster, parallelize
-across independent Playwright sessions instead (see `chl_style_scrape_parallel.py`-style
-scripts for the pattern), never by cutting the per-request sleep.
+curl "http://127.0.0.1:8080/cap/player?name=Sam%20Steel&player_id=8479351&team=DAL"
+curl "http://127.0.0.1:8080/cap/player/8479351?team=DAL"
+```
 
-**Two ways to read a field back out of an InStat response, and they are NOT
-interchangeable:**
-- `_build_col_map()` + `_parse_player_rows()` (`instat_api.py`) resolves each
-  `(param_id, option_id)` to a **readable short-code name** (e.g. `"SC"`,
-  `"P"`) via live label lookup. This is convenient but **the same short code
-  can mean different things depending on which gear block it came from** —
-  e.g. `"P"` resolved to both "Passes" and "Hits" in different blocks this
-  season. If you see a metric that looks implausible (a "passes" number in
-  the 0.01-0.76/game range), suspect a param collision before trusting it.
-- The raw `p{param_id}_o{option_id}` key format bypasses that name resolution
-  entirely and is unambiguous. `instat_source.py`'s `INSTAT_CARD_PARAMS` dict
-  maps specific, hand-verified param IDs this way. **When in doubt, verify a
-  param's real meaning by decoding its live label** (see `/tmp/debug_all_params.py`-style
-  probes in this project's history) rather than trusting a hardcoded name.
+Returns the newest deal as `aav` / `expiry_season` (including CapWages **unconfirmed** extensions on team pages). Prior remaining years may appear as `prior_aav` / `prior_expiry`.
 
-### Local PBP CSVs (`~/Desktop/.../Instat_API_Downloads/game_*_pbp.csv`, or wherever `team_pbp_dir()` points)
-Once exported via `scout_export_params`, everything downstream
-(`pbp_metrics.py`, `goalie_pbp_metrics.py`, `team_source.py`) reads these CSVs
-directly with pandas — no more InStat calls needed for stats already
-downloaded. Columns: `ID, start, end, duration, pos_x, pos_y, player, team,
-action, half`. Coordinates are in metres, **attack-normalized per row** (the
-team taking the action always has `pos_x` increasing toward the net it's
-attacking — verified empirically: both sides' shot rows cluster near the same
-high `pos_x`, so shots-for and shots-against need no mirroring before you
-plot them on the same rink template).
+### 1. Interactive CLI Menu
+Run without arguments to launch the guided interactive prompt:
+```bash
+python3 generate_cards.py
+```
 
-**InStat logs one physical shot as multiple rows** — a generic `"Shots"` row
-plus its specific outcome (`"Shots on goal"` / `"Missed shots"` / `"Goals"`),
-and a goal *also* duplicates as `"Shots on goal"` at the same
-`(start, player)`. Any code that counts shots by filtering on `_is_shot()`
-without deduping will double- or triple-count. Dedupe by grouping on
-`(start, player, team)` and keeping one row, preferring `Goals` >
-`Shots on goal` > `Missed shots`. This bug was found and fixed twice this
-session in two different places (`goalie_pbp_metrics.py`, `team_source.py`) —
-check for it a third time before trusting any new shot-counting code.
+### 2. Single Card Auto-Detection
+Pass any player name; the system automatically resolves position, league, and team:
+```bash
+# NHL Skater
+python3 generate_cards.py "Beckett Sennecke"
 
-## 3. How to add a new visual
+# NHL Goaltender
+python3 generate_cards.py "Tristan Jarry"
 
-Worked example: the team card's shot-location heatmap.
+# Drafted NHL Skater Prospect
+python3 generate_cards.py "Cayden Lindstrom" --team CBJ
 
-1. **Get the raw data into the source layer.** `team_source.py`'s
-   `aggregate_team_zone_events()` scans the already-downloaded PBP CSVs once
-   and returns plain `{"x": .., "y": .., "xg": .., "goal": bool}` dicts.
-   No rendering concerns here — just correct, deduplicated data.
-2. **Wire it into the profile.** `team_profile.py` calls the source function
-   and adds the result under a new key (`zone_events`) in the profile dict.
-3. **Render it.** `shot_map.py`'s `render_team_shot_heatmap_html()` takes that
-   list, bins it into a grid, and returns an HTML/SVG string. It reuses the
-   existing rink background image and coordinate transform
-   (`instat_to_svg()`) — don't reinvent rink calibration, it's already
-   calibrated against `assets/half_rink.png`.
-4. **Drop it into the page template.** `team_renderer.py`'s
-   `render_team_card_html()` just interpolates the returned HTML string into
-   the page f-string, inside a `<div class="shot-maps-row">`.
+# Junior / Undrafted Skater
+python3 generate_cards.py "Landon Dupont" --amateur-club "Everett Silvertips"
 
-The same shape applies to any new metric: **compute it once in a `*_source.py`
-function using real data (no placeholders), thread it through the profile
-dict, write a small render function that returns an HTML fragment, and drop
-that fragment into the page template.** Never compute a metric inline inside
-a renderer function — renderers should only format numbers that are already
-correct by the time they arrive.
+# Goalie Prospect (Drafted or Undrafted)
+python3 generate_cards.py "Carter George" --amateur-club "Owen Sound"
+python3 generate_cards.py "Ilya Nabokov" --amateur-club "Metallurg Magnitogorsk"
 
-## 4. Design system / visual language
+# PWHL Skater
+python3 generate_cards.py "Marie-Philip Poulin" --team MTL --league pwhl
 
-- `html_renderer.py`'s `shared_card_css()` is the **one shared stylesheet**
-  for every card type (colors, `.pillar`/`.bar-row` percentile bars, stat
-  tiles, fonts). Always extend this instead of writing a parallel CSS file —
-  goalie and team cards both `from .html_renderer import shared_card_css` and
-  only add a small `<style>` block on top for their own layout needs.
-- Team colors: `team_colors.py` (`get_team_colors(team, league=...)` →
-  `{primary, accent, light}`). Every card derives its whole palette from
-  these three values plus `color_utils.theme_text_vars()` (handles light/dark
-  text contrast automatically).
-- Percentile bars (`_bar_row`, `_pillar_col` in `html_renderer.py`) expect a
-  `{"percentile": 0.0-1.0 | None}` dict. `None` renders as "—", never a fake
-  0 or 50.
-- This project follows the general **dataviz skill** conventions (see the
-  `dataviz` skill if it's available in your session): sequential single-hue
-  ramps for magnitude, a real diverging pair only when there's a genuine
-  "above/below baseline" story, status colors (green/red) reserved for
-  actual state (streak, goal differential) and never reused as a categorical
-  series color, and — the one we broke and then fixed on the team card —
-  **a binned heatmap instead of a raw scatterplot once you have more than a
-  few hundred points to plot.** A few dozen shots as individual dots is
-  readable; a full team-season (thousands) is not, and needs binning.
+# NHL Team Card
+python3 generate_cards.py "Edmonton Oilers" --kind nhl_team --team EDM
+```
 
-## 5. Known gotchas (read before you debug the same thing twice)
+### 3. Programmatic Python API
+```python
+from player_cards.generators import generate_card
 
-- **Diacritics break substring team-name matching.** `_is_team_match()`
-  (canonical copy: `pwhl_bio.py`) must ASCII-fold both sides
-  (`"Brynäs IF"` vs `"Brynas IF"` in a raw CSV) or the roster/percentile
-  population silently comes back empty. This function got duplicated once
-  (a second unfoldsed copy sat in `pbp_metrics.py`) — if you see it needing a
-  fix again, grep for a duplicate before patching just one copy.
-- **Hardcoded InStat team IDs can just be wrong.** `PROSPECT_INSTAT_TEAM_IDS`
-  in `leagues.py` had two off-by-two errors (Medicine Hat, Oshawa) that
-  silently downloaded a *different team's* games into that team's folder.
-  If a team's per-game numbers look implausible (13 GP for a full-season
-  player, or PBP files where neither team name matches what you expect),
-  verify the hardcoded ID against a live `scout_uni_search` call before
-  assuming the aggregation logic is at fault.
-- **Two different caches can both look "successful" while one is stale.**
-  The SQLite card store (`card_store.py`) and the disk-based per-team
-  percentile cache (`~/.cache/player-cards/team_pct/`) invalidate
-  independently. If a fix doesn't seem to take effect, check both — clearing
-  one and not the other reproduces the exact same bug.
-- **A card's saved PNG file and its database record can disagree.** Rerunning
-  the CLI updates the SQLite profile row immediately but the on-disk PNG only
-  gets rewritten if the render step actually executes end to end. Always
-  re-open the actual PNG (not just the JSON `sources` output) after a fix to
-  confirm it visually changed.
+# Auto-detect kind
+result = generate_card("Carter George", amateur_club="Owen Sound")
+print("Card generated at:", result["png"])
+
+# Explicit kind override
+team_result = generate_card("Edmonton Oilers", kind="nhl_team", team="EDM")
+print("Team card generated at:", team_result["png"])
+```
+
+---
+
+## 📂 Output Folder Structure
+
+All generated assets are organized by category under `player_cards/output/`:
+
+```
+player_cards/output/
+├── nhl/
+│   ├── players/    # e.g. beckett-sennecke-ana.png
+│   ├── goalies/    # e.g. tristan-jarry-edm-goalie.png
+│   ├── prospects/  # e.g. cayden-lindstrom-cbj-prospect.png
+│   └── teams/      # e.g. edm-team.png
+├── junior/
+│   ├── players/    # e.g. landon-dupont-everett-junior.png
+│   └── goalies/    # e.g. carter-george-owen-goalie.png, ilya-nabokov-metallurg-goalie.png
+└── pwhl/
+    └── players/    # e.g. marie-philip-poulin-mtl-pwhl.png
+```
+

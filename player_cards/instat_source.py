@@ -106,9 +106,11 @@ def _instat_name(nhl_name: str) -> str:
 def _match_player_name(row_name: str, nhl_name: str) -> bool:
     import re
     import difflib
+    import unicodedata
     
     def clean(n):
         n = re.sub(r'\(.*?\)', '', n)
+        n = ''.join(c for c in unicodedata.normalize('NFKD', n) if not unicodedata.combining(c))
         n = re.sub(r'[^a-zA-Z\s]', '', n)
         return n.lower().strip()
         
@@ -174,6 +176,37 @@ def _team_search_roots(team: str, *, league: str = "nhl") -> list[Path]:
         found = [r for r in roots if r.is_dir()]
         return list(dict.fromkeys(found))
 
+    if league == "pwhl":
+        from .leagues import PWHL_TEAM_SEARCH
+        pwhl_root = work / "PWHL"
+        tri = _norm_tri(team)
+        full = PWHL_TEAM_SEARCH.get(tri, "")
+        if not full:
+            pwhl_alias = {
+                "NY": "New York Sirens",
+                "NYC": "New York Sirens",
+                "BOS": "Boston Fleet",
+                "MIN": "Minnesota Frost",
+                "MTL": "Montreal Victoire",
+                "MON": "Montreal Victoire",
+                "OTT": "Ottawa Charge",
+                "TOR": "Toronto Sceptres",
+                "SEA": "Seattle Torrent",
+                "VAN": "Vancouver Goldeneyes",
+            }
+            full = pwhl_alias.get(tri, team)
+        nickname = full.split()[-1] if full else team
+        matching_roots = []
+        if pwhl_root.is_dir():
+            for p in pwhl_root.iterdir():
+                if not p.is_dir():
+                    continue
+                p_name = p.name.lower()
+                if (full and full.lower() in p_name) or (nickname and nickname.lower() in p_name) or tri.lower() == p_name:
+                    matching_roots.extend([p / "Instat_API_Downloads", p])
+        found = [r for r in matching_roots if r.is_dir()]
+        return list(dict.fromkeys(found))
+
     tri = _norm_tri(team)
     full = NHL_TEAM_SEARCH.get(tri, "")
     nickname = full.split()[-1] if full else team
@@ -202,7 +235,8 @@ def _team_search_roots(team: str, *, league: str = "nhl") -> list[Path]:
 
 def is_pbp_game_csv(path: Path) -> bool:
     """True for InStat per-game play-by-play exports (not season stat sheets)."""
-    return path.name.endswith("_pbp.csv")
+    n = path.name.lower()
+    return n.endswith("_pbp.csv") or (n.endswith(".csv") and not n.startswith(".") and "summary" not in n and "player" not in n and "roster" not in n)
 
 
 def _is_team_game_file(path: Path, team: str) -> bool:
@@ -219,8 +253,15 @@ def _is_team_game_file(path: Path, team: str) -> bool:
     return False
 
 
-def discover_team_pbp_files(team: str, *, league: str = "nhl") -> list[Path]:
-    """All PBP CSV files for a team (recursive)."""
+def discover_team_pbp_files(team: str, *, league: str = "nhl", opponent_fallback: bool = True) -> list[Path]:
+    """All PBP CSV files for a team (recursive).
+
+    *opponent_fallback*: when True (default) and no files are found in the
+    team's own directory, search every on-disk PBP root for games that mention
+    the team name.  This is useful for goalies (opponent folders contain shot
+    data against the team) but should be False for skater cards where the file
+    count is used as the team-games denominator.
+    """
     files: list[Path] = []
     seen: set[str] = set()
     for root in _team_search_roots(team, league=league):
@@ -233,8 +274,8 @@ def discover_team_pbp_files(team: str, *, league: str = "nhl") -> list[Path]:
                     continue
                 if not _is_team_game_file(path, team):
                     continue
-                # game_*_pbp must mention team in contents
-                if path.name.startswith("game_"):
+                # For NHL, verify team name in sample; for prospects/PWHL, files in team root are valid
+                if league == "nhl" and path.name.startswith("game_"):
                     try:
                         with path.open(encoding="utf-8") as f:
                             sample = f.read(4096)
@@ -247,6 +288,32 @@ def discover_team_pbp_files(team: str, *, league: str = "nhl") -> list[Path]:
                         continue
                 seen.add(key)
                 files.append(path)
+
+    if not files and (league != "nhl" or opponent_fallback):
+        from .pbp_harvest import pbp_search_roots
+
+        tri = _norm_tri(team)
+        full_name = NHL_TEAM_SEARCH.get(tri, team)
+        needles = [n.lower().encode("utf-8") for n in [full_name, tri] if n]
+        for root in pbp_search_roots():
+            if not root.is_dir():
+                continue
+            for pattern in ("*/Instat_API_Downloads/game_*_pbp.csv", "*/game_*_pbp.csv", "game_*_pbp.csv"):
+                for path in root.glob(pattern):
+                    if not path.is_file():
+                        continue
+                    key = str(path.resolve())
+                    if key in seen:
+                        continue
+                    try:
+                        with path.open("rb") as f:
+                            sample = f.read(8192).lower()
+                            if any(nb in sample for nb in needles):
+                                seen.add(key)
+                                files.append(path)
+                    except Exception:
+                        pass
+
     return sorted(files, key=lambda p: p.name)
 
 

@@ -24,8 +24,10 @@ def generate(
     kwargs.pop("kind", None)
     kwargs.setdefault("league", "prospect")
     kwargs.setdefault("undrafted", False)
-    kwargs.setdefault("pbp_source", "api")
+    kwargs.setdefault("pbp_source", "harvest")
+    kwargs.setdefault("use_store", False)
     return generate_player_card(name, team, kind=KIND, **kwargs)
+
 
 
 def generate_batch(players: list[tuple[str, str]] | None = None) -> list[dict[str, Any]]:

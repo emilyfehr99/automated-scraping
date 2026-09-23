@@ -10,7 +10,7 @@ from typing import Any
 
 from player_cards.card_kinds import CARD_KINDS, detect_card_kind, kind_to_league
 
-from . import junior_player, nhl_goalie, nhl_player, nhl_prospect, nhl_team, pwhl_player
+from . import junior_goalie, junior_player, nhl_goalie, nhl_player, nhl_prospect, nhl_team, pwhl_player
 
 GENERATORS = {
     "nhl_player": nhl_player,
@@ -19,7 +19,9 @@ GENERATORS = {
     "nhl_team": nhl_team,
     "pwhl_player": pwhl_player,
     "junior_player": junior_player,
+    "junior_goalie": junior_goalie,
 }
+
 
 
 def generate_card(

@@ -91,35 +91,34 @@ PBP_RATE_GROUPS = [
     {
         "title": "Scoring",
         "metrics": [
-            {"label": _pg("Shots"), "key": "Shots"},
-            {"label": _pg("Shots on Goal"), "key": "SOG"},
-            {"label": _pg("Expected Goals"), "key": "xG"},
-            {"label": _pg("Chances"), "key": "Chances"},
-            {"label": _pg("Goals"), "key": "Goals"},
-            {"label": _pg("Assists"), "key": "Assists"},
-            {"label": _pg("Passes"), "key": "Passes"},
+            {"label": _pg("Shots on Goal"), "keys": ["SOG", "shots_on_goal", "Shots on Goal"]},
+            {"label": _pg("Expected Goals"), "keys": ["xG", "xg", "Expected Goals"]},
+            {"label": _pg("Chances"), "keys": ["Chances", "Scoring Chances", "chances"]},
+            {"label": _pg("Goals"), "keys": ["Goals", "goals"]},
+            {"label": _pg("Assists"), "keys": ["Assists", "assists", "Chance Assists"]},
+            {"label": _pg("Passes"), "keys": ["Passes", "passes"]},
         ],
     },
     {
         "title": "Zone Entries",
         "metrics": [
-            {"label": _pg("Entries"), "key": "Zone Entries"},
-            {"label": _pg("Carry-ins"), "key": "Carry-ins"},
-            {"label": _pg("Pass entries"), "key": "Pass Entries"},
-            {"label": "Carry-in rate", "key": "Carry-in%", "format": "percent"},
-            {"label": _pg("Success"), "key": "Successful Entries"},
-            {"label": _pg("Failed"), "key": "Failed Entries", "negative": True},
+            {"label": _pg("Entries"), "keys": ["Zone Entries", "Entries", "entries"]},
+            {"label": _pg("Carry-ins"), "keys": ["Carry-ins", "carries", "Entries via stickhandling"]},
+            {"label": _pg("Pass entries"), "keys": ["Pass Entries", "pass_entries", "Entries via pass"]},
+            {"label": "Carry-in rate", "keys": ["Carry-in%", "carry_in_pct"], "format": "percent"},
+            {"label": _pg("Success"), "keys": ["Successful Entries", "successful_entries"]},
+            {"label": _pg("Failed"), "keys": ["Failed Entries", "failed_entries"], "negative": True},
         ],
     },
     {
         "title": "Defense",
         "metrics": [
-            {"label": _pg("Defensive Zone Retrievals"), "key": "DZ Retrievals"},
-            {"label": _pg("Zone Exits"), "key": "Zone Exits"},
-            {"label": _pg("Possession Exits"), "key": "Exits w/ Possession"},
-            {"label": _pg("Breakouts"), "key": "Successful Breakouts"},
-            {"label": _pg("Failed exits"), "key": "Failed Exits", "negative": True},
-            {"label": _pg("Blocks"), "keys": ["Blocked Shots (DF)", "Blocked Shots"]},
+            {"label": _pg("Defensive Zone Retrievals"), "keys": ["DZ Retrievals", "Puck recoveries in DZ", "dz_retrievals"]},
+            {"label": _pg("Zone Exits"), "keys": ["Zone Exits", "Breakouts", "zone_exits"]},
+            {"label": _pg("Possession Exits"), "keys": ["Exits w/ Possession", "Carried Exits", "Pass Exits", "possession_exits"]},
+            {"label": _pg("Breakouts"), "keys": ["Successful Breakouts", "Breakouts", "successful_breakouts"]},
+            {"label": _pg("Failed exits"), "keys": ["Failed Exits", "failed_exits"], "negative": True},
+            {"label": _pg("Blocks"), "keys": ["Blocked Shots (DF)", "Blocked Shots", "blocked_shots"]},
         ],
     },
 ]
@@ -144,8 +143,6 @@ def format_rate_stat(value, fmt: str = "decimal") -> str:
     except (TypeError, ValueError):
         return "—"
     if not (n == n):
-        return "—"
-    if n == 0:
         return "—"
     if fmt == "percent":
         return f"{n:.0f}%"

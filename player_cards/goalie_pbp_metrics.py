@@ -225,7 +225,15 @@ def build_goalie_shots(
             if act == "Goals"
         }
 
+        cur_situation = "EV"
         for i, act in enumerate(actions):
+            if "Penalty kill shifts" in act:
+                cur_situation = "PK"
+            elif "Power play shifts" in act:
+                cur_situation = "PP"
+            elif "Even strength shifts" in act:
+                cur_situation = "EV"
+
             if act == "Shots on goal":
                 pass
             elif act == "Goals" and (starts[i], players_col[i]) not in sog_keys:
@@ -245,6 +253,7 @@ def build_goalie_shots(
             shots.append({
                 "x": round(x, 2), "y": round(y, 2), "xg": xg, "is_goal": is_goal,
                 "attack_type": _attack_type(x, y, xg),
+                "situation": cur_situation,
                 "is_rush": is_rush,
                 "is_cycle": _is_cycle_shot(actions, teams_col, i),
                 "is_royal_road": _is_royal_road(actions, teams_col, pos_y, starts, i),
@@ -273,9 +282,14 @@ def aggregate_goalie_situational(
     if not shots:
         return {}
 
+    ev = [s for s in shots if s.get("situation") == "EV"]
+    pk = [s for s in shots if s.get("situation") == "PK"]
+    pp = [s for s in shots if s.get("situation") == "PP"]
     hd = [s for s in shots if s["attack_type"] == "High Danger"]
     med = [s for s in shots if s["attack_type"] == "Medium"]
     lng = [s for s in shots if s["attack_type"] == "Long Range"]
+    slot = [s for s in shots if 9.5 <= s.get("y", 12.96) <= 16.4]
+    flank = [s for s in shots if s.get("y", 12.96) < 9.5 or s.get("y", 12.96) > 16.4]
     rush = [s for s in shots if s["is_rush"]]
     cycle = [s for s in shots if s["is_cycle"]]
     royal = [s for s in shots if s["is_royal_road"]]
@@ -303,9 +317,14 @@ def aggregate_goalie_situational(
     return {
         "shots": n,
         "sv_pct_overall": _sv_pct(shots),
+        "even_strength": _bucket(ev),
+        "penalty_kill": _bucket(pk),
+        "power_play": _bucket(pp),
         "high_danger": _bucket(hd),
         "medium": _bucket(med),
         "long_range": _bucket(lng),
+        "slot": _bucket(slot),
+        "flank": _bucket(flank),
         "rush": _bucket(rush),
         "cycle": _bucket(cycle),
         "royal_road": _bucket(royal),
@@ -321,3 +340,4 @@ def aggregate_goalie_situational(
             "save-technique tracking."
         ),
     }
+

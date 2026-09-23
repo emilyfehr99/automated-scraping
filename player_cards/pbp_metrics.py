@@ -143,7 +143,7 @@ def _count_chance_assists(
     team_full: str,
 ) -> int:
     """Passes by player immediately preceding a teammate high-danger shot."""
-    tm = _resolve_team_name(df, team_full)
+    tm = _resolve_team_name(df, team_full, player_name)
     if not tm:
         return 0
     game = df.copy()
@@ -159,10 +159,12 @@ def _count_chance_assists(
     if "xG_final" in game.columns:
         xg_vals = pd.to_numeric(game["xG_final"], errors="coerce").fillna(0).tolist()
     else:
-        xg_vals = [
-            _xg(float(px), float(py)) if pd.notna(px) and pd.notna(py) else 0.0
-            for px, py in zip(pos_x, pos_y)
-        ]
+        xg_vals = [0.0] * len(actions)
+        for i, action in enumerate(actions):
+            if _is_assist_shot(action):
+                px, py = pos_x[i], pos_y[i]
+                if pd.notna(px) and pd.notna(py):
+                    xg_vals[i] = _xg(float(px), float(py))
 
     assists = 0
     for i, action in enumerate(actions):
@@ -198,11 +200,9 @@ def _count_one_timers(
     df: pd.DataFrame,
     player_name: str,
     team_full: str,
-    *,
-    max_seconds: float = 1.0,
 ) -> int:
-    """Shots by player within max_seconds of a preceding teammate pass."""
-    tm = _resolve_team_name(df, team_full)
+    """Shots taken by player within 1.0s of receiving a teammate pass."""
+    tm = _resolve_team_name(df, team_full, player_name)
     if not tm:
         return 0
     game = df.copy()
@@ -221,19 +221,18 @@ def _count_one_timers(
         if not _match_player_name(players[i], player_name) or teams[i] != tm:
             continue
         shot_time = starts[i]
-        for j in range(i - 1, max(i - 5, -1), -1):
+        for j in range(i - 1, max(i - 4, -1), -1):
             if teams[j] != teams[i]:
                 break
             if _is_turnover(actions[j]):
                 break
             if actions[j] in PASS_ACTIONS:
-                if _match_player_name(players[j], player_name):
-                    break
-                if shot_time is not None and starts[j] is not None:
-                    if float(shot_time) - float(starts[j]) <= max_seconds:
+                if not _match_player_name(players[j], player_name):
+                    if shot_time is not None and starts[j] is not None:
+                        if float(shot_time) - float(starts[j]) <= 1.0:
+                            one_timers += 1
+                    elif j == i - 1:
                         one_timers += 1
-                elif j == i - 1:
-                    one_timers += 1
                 break
             if _is_assist_shot(actions[j]):
                 break
@@ -241,18 +240,7 @@ def _count_one_timers(
 
 
 def _xg(px: float, py: float, row: dict[str, Any] | None = None) -> float:
-    """Canonical xG via v3 pipeline when available; legacy logistic fallback."""
-    try:
-        analytics_metrics = Path(__file__).resolve().parents[2] / "analytics-metrics"
-        if analytics_metrics.is_dir():
-            import sys
-            if str(analytics_metrics) not in sys.path:
-                sys.path.insert(0, str(analytics_metrics))
-            from python.pipeline_bridge import compute_row_xg
-            payload = {"pos_x": px, "pos_y": py, **(row or {})}
-            return float(compute_row_xg(payload, use_instat=False))
-    except Exception:
-        pass
+    """Fast canonical xG via closed-form logistic regression."""
     try:
         dx = max(0.0, NET_X - float(px))
         dy = abs(NET_Y - float(py))
@@ -448,13 +436,19 @@ def _analyze_game(df: pd.DataFrame, player_name: str, team_full: str) -> dict[st
     return {"stats": stats, "shots": shots}
 
 
-def _resolve_team_name(df: pd.DataFrame, team_full: str) -> str | None:
+def _resolve_team_name(df: pd.DataFrame, team_full: str, player_name: str | None = None) -> str | None:
     for tm in df["team"].astype(str).unique():
         t = tm.strip()
         if not t or t.lower() == "nan":
             continue
         if _is_team_match(t, team_full):
             return t
+    if player_name and "player" in df.columns and "team" in df.columns:
+        matching_rows = df[df["player"].astype(str).apply(lambda p: _match_player_name(p, player_name))]
+        if not matching_rows.empty:
+            cand = matching_rows["team"].dropna().unique()
+            if len(cand) > 0:
+                return str(cand[0]).strip()
     return None
 
 
@@ -464,7 +458,7 @@ def _game_microstat_gs(
     team_full: str,
 ) -> tuple[float, float, float]:
     """Per-game microstat GS + offense/defense split for one skater."""
-    tm = _resolve_team_name(df, team_full)
+    tm = _resolve_team_name(df, team_full, player_name)
     if not tm:
         return 0.0, 0.0, 0.0
     gs_df = compute_microstat_game_score(df, tm)
@@ -588,6 +582,7 @@ def aggregate_player_pbp_multi(
     assists = 0
     shot_count = 0
 
+    pbp_by_club: dict[str, dict[str, int]] = {}
     for team_abbrev, files, team_game_count in teams:
         if not files:
             continue
@@ -602,6 +597,12 @@ def aggregate_player_pbp_multi(
             continue
         gp = int(agg.get("games_played") or 0)
         tg = int(agg.get("games") or 0)
+        pbp_by_club[team_abbrev] = {
+            "gp": gp,
+            "g": int(agg.get("goals") or 0),
+            "a": int(agg.get("assists") or 0),
+            "tp": int(agg.get("points") or 0),
+        }
         games_played += gp
         team_games += tg
         all_shots.extend(agg.get("shots") or [])
@@ -665,4 +666,5 @@ def aggregate_player_pbp_multi(
         "points": goals + assists,
         "source": "instat_api",
         "count_totals": {k: int(round(v)) for k, v in count_totals.items()},
+        "pbp_by_club": pbp_by_club,
     }

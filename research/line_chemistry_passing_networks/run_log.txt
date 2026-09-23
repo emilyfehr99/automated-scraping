@@ -1,0 +1,11 @@
+PLAYER_CARDS_WORK_ROOT=/Users/emilyfehr8/Desktop/My Analytics Work
+PBP catalog: 2100 unique games, 2705 files
+Loaded 2037 games, 252 team labels
+Player skill profiles: 2054 | Inferred pass edges: 505948
+{
+  "games": 2037,
+  "lines": 3450,
+  "pairs": 692,
+  "line_corr": 0.087,
+  "pair_corr": 0.062
+}

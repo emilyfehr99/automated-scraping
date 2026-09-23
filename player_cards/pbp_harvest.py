@@ -36,12 +36,26 @@ def _match_id_from_path(path: Path) -> str | None:
 
 
 def _player_needles(player_name: str) -> list[str]:
-    """InStat CSVs use both 'First Last' and 'Last First'."""
-    parts = [p for p in re.split(r"\s+", player_name.strip()) if p]
-    needles = [player_name.strip()]
-    if len(parts) >= 2:
-        needles.append(f"{parts[-1]} {' '.join(parts[:-1])}")
-        needles.append(f"{parts[-1]} {parts[0]}")
+    """InStat CSVs use both 'First Last' and 'Last First', and often ASCII-fold accents."""
+    import unicodedata
+
+    def _unaccent(s: str) -> str:
+        return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+    raw_name = player_name.strip()
+    unacc_name = _unaccent(raw_name)
+    name_variants = [raw_name] if raw_name == unacc_name else [raw_name, unacc_name]
+
+    needles = []
+    for n in name_variants:
+        parts = [p for p in re.split(r"\s+", n) if p]
+        needles.append(n)
+        if len(parts) >= 2:
+            needles.append(f"{parts[-1]} {' '.join(parts[:-1])}")
+            needles.append(f"{parts[-1]} {parts[0]}")
+        if len(parts) > 2:
+            needles.append(f"{' '.join(parts[1:])} {parts[0]}")
+            needles.append(f"{parts[0]} {parts[-1]}")
     # unique preserve order
     out, seen = [], set()
     for n in needles:
@@ -52,38 +66,95 @@ def _player_needles(player_name: str) -> list[str]:
     return out
 
 
+def _club_key_match(a: str, b: str) -> bool:
+    x, y = a.lower().strip(), b.lower().strip()
+    return x == y or x in y or y in x
+
+
+def pbp_search_roots(extra_roots: list[Path] | None = None) -> list[Path]:
+    roots: list[Path] = [
+        prospects_root(),
+        player_cards_work_root() / "tournament_data",
+        player_cards_work_root(),
+        Path("/Users/emilyfehr8/CascadeProjects/nhl-draft-2027/data/pbp"),
+        Path("/Users/emilyfehr8/CascadeProjects/clarkson-analytics/data/pbp"),
+    ]
+    if extra_roots:
+        roots.extend(extra_roots)
+    out: list[Path] = []
+    seen: set[Path] = set()
+    for r in roots:
+        try:
+            if r and r.is_dir():
+                res = r.resolve()
+                if res not in seen:
+                    seen.add(res)
+                    out.append(r)
+        except Exception:
+            if r and r.is_dir() and r not in seen:
+                seen.add(r)
+                out.append(r)
+    return out
+
+
 def find_player_pbp_files(
     player_name: str,
     *,
     root: Path | None = None,
+    prefer_clubs: list[str] | None = None,
 ) -> dict[str, list[Path]]:
     """Map club name → unique game CSV paths where the player appears."""
-    root = root or prospects_root()
-    if not root.is_dir():
+    roots = [root] if root is not None else pbp_search_roots()
+    if not roots:
         return {}
 
     needles = _player_needles(player_name)
-    # ripgrep is far faster than walking every CSV in Python.
-    found: set[Path] = set()
-    for needle in needles:
+    needles_b = [n.encode("utf-8", errors="ignore").lower() for n in needles]
+
+    candidates: list[Path] = []
+    from .instat_source import is_pbp_game_csv
+
+    for r in roots:
         try:
-            proc = subprocess.run(
-                ["rg", "-l", "--glob", "game_*_pbp.csv", needle, str(root)],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-        except Exception as exc:
-            logger.warning("rg harvest failed for %s: %s", needle, exc)
-            continue
-        for line in proc.stdout.splitlines():
-            p = Path(line.strip())
-            if p.is_file():
-                found.add(p)
+            if not r.is_dir():
+                continue
+            for pattern in (
+                "Instat_API_Downloads/game_*_pbp.csv",
+                "*/Instat_API_Downloads/game_*_pbp.csv",
+                "*/*/Instat_API_Downloads/game_*_pbp.csv",
+                "*/game_*_pbp.csv",
+                "game_*_pbp.csv",
+                "*.csv",
+                "*/*.csv",
+            ):
+                candidates.extend(p for p in r.glob(pattern) if is_pbp_game_csv(p))
+        except Exception:
+            pass
+
+    candidates = list(dict.fromkeys(candidates))
+
+    def _check_needle(p: Path) -> Path | None:
+        try:
+            if not p.is_file():
+                return None
+            data = p.read_bytes().lower()
+            if any(nb in data for nb in needles_b):
+                return p
+        except Exception:
+            pass
+        return None
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    found: set[Path] = set()
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        for res in ex.map(_check_needle, candidates):
+            if res is not None:
+                found.add(res)
 
     by_team: dict[str, dict[str, Path]] = defaultdict(dict)
     for path in found:
-        mid = _match_id_from_path(path) or path.name
+        mid = _match_id_from_path(path) or path.stem
         try:
             with path.open(encoding="utf-8", errors="ignore") as fh:
                 for row in csv.DictReader(fh):
@@ -137,7 +208,7 @@ def harvest_player_pbp(
     Returns ``{teams: {club: [paths]}, file_groups: [...], all_files: [...],
     games_by_team: {club: n}}``.
     """
-    by_team = find_player_pbp_files(player_name)
+    by_team = find_player_pbp_files(player_name, prefer_clubs=prefer_clubs)
     if prefer_clubs:
         # Stable order: preferred clubs first, then any extras found.
         ordered: dict[str, list[Path]] = {}

@@ -1,580 +1,1208 @@
 {
   "dataset": {
-    "n_games": 916,
-    "n_events": 5854262,
-    "n_pbp_files": 1095,
-    "n_teams_with_data": 12,
+    "n_games": 2037,
+    "n_events": 8986473,
+    "n_pbp_files": 2774,
+    "n_unique_games_catalog": 2142,
+    "n_teams_with_data": 21,
+    "date_min": "2025-09-12",
+    "date_max": "2026-06-14",
+    "work_root": "/Users/emilyfehr8/Desktop/My Analytics Work",
     "season": "2025-26",
-    "source": "InStat/Hudl PBP + NHL API rosters"
+    "source": "InStat/Hudl PBP (pbp_catalog) + NHL API rosters"
   },
   "pass_network": {
-    "n_inferred_edges": 312207,
-    "n_unique_passers": 1092
+    "n_inferred_edges": 505948,
+    "n_unique_passers": 2159
   },
   "forward_lines": {
-    "n_units": 12168,
+    "n_units": 44985,
     "validation": {
-      "n_units": 2449,
-      "corr_complementarity_xgf_pct": -0.021,
-      "corr_complementarity_xgf60": -0.013,
-      "corr_pass_links_per60_xgf_pct": 0.007,
-      "corr_chemistry_index_xgf_pct": -0.013,
-      "corr_chemistry_index_xgf60": 0.06,
+      "n_units": 3435,
+      "corr_complementarity_xgf_pct": 0.055,
+      "corr_complementarity_xgf60": 0.057,
+      "corr_pass_links_per60_xgf_pct": 0.078,
+      "corr_chemistry_index_xgf_pct": 0.087,
+      "corr_chemistry_index_xgf60": 0.121,
       "weighted_r2_chemistry_index": 0.0,
-      "slope_chemistry_to_xgf_pct": -0.248,
-      "high_chem_quartile_mean_xgf_pct": 49.3,
-      "low_chem_quartile_mean_xgf_pct": 48.6,
+      "slope_chemistry_to_xgf_pct": 0.368,
+      "high_chem_quartile_mean_xgf_pct": 50.9,
+      "low_chem_quartile_mean_xgf_pct": 46.0,
       "top_xgf_units": [
         {
           "unit": "Gauthier-Killorn-Poehling",
           "team": "Anaheim Ducks",
+          "chemistry_index": 0.338,
           "xgf_pct": 100.0,
-          "complementarity": 398.202,
-          "pass_links_per60": 1235.89,
+          "complementarity": 388.416,
+          "pass_links_per60": 1162.68,
           "toi_min": 13.9
         },
         {
-          "unit": "Brind'Amour-Nadeau-Slavin",
-          "team": "Carolina Hurricanes",
+          "unit": "Bratt-Dadonov-Hischier",
+          "team": "New Jersey Devils",
+          "chemistry_index": 0.401,
           "xgf_pct": 100.0,
-          "complementarity": 141.703,
-          "pass_links_per60": 101.96,
-          "toi_min": 7.7
+          "complementarity": 433.376,
+          "pass_links_per60": 1187.39,
+          "toi_min": 15.9
         },
         {
-          "unit": "Monahan-Olivier-Sillinger",
-          "team": "Columbus Blue Jackets",
+          "unit": "Batherson-Giroux-Halliday",
+          "team": "Ottawa Senators",
+          "chemistry_index": 0.384,
           "xgf_pct": 100.0,
-          "complementarity": 292.063,
-          "pass_links_per60": 691.42,
-          "toi_min": 15.5
+          "complementarity": 409.712,
+          "pass_links_per60": 1202.65,
+          "toi_min": 7.5
+        },
+        {
+          "unit": "Buckley-McGathey-Weyerhaeuser",
+          "team": "East Coast Wizards 19U",
+          "chemistry_index": -0.498,
+          "xgf_pct": 97.5,
+          "complementarity": 240.915,
+          "pass_links_per60": 0.0,
+          "toi_min": 7.6
         },
         {
           "unit": "Dewar-Jones-Lizotte",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 96.5,
-          "complementarity": 199.102,
-          "pass_links_per60": 490.1,
+          "chemistry_index": -0.273,
+          "xgf_pct": 96.0,
+          "complementarity": 195.342,
+          "pass_links_per60": 469.31,
           "toi_min": 20.2
         },
         {
           "unit": "Acciari-Dewar-Jones",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 96.5,
-          "complementarity": 155.355,
-          "pass_links_per60": 444.41,
+          "chemistry_index": -0.36,
+          "xgf_pct": 96.0,
+          "complementarity": 137.624,
+          "pass_links_per60": 426.51,
           "toi_min": 20.1
         },
         {
           "unit": "Acciari-Jones-Lizotte",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 96.5,
-          "complementarity": 202.631,
-          "pass_links_per60": 364.76,
+          "chemistry_index": -0.363,
+          "xgf_pct": 96.0,
+          "complementarity": 189.433,
+          "pass_links_per60": 326.7,
           "toi_min": 18.9
         },
         {
-          "unit": "Amadio-Greig-Pinto",
-          "team": "Ottawa Senators",
-          "xgf_pct": 96.2,
-          "complementarity": 320.46,
-          "pass_links_per60": 488.06,
-          "toi_min": 14.4
-        },
-        {
-          "unit": "Blueger-DeBrusk-Hoglander",
-          "team": "Vancouver Canucks",
-          "xgf_pct": 95.7,
-          "complementarity": 372.998,
-          "pass_links_per60": 218.96,
-          "toi_min": 9.3
+          "unit": "Englund-McCarron-Wiesblatt",
+          "team": "Nashville Predators",
+          "chemistry_index": -0.281,
+          "xgf_pct": 93.6,
+          "complementarity": 249.787,
+          "pass_links_per60": 356.29,
+          "toi_min": 8.1
         }
       ],
       "bottom_xgf_units": [
         {
-          "unit": "Lafferty-Slaggert-Teravainen",
-          "team": "Chicago Blackhawks",
+          "unit": "Jerylo-McDonald-Quinn",
+          "team": "St. Michael's College",
+          "chemistry_index": -0.699,
           "xgf_pct": 0.0,
-          "complementarity": 200.085,
-          "pass_links_per60": 198.5,
-          "toi_min": 17.8
+          "complementarity": 12.368,
+          "pass_links_per60": 75.35,
+          "toi_min": 7.2
         },
         {
-          "unit": "Dach-Donato-Greene",
-          "team": "Chicago Blackhawks",
+          "unit": "Hetman-Jarvis-McGillis",
+          "team": "St. Michael's College",
+          "chemistry_index": -0.63,
           "xgf_pct": 0.0,
-          "complementarity": 250.437,
-          "pass_links_per60": 543.91,
-          "toi_min": 17.6
+          "complementarity": 49.589,
+          "pass_links_per60": 124.47,
+          "toi_min": 6.3
         },
         {
-          "unit": "Copp-Kasper-Sandin-Pellikka",
-          "team": "Detroit Red Wings",
+          "unit": "Hetman-Jarvis-Quinn",
+          "team": "St. Michael's College",
+          "chemistry_index": -0.601,
           "xgf_pct": 0.0,
-          "complementarity": 222.789,
-          "pass_links_per60": 772.88,
+          "complementarity": 86.717,
+          "pass_links_per60": 106.74,
+          "toi_min": 6.2
+        },
+        {
+          "unit": "Boychuk-Jerylo-Quinn",
+          "team": "St. Michael's College",
+          "chemistry_index": -0.698,
+          "xgf_pct": 0.0,
+          "complementarity": 23.582,
+          "pass_links_per60": 55.73,
+          "toi_min": 5.4
+        },
+        {
+          "unit": "Barresi-Finnegan-Gray",
+          "team": "University of Delaware Blue Hens",
+          "chemistry_index": -0.455,
+          "xgf_pct": 0.0,
+          "complementarity": 186.155,
+          "pass_links_per60": 174.94,
+          "toi_min": 6.5
+        },
+        {
+          "unit": "Barresi-Charlton-Gray",
+          "team": "University of Delaware Blue Hens",
+          "chemistry_index": -0.237,
+          "xgf_pct": 0.0,
+          "complementarity": 390.975,
+          "pass_links_per60": 172.88,
           "toi_min": 5.9
         },
         {
-          "unit": "Heinen-Kindel-Koivunen",
+          "unit": "Barresi-Gray-MacIntyre",
+          "team": "University of Delaware Blue Hens",
+          "chemistry_index": -0.578,
+          "xgf_pct": 0.0,
+          "complementarity": 127.395,
+          "pass_links_per60": 71.52,
+          "toi_min": 5.0
+        },
+        {
+          "unit": "Jerylo-McDonald-Tink",
+          "team": "St. Michael's College",
+          "chemistry_index": -0.677,
+          "xgf_pct": 0.6,
+          "complementarity": 16.447,
+          "pass_links_per60": 105.88,
+          "toi_min": 5.1
+        }
+      ],
+      "top_chemistry_units": [
+        {
+          "unit": "Jost-Marchessault-Stamkos",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.32,
+          "xgf_pct": 10.9,
+          "complementarity": 6713.912,
+          "pass_links_per60": 1541.25,
+          "toi_min": 5.3
+        },
+        {
+          "unit": "Forsberg-Haula-Jost",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.222,
+          "xgf_pct": 75.7,
+          "complementarity": 6712.938,
+          "pass_links_per60": 1373.91,
+          "toi_min": 6.9
+        },
+        {
+          "unit": "Jost-McCarron-Smith",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.218,
+          "xgf_pct": 66.0,
+          "complementarity": 7287.496,
+          "pass_links_per60": 315.93,
+          "toi_min": 15.4
+        },
+        {
+          "unit": "Jost-O'Reilly-Stamkos",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.947,
+          "xgf_pct": 47.6,
+          "complementarity": 6670.499,
+          "pass_links_per60": 982.18,
+          "toi_min": 15.2
+        },
+        {
+          "unit": "Bunting-Jost-Wood",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.427,
+          "xgf_pct": 39.1,
+          "complementarity": 6245.967,
+          "pass_links_per60": 868.63,
+          "toi_min": 6.2
+        },
+        {
+          "unit": "Forsberg-Jost-Svechkov",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.304,
+          "xgf_pct": 42.5,
+          "complementarity": 6401.243,
+          "pass_links_per60": 373.86,
+          "toi_min": 14.3
+        },
+        {
+          "unit": "Evangelista-Jost-Wood",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.28,
+          "xgf_pct": 37.5,
+          "complementarity": 6283.186,
+          "pass_links_per60": 547.74,
+          "toi_min": 15.9
+        },
+        {
+          "unit": "Evangelista-Haula-Jost",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.241,
+          "xgf_pct": 58.5,
+          "complementarity": 6249.77,
+          "pass_links_per60": 543.05,
+          "toi_min": 22.6
+        }
+      ],
+      "bottom_chemistry_units": [
+        {
+          "unit": "Hodder-Schippel-Sisson",
+          "team": "RINK HA Kelowna U18 Prep",
+          "chemistry_index": -0.751,
+          "xgf_pct": 83.2,
+          "complementarity": 4.367,
+          "pass_links_per60": 0.0,
+          "toi_min": 5.5
+        },
+        {
+          "unit": "McDermid-Schippel-Sisson",
+          "team": "RINK HA Kelowna U18 Prep",
+          "chemistry_index": -0.749,
+          "xgf_pct": 83.2,
+          "complementarity": 6.166,
+          "pass_links_per60": 0.0,
+          "toi_min": 5.6
+        },
+        {
+          "unit": "Burkhalter-Byrd-Young",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.749,
+          "xgf_pct": 20.6,
+          "complementarity": 4.073,
+          "pass_links_per60": 5.02,
+          "toi_min": 23.9
+        },
+        {
+          "unit": "Burkhalter-Byrd-Huh",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.744,
+          "xgf_pct": 24.0,
+          "complementarity": 5.365,
+          "pass_links_per60": 10.11,
+          "toi_min": 17.8
+        },
+        {
+          "unit": "Byrd-Huh-Young",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.742,
+          "xgf_pct": 23.4,
+          "complementarity": 5.528,
+          "pass_links_per60": 13.78,
+          "toi_min": 17.4
+        },
+        {
+          "unit": "Burkhalter-Byrd-Pittis",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.74,
+          "xgf_pct": 27.5,
+          "complementarity": 13.439,
+          "pass_links_per60": 3.38,
+          "toi_min": 17.8
+        },
+        {
+          "unit": "Byrd-Pittis-Young",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.74,
+          "xgf_pct": 26.4,
+          "complementarity": 15.136,
+          "pass_links_per60": 0.0,
+          "toi_min": 17.0
+        },
+        {
+          "unit": "Byrd-McHenry-Young",
+          "team": "Stockton Saint Mary's Girls Varsity",
+          "chemistry_index": -0.74,
+          "xgf_pct": 17.2,
+          "complementarity": 15.212,
+          "pass_links_per60": 0.0,
+          "toi_min": 7.3
+        }
+      ],
+      "top_chemistry_units_nhl": [
+        {
+          "unit": "Jost-Marchessault-Stamkos",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.32,
+          "xgf_pct": 10.9,
+          "complementarity": 6713.912,
+          "pass_links_per60": 1541.25,
+          "toi_min": 5.3
+        },
+        {
+          "unit": "Forsberg-Haula-Jost",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.222,
+          "xgf_pct": 75.7,
+          "complementarity": 6712.938,
+          "pass_links_per60": 1373.91,
+          "toi_min": 6.9
+        },
+        {
+          "unit": "Jost-McCarron-Smith",
+          "team": "Nashville Predators",
+          "chemistry_index": 7.218,
+          "xgf_pct": 66.0,
+          "complementarity": 7287.496,
+          "pass_links_per60": 315.93,
+          "toi_min": 15.4
+        },
+        {
+          "unit": "Jost-O'Reilly-Stamkos",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.947,
+          "xgf_pct": 47.6,
+          "complementarity": 6670.499,
+          "pass_links_per60": 982.18,
+          "toi_min": 15.2
+        },
+        {
+          "unit": "Bunting-Jost-Wood",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.427,
+          "xgf_pct": 39.1,
+          "complementarity": 6245.967,
+          "pass_links_per60": 868.63,
+          "toi_min": 6.2
+        },
+        {
+          "unit": "Forsberg-Jost-Svechkov",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.304,
+          "xgf_pct": 42.5,
+          "complementarity": 6401.243,
+          "pass_links_per60": 373.86,
+          "toi_min": 14.3
+        },
+        {
+          "unit": "Evangelista-Jost-Wood",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.28,
+          "xgf_pct": 37.5,
+          "complementarity": 6283.186,
+          "pass_links_per60": 547.74,
+          "toi_min": 15.9
+        },
+        {
+          "unit": "Evangelista-Haula-Jost",
+          "team": "Nashville Predators",
+          "chemistry_index": 6.241,
+          "xgf_pct": 58.5,
+          "complementarity": 6249.77,
+          "pass_links_per60": 543.05,
+          "toi_min": 22.6
+        }
+      ],
+      "bottom_chemistry_units_nhl": [
+        {
+          "unit": "Dumba-Hallander-Pickering",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 0.0,
-          "complementarity": 703.552,
-          "pass_links_per60": 378.32,
-          "toi_min": 15.1
+          "chemistry_index": -0.694,
+          "xgf_pct": 40.4,
+          "complementarity": 45.276,
+          "pass_links_per60": 23.9,
+          "toi_min": 12.6
         },
         {
-          "unit": "Dumba-Heinen-Kindel",
+          "unit": "Dumba-Pickering-Tomasino",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 0.0,
-          "complementarity": 567.581,
-          "pass_links_per60": 137.58,
-          "toi_min": 5.2
+          "chemistry_index": -0.692,
+          "xgf_pct": 40.4,
+          "complementarity": 36.115,
+          "pass_links_per60": 44.17,
+          "toi_min": 5.4
         },
         {
-          "unit": "Leonard-Ovechkin-Strome",
-          "team": "Washington Capitals",
-          "xgf_pct": 0.0,
-          "complementarity": 525.428,
-          "pass_links_per60": 1433.83,
-          "toi_min": 7.8
+          "unit": "Blumel-Callahan-Soderstrom",
+          "team": "Boston Bruins",
+          "chemistry_index": -0.676,
+          "xgf_pct": 23.5,
+          "complementarity": 75.29,
+          "pass_links_per60": 0.0,
+          "toi_min": 9.3
         },
         {
-          "unit": "Cirelli-Hagel-Point",
-          "team": "Tampa Bay Lightning",
-          "xgf_pct": 2.6,
-          "complementarity": 599.206,
-          "pass_links_per60": 1053.66,
-          "toi_min": 8.2
+          "unit": "Bayreuther-Gunler-Kylington",
+          "team": "Carolina Hurricanes",
+          "chemistry_index": -0.672,
+          "xgf_pct": 31.8,
+          "complementarity": 61.976,
+          "pass_links_per60": 30.0,
+          "toi_min": 6.0
         },
         {
-          "unit": "Sillinger-Voronkov-Wood",
-          "team": "Columbus Blue Jackets",
-          "xgf_pct": 3.8,
-          "complementarity": 297.756,
-          "pass_links_per60": 303.5,
-          "toi_min": 12.8
+          "unit": "Brazeau-Dumba-Pickering",
+          "team": "Pittsburgh Penguins",
+          "chemistry_index": -0.661,
+          "xgf_pct": 30.8,
+          "complementarity": 49.69,
+          "pass_links_per60": 71.05,
+          "toi_min": 5.1
+        },
+        {
+          "unit": "Ginning-Hathaway-Luchanko",
+          "team": "Philadelphia Flyers",
+          "chemistry_index": -0.66,
+          "xgf_pct": 36.2,
+          "complementarity": 47.404,
+          "pass_links_per60": 77.88,
+          "toi_min": 6.9
+        },
+        {
+          "unit": "Callahan-Poitras-Soderstrom",
+          "team": "Boston Bruins",
+          "chemistry_index": -0.659,
+          "xgf_pct": 27.6,
+          "complementarity": 90.401,
+          "pass_links_per60": 0.0,
+          "toi_min": 6.8
+        },
+        {
+          "unit": "Hallander-Pickering-Tomasino",
+          "team": "Pittsburgh Penguins",
+          "chemistry_index": -0.658,
+          "xgf_pct": 40.4,
+          "complementarity": 64.887,
+          "pass_links_per60": 48.52,
+          "toi_min": 6.2
         }
       ]
     }
   },
   "defensive_pairs": {
-    "n_units": 968,
+    "n_units": 1026,
     "validation": {
-      "n_units": 680,
-      "corr_complementarity_xgf_pct": 0.106,
-      "corr_complementarity_xgf60": 0.167,
-      "corr_pass_links_per60_xgf_pct": 0.018,
-      "corr_chemistry_index_xgf_pct": 0.096,
-      "corr_chemistry_index_xgf60": 0.216,
-      "weighted_r2_chemistry_index": 0.006,
-      "slope_chemistry_to_xgf_pct": 1.091,
-      "high_chem_quartile_mean_xgf_pct": 50.1,
-      "low_chem_quartile_mean_xgf_pct": 47.2,
+      "n_units": 738,
+      "corr_complementarity_xgf_pct": 0.077,
+      "corr_complementarity_xgf60": 0.085,
+      "corr_pass_links_per60_xgf_pct": 0.013,
+      "corr_chemistry_index_xgf_pct": 0.07,
+      "corr_chemistry_index_xgf60": 0.166,
+      "weighted_r2_chemistry_index": 0.0,
+      "slope_chemistry_to_xgf_pct": 0.186,
+      "high_chem_quartile_mean_xgf_pct": 49.6,
+      "low_chem_quartile_mean_xgf_pct": 48.9,
       "top_xgf_units": [
+        {
+          "unit": "Faber-Jiricek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.688,
+          "xgf_pct": 91.2,
+          "complementarity": 2076.852,
+          "pass_links_per60": 7.52,
+          "toi_min": 8.0
+        },
         {
           "unit": "Girard-Karlsson",
           "team": "Pittsburgh Penguins",
-          "xgf_pct": 92.8,
-          "complementarity": 7741.617,
+          "chemistry_index": 0.018,
+          "xgf_pct": 89.5,
+          "complementarity": 7392.052,
           "pass_links_per60": 19.76,
           "toi_min": 30.4
         },
         {
-          "unit": "Cholowski-Dillon",
-          "team": "New Jersey Devils",
-          "xgf_pct": 88.3,
-          "complementarity": 1863.777,
-          "pass_links_per60": 34.19,
-          "toi_min": 12.3
-        },
-        {
-          "unit": "Solovyov-St.",
-          "team": "Pittsburgh Penguins",
-          "xgf_pct": 85.2,
-          "complementarity": 34204.312,
-          "pass_links_per60": 35.55,
-          "toi_min": 18.6
-        },
-        {
-          "unit": "Harris-Jokiharju",
-          "team": "Boston Bruins",
-          "xgf_pct": 84.6,
-          "complementarity": 1752.207,
-          "pass_links_per60": 0.0,
-          "toi_min": 7.3
-        },
-        {
-          "unit": "Klingberg-Mukhamadullin",
-          "team": "San Jose Sharks",
-          "xgf_pct": 84.2,
-          "complementarity": 3949.34,
-          "pass_links_per60": 35.06,
-          "toi_min": 22.2
+          "unit": "Durzi-Maatta",
+          "team": "Utah Mammoth",
+          "chemistry_index": 0.361,
+          "xgf_pct": 88.6,
+          "complementarity": 12486.483,
+          "pass_links_per60": 16.22,
+          "toi_min": 7.4
         },
         {
           "unit": "Heiskanen-Lundkvist",
           "team": "Dallas Stars",
-          "xgf_pct": 83.5,
-          "complementarity": 3285.011,
-          "pass_links_per60": 52.54,
+          "chemistry_index": 0.317,
+          "xgf_pct": 86.2,
+          "complementarity": 3242.977,
+          "pass_links_per60": 49.15,
           "toi_min": 35.4
         },
         {
-          "unit": "Buium-Hunt",
-          "team": "Minnesota Wild",
-          "xgf_pct": 81.6,
-          "complementarity": 28424.434,
-          "pass_links_per60": 13.97,
-          "toi_min": 30.1
+          "unit": "Klingberg-Mukhamadullin",
+          "team": "San Jose Sharks",
+          "chemistry_index": 0.074,
+          "xgf_pct": 84.2,
+          "complementarity": 4016.6,
+          "pass_links_per60": 35.06,
+          "toi_min": 22.2
         },
         {
-          "unit": "Christiansen-Severson",
-          "team": "Columbus Blue Jackets",
-          "xgf_pct": 80.6,
-          "complementarity": 2510.521,
-          "pass_links_per60": 46.67,
-          "toi_min": 29.6
+          "unit": "Solovyov-St.",
+          "team": "Pittsburgh Penguins",
+          "chemistry_index": 1.926,
+          "xgf_pct": 79.3,
+          "complementarity": 26347.185,
+          "pass_links_per60": 35.55,
+          "toi_min": 18.6
+        },
+        {
+          "unit": "Jensen-Sanderson",
+          "team": "Ottawa Senators",
+          "chemistry_index": -0.003,
+          "xgf_pct": 79.0,
+          "complementarity": 4001.3,
+          "pass_links_per60": 31.62,
+          "toi_min": 24.7
+        },
+        {
+          "unit": "Carlile-Lilleberg",
+          "team": "Tampa Bay Lightning",
+          "chemistry_index": -0.657,
+          "xgf_pct": 78.8,
+          "complementarity": 2071.334,
+          "pass_links_per60": 8.95,
+          "toi_min": 33.5
         }
       ],
       "bottom_xgf_units": [
         {
+          "unit": "Kiersted-Spurgeon",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.571,
+          "xgf_pct": 2.2,
+          "complementarity": 1569.771,
+          "pass_links_per60": 14.77,
+          "toi_min": 20.3
+        },
+        {
+          "unit": "Kiersted-Spacek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.977,
+          "xgf_pct": 8.6,
+          "complementarity": 561.828,
+          "pass_links_per60": 0.0,
+          "toi_min": 31.9
+        },
+        {
           "unit": "Dickinson-Mukhamadullin",
           "team": "San Jose Sharks",
-          "xgf_pct": 9.7,
-          "complementarity": 3660.211,
+          "chemistry_index": -0.164,
+          "xgf_pct": 8.9,
+          "complementarity": 3629.98,
           "pass_links_per60": 25.65,
           "toi_min": 42.1
         },
         {
           "unit": "Heinola-Miller",
           "team": "Winnipeg Jets",
-          "xgf_pct": 12.0,
-          "complementarity": 2459.572,
+          "chemistry_index": 0.319,
+          "xgf_pct": 13.7,
+          "complementarity": 1956.718,
           "pass_links_per60": 54.08,
           "toi_min": 7.8
         },
         {
-          "unit": "Bogosian-Petry",
-          "team": "Minnesota Wild",
-          "xgf_pct": 14.9,
-          "complementarity": 1750.777,
-          "pass_links_per60": 0.0,
-          "toi_min": 6.0
-        },
-        {
-          "unit": "Kaiser-Vlasic",
-          "team": "Chicago Blackhawks",
-          "xgf_pct": 16.5,
-          "complementarity": 3884.152,
-          "pass_links_per60": 28.16,
-          "toi_min": 12.8
-        },
-        {
-          "unit": "Jiricek-Lambos",
-          "team": "Minnesota Wild",
-          "xgf_pct": 17.3,
-          "complementarity": 474.258,
-          "pass_links_per60": 5.31,
-          "toi_min": 22.6
-        },
-        {
-          "unit": "Spence-Thomson",
-          "team": "Ottawa Senators",
-          "xgf_pct": 17.7,
-          "complementarity": 2868.078,
-          "pass_links_per60": 20.78,
-          "toi_min": 11.6
+          "unit": "Hronek-Mancini",
+          "team": "Vancouver Canucks",
+          "chemistry_index": -0.11,
+          "xgf_pct": 14.6,
+          "complementarity": 1970.744,
+          "pass_links_per60": 34.37,
+          "toi_min": 7.0
         },
         {
           "unit": "Bichsel-Lindell",
           "team": "Dallas Stars",
-          "xgf_pct": 18.1,
-          "complementarity": 2426.085,
+          "chemistry_index": -0.1,
+          "xgf_pct": 14.9,
+          "complementarity": 2399.888,
           "pass_links_per60": 33.24,
           "toi_min": 28.9
         },
         {
-          "unit": "McIlrath-Roy",
-          "team": "Washington Capitals",
-          "xgf_pct": 19.2,
-          "complementarity": 1812.757,
-          "pass_links_per60": 27.72,
-          "toi_min": 15.2
+          "unit": "Ekblad-Mikkola",
+          "team": "Florida Panthers",
+          "chemistry_index": 0.924,
+          "xgf_pct": 16.2,
+          "complementarity": 2426.374,
+          "pass_links_per60": 80.0,
+          "toi_min": 12.0
+        },
+        {
+          "unit": "Fleury-Samberg",
+          "team": "Winnipeg Jets",
+          "chemistry_index": 0.047,
+          "xgf_pct": 19.3,
+          "complementarity": 2456.155,
+          "pass_links_per60": 39.72,
+          "toi_min": 16.6
+        }
+      ],
+      "top_chemistry_units": [
+        {
+          "unit": "Buium-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 8.309,
+          "xgf_pct": 42.2,
+          "complementarity": 108666.538,
+          "pass_links_per60": 17.01,
+          "toi_min": 56.4
+        },
+        {
+          "unit": "Schenn-Stanley",
+          "team": "Buffalo Sabres",
+          "chemistry_index": 5.34,
+          "xgf_pct": 67.7,
+          "complementarity": 2958.936,
+          "pass_links_per60": 280.23,
+          "toi_min": 29.3
+        },
+        {
+          "unit": "Girard-Solovyov",
+          "team": "Pittsburgh Penguins",
+          "chemistry_index": 5.182,
+          "xgf_pct": 65.5,
+          "complementarity": 56322.238,
+          "pass_links_per60": 71.46,
+          "toi_min": 13.4
+        },
+        {
+          "unit": "Girard-Solovyov",
+          "team": "Colorado Avalanche",
+          "chemistry_index": 4.601,
+          "xgf_pct": 58.3,
+          "complementarity": 56322.238,
+          "pass_links_per60": 44.86,
+          "toi_min": 21.4
+        },
+        {
+          "unit": "Hunt-Petry",
+          "team": "Minnesota Wild",
+          "chemistry_index": 4.3,
+          "xgf_pct": 66.7,
+          "complementarity": 57336.066,
+          "pass_links_per60": 27.27,
+          "toi_min": 28.6
+        },
+        {
+          "unit": "Petry-Sebrango",
+          "team": "Florida Panthers",
+          "chemistry_index": 3.918,
+          "xgf_pct": 56.4,
+          "complementarity": 31475.513,
+          "pass_links_per60": 107.44,
+          "toi_min": 43.0
+        },
+        {
+          "unit": "Brodin-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 3.554,
+          "xgf_pct": 56.7,
+          "complementarity": 44510.974,
+          "pass_links_per60": 41.53,
+          "toi_min": 18.8
+        },
+        {
+          "unit": "Faber-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 3.419,
+          "xgf_pct": 53.4,
+          "complementarity": 45190.741,
+          "pass_links_per60": 32.76,
+          "toi_min": 29.3
+        }
+      ],
+      "bottom_chemistry_units": [
+        {
+          "unit": "Kiersted-Spacek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.977,
+          "xgf_pct": 8.6,
+          "complementarity": 561.828,
+          "pass_links_per60": 0.0,
+          "toi_min": 31.9
+        },
+        {
+          "unit": "Coghlan-Lauzon",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.974,
+          "xgf_pct": 68.1,
+          "complementarity": 597.533,
+          "pass_links_per60": 0.0,
+          "toi_min": 32.3
+        },
+        {
+          "unit": "Coghlan-Theodore",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.959,
+          "xgf_pct": 44.7,
+          "complementarity": 781.003,
+          "pass_links_per60": 0.0,
+          "toi_min": 43.9
+        },
+        {
+          "unit": "Coghlan-Hanifin",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.921,
+          "xgf_pct": 47.1,
+          "complementarity": 734.507,
+          "pass_links_per60": 1.89,
+          "toi_min": 31.8
+        },
+        {
+          "unit": "Bogosian-Jiricek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.915,
+          "xgf_pct": 44.3,
+          "complementarity": 1306.952,
+          "pass_links_per60": 0.0,
+          "toi_min": 27.2
+        },
+        {
+          "unit": "Bryson-Mrtka",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.914,
+          "xgf_pct": 42.1,
+          "complementarity": 1326.97,
+          "pass_links_per60": 0.0,
+          "toi_min": 8.0
+        },
+        {
+          "unit": "Byram-Komarov",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.883,
+          "xgf_pct": 44.3,
+          "complementarity": 1697.29,
+          "pass_links_per60": 0.0,
+          "toi_min": 15.9
+        },
+        {
+          "unit": "Bryson-Johnson",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.853,
+          "xgf_pct": 44.1,
+          "complementarity": 495.737,
+          "pass_links_per60": 5.91,
+          "toi_min": 20.3
+        }
+      ],
+      "top_chemistry_units_nhl": [
+        {
+          "unit": "Buium-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 8.309,
+          "xgf_pct": 42.2,
+          "complementarity": 108666.538,
+          "pass_links_per60": 17.01,
+          "toi_min": 56.4
+        },
+        {
+          "unit": "Schenn-Stanley",
+          "team": "Buffalo Sabres",
+          "chemistry_index": 5.34,
+          "xgf_pct": 67.7,
+          "complementarity": 2958.936,
+          "pass_links_per60": 280.23,
+          "toi_min": 29.3
+        },
+        {
+          "unit": "Girard-Solovyov",
+          "team": "Pittsburgh Penguins",
+          "chemistry_index": 5.182,
+          "xgf_pct": 65.5,
+          "complementarity": 56322.238,
+          "pass_links_per60": 71.46,
+          "toi_min": 13.4
+        },
+        {
+          "unit": "Girard-Solovyov",
+          "team": "Colorado Avalanche",
+          "chemistry_index": 4.601,
+          "xgf_pct": 58.3,
+          "complementarity": 56322.238,
+          "pass_links_per60": 44.86,
+          "toi_min": 21.4
+        },
+        {
+          "unit": "Hunt-Petry",
+          "team": "Minnesota Wild",
+          "chemistry_index": 4.3,
+          "xgf_pct": 66.7,
+          "complementarity": 57336.066,
+          "pass_links_per60": 27.27,
+          "toi_min": 28.6
+        },
+        {
+          "unit": "Petry-Sebrango",
+          "team": "Florida Panthers",
+          "chemistry_index": 3.918,
+          "xgf_pct": 56.4,
+          "complementarity": 31475.513,
+          "pass_links_per60": 107.44,
+          "toi_min": 43.0
+        },
+        {
+          "unit": "Brodin-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 3.554,
+          "xgf_pct": 56.7,
+          "complementarity": 44510.974,
+          "pass_links_per60": 41.53,
+          "toi_min": 18.8
+        },
+        {
+          "unit": "Faber-Hunt",
+          "team": "Minnesota Wild",
+          "chemistry_index": 3.419,
+          "xgf_pct": 53.4,
+          "complementarity": 45190.741,
+          "pass_links_per60": 32.76,
+          "toi_min": 29.3
+        }
+      ],
+      "bottom_chemistry_units_nhl": [
+        {
+          "unit": "Kiersted-Spacek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.977,
+          "xgf_pct": 8.6,
+          "complementarity": 561.828,
+          "pass_links_per60": 0.0,
+          "toi_min": 31.9
+        },
+        {
+          "unit": "Coghlan-Lauzon",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.974,
+          "xgf_pct": 68.1,
+          "complementarity": 597.533,
+          "pass_links_per60": 0.0,
+          "toi_min": 32.3
+        },
+        {
+          "unit": "Coghlan-Theodore",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.959,
+          "xgf_pct": 44.7,
+          "complementarity": 781.003,
+          "pass_links_per60": 0.0,
+          "toi_min": 43.9
+        },
+        {
+          "unit": "Coghlan-Hanifin",
+          "team": "Vegas Golden Knights",
+          "chemistry_index": -0.921,
+          "xgf_pct": 47.1,
+          "complementarity": 734.507,
+          "pass_links_per60": 1.89,
+          "toi_min": 31.8
+        },
+        {
+          "unit": "Bogosian-Jiricek",
+          "team": "Minnesota Wild",
+          "chemistry_index": -0.915,
+          "xgf_pct": 44.3,
+          "complementarity": 1306.952,
+          "pass_links_per60": 0.0,
+          "toi_min": 27.2
+        },
+        {
+          "unit": "Bryson-Mrtka",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.914,
+          "xgf_pct": 42.1,
+          "complementarity": 1326.97,
+          "pass_links_per60": 0.0,
+          "toi_min": 8.0
+        },
+        {
+          "unit": "Byram-Komarov",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.883,
+          "xgf_pct": 44.3,
+          "complementarity": 1697.29,
+          "pass_links_per60": 0.0,
+          "toi_min": 15.9
+        },
+        {
+          "unit": "Bryson-Johnson",
+          "team": "Buffalo Sabres",
+          "chemistry_index": -0.853,
+          "xgf_pct": 44.1,
+          "complementarity": 495.737,
+          "pass_links_per60": 5.91,
+          "toi_min": 20.3
         }
       ]
     }
   },
   "top_skill_profiles": [
     {
-      "player": "Solovyov Ilya",
-      "entry_rate": 201.969,
-      "retrieval_rate": 628.937,
-      "exit_rate": 329.528,
-      "pass_rate": 2010.827,
-      "shot_xg_rate": 8.703,
-      "es_min": 33.9
-    },
-    {
-      "player": "Iorio Vincent",
-      "entry_rate": 193.508,
-      "retrieval_rate": 428.482,
-      "exit_rate": 253.822,
-      "pass_rate": 1369.634,
-      "shot_xg_rate": 3.534,
-      "es_min": 47.8
+      "player": "Hunt Daemon",
+      "entry_rate": 245.455,
+      "retrieval_rate": 888.312,
+      "exit_rate": 359.416,
+      "pass_rate": 2574.351,
+      "shot_xg_rate": 9.679,
+      "es_min": 20.5
     },
     {
       "player": "Jost Tyson",
-      "entry_rate": 336.721,
-      "retrieval_rate": 251.501,
-      "exit_rate": 166.282,
-      "pass_rate": 1182.679,
-      "shot_xg_rate": 15.169,
+      "entry_rate": 573.672,
+      "retrieval_rate": 507.159,
+      "exit_rate": 347.113,
+      "pass_rate": 2236.49,
+      "shot_xg_rate": 34.74,
       "es_min": 28.9
     },
     {
-      "player": "Kulak Brett",
-      "entry_rate": 123.257,
-      "retrieval_rate": 406.493,
-      "exit_rate": 220.969,
-      "pass_rate": 1192.656,
-      "shot_xg_rate": 5.11,
-      "es_min": 187.9
-    },
-    {
-      "player": "Stecher Troy",
-      "entry_rate": 131.989,
-      "retrieval_rate": 389.368,
-      "exit_rate": 239.23,
-      "pass_rate": 1239.047,
-      "shot_xg_rate": 6.757,
-      "es_min": 36.4
-    },
-    {
-      "player": "Maatta Olli",
-      "entry_rate": 121.079,
-      "retrieval_rate": 331.795,
-      "exit_rate": 177.865,
-      "pass_rate": 1013.219,
-      "shot_xg_rate": 2.449,
-      "es_min": 127.8
-    },
-    {
       "player": "Grundstrom Carl",
-      "entry_rate": 201.555,
-      "retrieval_rate": 237.947,
-      "exit_rate": 257.543,
-      "pass_rate": 965.785,
-      "shot_xg_rate": 11.367,
+      "entry_rate": 352.722,
+      "retrieval_rate": 347.123,
+      "exit_rate": 341.524,
+      "pass_rate": 1433.281,
+      "shot_xg_rate": 16.714,
       "es_min": 21.4
+    },
+    {
+      "player": "Solovyov Ilya",
+      "entry_rate": 152.362,
+      "retrieval_rate": 513.78,
+      "exit_rate": 258.661,
+      "pass_rate": 1619.291,
+      "shot_xg_rate": 6.808,
+      "es_min": 33.9
+    },
+    {
+      "player": "Bussi Brandon",
+      "entry_rate": 5.236,
+      "retrieval_rate": 612.655,
+      "exit_rate": 18.327,
+      "pass_rate": 975.273,
+      "shot_xg_rate": 0.0,
+      "es_min": 45.8
+    },
+    {
+      "player": "Sebrango Donovan",
+      "entry_rate": 137.324,
+      "retrieval_rate": 465.845,
+      "exit_rate": 219.718,
+      "pass_rate": 1227.465,
+      "shot_xg_rate": 5.863,
+      "es_min": 56.8
+    },
+    {
+      "player": "Schwindt Cole",
+      "entry_rate": 243.408,
+      "retrieval_rate": 296.957,
+      "exit_rate": 253.144,
+      "pass_rate": 1236.511,
+      "shot_xg_rate": 15.122,
+      "es_min": 24.6
+    },
+    {
+      "player": "Iorio Vincent",
+      "entry_rate": 150.785,
+      "retrieval_rate": 346.806,
+      "exit_rate": 207.33,
+      "pass_rate": 1094.45,
+      "shot_xg_rate": 2.852,
+      "es_min": 47.8
+    },
+    {
+      "player": "Texier Alexandre",
+      "entry_rate": 212.541,
+      "retrieval_rate": 127.651,
+      "exit_rate": 135.197,
+      "pass_rate": 877.834,
+      "shot_xg_rate": 11.805,
+      "es_min": 95.4
+    },
+    {
+      "player": "Hughes Quinn",
+      "entry_rate": 167.167,
+      "retrieval_rate": 149.906,
+      "exit_rate": 155.818,
+      "pass_rate": 967.417,
+      "shot_xg_rate": 4.711,
+      "es_min": 507.5
     },
     {
       "player": "Ellis Colten",
       "entry_rate": 3.254,
-      "retrieval_rate": 348.125,
-      "exit_rate": 14.641,
-      "pass_rate": 637.686,
+      "retrieval_rate": 289.562,
+      "exit_rate": 11.387,
+      "pass_rate": 517.307,
       "shot_xg_rate": 0.0,
       "es_min": 36.9
     },
     {
-      "player": "Hunt Daemon",
-      "entry_rate": 61.364,
-      "retrieval_rate": 246.916,
-      "exit_rate": 87.662,
-      "pass_rate": 599.026,
-      "shot_xg_rate": 2.813,
-      "es_min": 41.1
+      "player": "Stecher Troy",
+      "entry_rate": 67.648,
+      "retrieval_rate": 215.169,
+      "exit_rate": 123.07,
+      "pass_rate": 716.821,
+      "shot_xg_rate": 3.184,
+      "es_min": 147.2
     },
     {
-      "player": "Zamula Egor",
-      "entry_rate": 51.438,
-      "retrieval_rate": 231.472,
-      "exit_rate": 140.778,
-      "pass_rate": 835.871,
-      "shot_xg_rate": 1.921,
-      "es_min": 88.7
+      "player": "Maatta Olli",
+      "entry_rate": 60.715,
+      "retrieval_rate": 177.475,
+      "exit_rate": 91.948,
+      "pass_rate": 529.506,
+      "shot_xg_rate": 1.483,
+      "es_min": 205.6
     },
     {
       "player": "Beecher John",
-      "entry_rate": 130.128,
-      "retrieval_rate": 147.438,
-      "exit_rate": 118.786,
-      "pass_rate": 438.733,
-      "shot_xg_rate": 6.717,
-      "es_min": 100.5
-    },
-    {
-      "player": "Schwindt Cole",
-      "entry_rate": 126.572,
-      "retrieval_rate": 133.874,
-      "exit_rate": 107.099,
-      "pass_rate": 606.085,
-      "shot_xg_rate": 5.701,
-      "es_min": 24.6
-    },
-    {
-      "player": "Whitecloud Zach",
-      "entry_rate": 44.136,
-      "retrieval_rate": 204.371,
-      "exit_rate": 109.574,
-      "pass_rate": 631.535,
-      "shot_xg_rate": 1.733,
-      "es_min": 312.7
-    },
-    {
-      "player": "Hughes Quinn",
-      "entry_rate": 130.222,
-      "retrieval_rate": 117.567,
-      "exit_rate": 119.584,
-      "pass_rate": 733.096,
-      "shot_xg_rate": 4.107,
-      "es_min": 327.1
+      "entry_rate": 108.352,
+      "retrieval_rate": 116.479,
+      "exit_rate": 95.485,
+      "pass_rate": 353.499,
+      "shot_xg_rate": 6.048,
+      "es_min": 88.6
     },
     {
       "player": "Viel Jeffrey",
-      "entry_rate": 124.508,
-      "retrieval_rate": 106.047,
-      "exit_rate": 95.313,
-      "pass_rate": 524.222,
-      "shot_xg_rate": 8.467,
-      "es_min": 139.8
-    },
-    {
-      "player": "Marchment Mason",
-      "entry_rate": 129.962,
-      "retrieval_rate": 79.163,
-      "exit_rate": 97.987,
-      "pass_rate": 781.319,
-      "shot_xg_rate": 7.072,
-      "es_min": 232.7
-    },
-    {
-      "player": "Chinakhov Yegor",
-      "entry_rate": 108.738,
-      "retrieval_rate": 74.14,
-      "exit_rate": 68.47,
-      "pass_rate": 443.24,
-      "shot_xg_rate": 7.194,
-      "es_min": 412.7
-    },
-    {
-      "player": "Sherwood Kiefer",
-      "entry_rate": 111.491,
-      "retrieval_rate": 68.985,
-      "exit_rate": 79.437,
-      "pass_rate": 419.253,
-      "shot_xg_rate": 6.752,
-      "es_min": 258.3
-    },
-    {
-      "player": "Carlson John",
-      "entry_rate": 49.612,
-      "retrieval_rate": 121.746,
-      "exit_rate": 78.825,
-      "pass_rate": 536.108,
-      "shot_xg_rate": 2.769,
-      "es_min": 367.6
+      "entry_rate": 111.303,
+      "retrieval_rate": 95.986,
+      "exit_rate": 82.712,
+      "pass_rate": 464.615,
+      "shot_xg_rate": 8.101,
+      "es_min": 117.5
     },
     {
       "player": "Stastney Spencer",
-      "entry_rate": 34.465,
-      "retrieval_rate": 128.432,
-      "exit_rate": 57.225,
-      "pass_rate": 381.395,
-      "shot_xg_rate": 1.292,
-      "es_min": 184.5
+      "entry_rate": 39.479,
+      "retrieval_rate": 162.69,
+      "exit_rate": 79.826,
+      "pass_rate": 497.18,
+      "shot_xg_rate": 1.522,
+      "es_min": 276.6
+    },
+    {
+      "player": "Fabbri Robby",
+      "entry_rate": 111.328,
+      "retrieval_rate": 80.656,
+      "exit_rate": 70.432,
+      "pass_rate": 356.706,
+      "shot_xg_rate": 8.362,
+      "es_min": 52.8
+    },
+    {
+      "player": "Reimer James",
+      "entry_rate": 0.0,
+      "retrieval_rate": 190.476,
+      "exit_rate": 2.381,
+      "pass_rate": 361.905,
+      "shot_xg_rate": 0.0,
+      "es_min": 25.2
+    },
+    {
+      "player": "Chinakhov Yegor",
+      "entry_rate": 102.084,
+      "retrieval_rate": 68.239,
+      "exit_rate": 64.031,
+      "pass_rate": 418.213,
+      "shot_xg_rate": 6.47,
+      "es_min": 328.0
+    },
+    {
+      "player": "Kulak Brett",
+      "entry_rate": 40.241,
+      "retrieval_rate": 129.078,
+      "exit_rate": 71.246,
+      "pass_rate": 391.192,
+      "shot_xg_rate": 1.743,
+      "es_min": 545.7
     },
     {
       "player": "Reichel Lukas",
-      "entry_rate": 105.602,
-      "retrieval_rate": 55.345,
-      "exit_rate": 71.249,
-      "pass_rate": 381.693,
-      "shot_xg_rate": 4.855,
-      "es_min": 94.3
-    },
-    {
-      "player": "Texier Alexandre",
-      "entry_rate": 92.121,
-      "retrieval_rate": 57.374,
-      "exit_rate": 60.606,
-      "pass_rate": 365.253,
-      "shot_xg_rate": 6.085,
-      "es_min": 74.2
-    },
-    {
-      "player": "Soderblom Elmer",
-      "entry_rate": 83.815,
-      "retrieval_rate": 54.014,
-      "exit_rate": 57.429,
-      "pass_rate": 251.134,
-      "shot_xg_rate": 4.656,
-      "es_min": 193.3
-    },
-    {
-      "player": "Heinen Danton",
-      "entry_rate": 68.271,
-      "retrieval_rate": 63.94,
-      "exit_rate": 56.043,
-      "pass_rate": 283.017,
-      "shot_xg_rate": 3.907,
-      "es_min": 235.5
+      "entry_rate": 94.263,
+      "retrieval_rate": 63.766,
+      "exit_rate": 62.38,
+      "pass_rate": 365.268,
+      "shot_xg_rate": 4.796,
+      "es_min": 86.6
     },
     {
       "player": "Ohgren Liam",
-      "entry_rate": 71.345,
-      "retrieval_rate": 57.916,
-      "exit_rate": 52.879,
-      "pass_rate": 252.646,
-      "shot_xg_rate": 4.257,
-      "es_min": 143.0
+      "entry_rate": 82.977,
+      "retrieval_rate": 60.504,
+      "exit_rate": 57.047,
+      "pass_rate": 296.471,
+      "shot_xg_rate": 4.135,
+      "es_min": 208.2
+    },
+    {
+      "player": "Panarin Artemi",
+      "entry_rate": 95.141,
+      "retrieval_rate": 43.444,
+      "exit_rate": 59.263,
+      "pass_rate": 425.04,
+      "shot_xg_rate": 4.134,
+      "es_min": 523.4
+    },
+    {
+      "player": "Zamula Egor",
+      "entry_rate": 22.701,
+      "retrieval_rate": 113.894,
+      "exit_rate": 72.798,
+      "pass_rate": 399.609,
+      "shot_xg_rate": 0.942,
+      "es_min": 153.3
+    },
+    {
+      "player": "Whitecloud Zach",
+      "entry_rate": 25.219,
+      "retrieval_rate": 111.368,
+      "exit_rate": 59.763,
+      "pass_rate": 344.911,
+      "shot_xg_rate": 0.979,
+      "es_min": 566.2
     },
     {
       "player": "Buium Zeev",
-      "entry_rate": 51.922,
-      "retrieval_rate": 74.768,
-      "exit_rate": 62.684,
-      "pass_rate": 350.616,
-      "shot_xg_rate": 1.441,
-      "es_min": 317.8
+      "entry_rate": 51.291,
+      "retrieval_rate": 80.878,
+      "exit_rate": 64.657,
+      "pass_rate": 382.573,
+      "shot_xg_rate": 1.602,
+      "es_min": 525.2
     },
     {
-      "player": "Myers Tyler",
-      "entry_rate": 25.952,
-      "retrieval_rate": 100.038,
-      "exit_rate": 50.245,
-      "pass_rate": 282.309,
-      "shot_xg_rate": 1.369,
-      "es_min": 397.6
+      "player": "Schneiderhan Brooklyn",
+      "entry_rate": 88.312,
+      "retrieval_rate": 41.558,
+      "exit_rate": 75.325,
+      "pass_rate": 135.065,
+      "shot_xg_rate": 2.872,
+      "es_min": 23.1
     },
     {
-      "player": "Blankenburg Nick",
-      "entry_rate": 36.01,
-      "retrieval_rate": 88.991,
-      "exit_rate": 64.57,
-      "pass_rate": 307.744,
-      "shot_xg_rate": 1.84,
-      "es_min": 289.9
+      "player": "Marchment Mason",
+      "entry_rate": 81.329,
+      "retrieval_rate": 48.524,
+      "exit_rate": 59.63,
+      "pass_rate": 458.073,
+      "shot_xg_rate": 4.346,
+      "es_min": 351.2
     },
     {
-      "player": "Garland Conor",
-      "entry_rate": 76.033,
-      "retrieval_rate": 48.039,
-      "exit_rate": 52.359,
-      "pass_rate": 293.246,
-      "shot_xg_rate": 3.421,
-      "es_min": 347.2
+      "player": "Law Alex",
+      "entry_rate": 75.935,
+      "retrieval_rate": 48.322,
+      "exit_rate": 48.322,
+      "pass_rate": 157.91,
+      "shot_xg_rate": 3.055,
+      "es_min": 69.5
     },
     {
-      "player": "Girard Samuel",
-      "entry_rate": 38.409,
-      "retrieval_rate": 83.838,
-      "exit_rate": 58.617,
-      "pass_rate": 303.188,
-      "shot_xg_rate": 1.035,
-      "es_min": 777.9
+      "player": "Carlson John",
+      "entry_rate": 38.527,
+      "retrieval_rate": 81.219,
+      "exit_rate": 55.794,
+      "pass_rate": 366.352,
+      "shot_xg_rate": 2.001,
+      "es_min": 691.5
     }
   ]
 }

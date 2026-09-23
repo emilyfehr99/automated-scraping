@@ -23,6 +23,11 @@ start_all_apps() {
     ./start_24_7.sh start
     cd ..
     
+    echo "📈 Starting Hudl Scraper & Dashboard App (Port 8240)..."
+    cd hudl-scraping
+    ./start_24_7.sh start
+    cd ..
+    
     echo ""
     echo "✅ All apps started successfully!"
     echo ""
@@ -30,6 +35,7 @@ start_all_apps() {
     echo "   Stride Analysis: http://localhost:8237"
     echo "   Off-Ice Analysis: http://localhost:8238"
     echo "   Goalie Analysis: http://localhost:8239"
+    echo "   Hudl Scraper/Dashboard: http://localhost:8240"
     echo ""
 }
 
@@ -46,6 +52,10 @@ stop_all_apps() {
     cd ..
     
     cd goalie_analysis_app
+    ./start_24_7.sh stop
+    cd ..
+    
+    cd hudl-scraping
     ./start_24_7.sh stop
     cd ..
     
@@ -73,6 +83,12 @@ check_status() {
     cd goalie_analysis_app
     ./start_24_7.sh status
     cd ..
+    
+    echo ""
+    echo "📈 Hudl Scraper & Dashboard App:"
+    cd hudl-scraping
+    ./start_24_7.sh status
+    cd ..
 }
 
 # Function to start monitoring for all apps
@@ -97,10 +113,16 @@ start_monitoring() {
     GOALIE_MONITOR_PID=$!
     cd ..
     
+    cd hudl-scraping
+    ./start_24_7.sh monitor &
+    HUDL_MONITOR_PID=$!
+    cd ..
+    
     echo "✅ Monitoring started for all apps"
     echo "   Stride Monitor PID: $STRIDE_MONITOR_PID"
     echo "   Off-Ice Monitor PID: $OFFICE_MONITOR_PID"
     echo "   Goalie Monitor PID: $GOALIE_MONITOR_PID"
+    echo "   Hudl Monitor PID: $HUDL_MONITOR_PID"
     echo ""
     echo "💡 To stop monitoring, use: pkill -f 'start_24_7.sh monitor'"
 }
@@ -114,6 +136,8 @@ open_in_safari() {
     open -a Safari http://localhost:8238
     sleep 1
     open -a Safari http://localhost:8239
+    sleep 1
+    open -a Safari http://localhost:8240
     
     echo "✅ All apps opened in Safari"
 }

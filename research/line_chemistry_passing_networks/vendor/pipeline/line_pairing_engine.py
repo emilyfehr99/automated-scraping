@@ -24,8 +24,19 @@ class UnitKey:
         return ", ".join(self.players)
 
 
+def _player_surname(name: str) -> str:
+    """InStat 'Last First' names: last token is given name, prior tokens are surname."""
+    parts = str(name or "").strip().split()
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    surname = " ".join(parts[:-1])
+    return surname.replace(". ", "-").replace(" ", "-").replace(".", "")
+
+
 def _short_label(players: list[str]) -> str:
-    return "-".join(p.split(" ", 1)[0] for p in players if p)
+    return "-".join(_player_surname(p) for p in players if p)
 
 
 def _pct(num: float, den: float) -> float | None:

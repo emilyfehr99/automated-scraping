@@ -13,12 +13,16 @@ def generate(
     team: str | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    from player_cards.profile import generate_player_card
+    from player_cards.profile import generate_player_card, discover_team_pbp_files
 
     kwargs.pop("kind", None)
     kwargs.setdefault("league", "pwhl")
     kwargs.setdefault("undrafted", False)
-    kwargs.setdefault("pbp_source", "api")
+    if "pbp_source" not in kwargs:
+        if team and discover_team_pbp_files(team, league="pwhl"):
+            kwargs["pbp_source"] = "local"
+        else:
+            kwargs["pbp_source"] = "harvest"
     return generate_player_card(name, team, kind=KIND, **kwargs)
 
 

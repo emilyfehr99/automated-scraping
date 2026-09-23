@@ -1121,7 +1121,7 @@ def render_player_card_html(profile: dict[str, Any]) -> str:
         if league == "prospect":
             pillar_tag = "Team rates · <span>per game · bar width = roster %ile</span>"
         elif league == "nhl":
-            pillar_tag = "InStat microstats · <span>per game · roster %ile</span>"
+            pillar_tag = "Percentiles"
         else:
             pillar_tag = "Team percentiles · <span>per game</span>"
 

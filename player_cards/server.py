@@ -30,6 +30,8 @@ app = FastAPI(
     description=(
         "Serve NHL/PWHL microstat player cards from the prebuilt SQLite store "
         "and on-disk InStat PBP cache. No live InStat downloads.\n\n"
+        "Live CapWages contract lookups: `GET /cap/player` "
+        "(set `CAPWAGES_API_KEY` for the CapWages gateway; HTML scrape fallback).\n\n"
         "**Setup once:** `python scripts/sync_player_cards_ci.py`"
     ),
 )
@@ -57,6 +59,14 @@ def root() -> dict[str, Any]:
         "docs": "/docs",
         "health": "/health",
         "coverage": "/coverage",
+        "cap": {
+            "by_name": "/cap/player?name={name}&player_id={nhl_id}&team={TRI}",
+            "by_nhl_id": "/cap/player/{nhl_id}?team={TRI}",
+            "note": (
+                "Live CapWages pull (60s throttle). Prefers team wage pages "
+                "(where extensions land first). Optional CAPWAGES_API_KEY for gateway."
+            ),
+        },
         "pwhl_actionshots": {
             "manifest": "/pwhl/actionshots",
             "image": f"/pwhl/actionshots/{DEFAULT_SIZE}/{{ht_player_id}}.jpg",
@@ -96,6 +106,71 @@ def status(season: str | None = None) -> dict[str, Any]:
 @app.get("/coverage")
 def coverage(season: str | None = None) -> dict[str, Any]:
     return service.pbp_coverage(season=season)
+
+
+def _resolve_name_for_nhl_id(nhl_id: int) -> str | None:
+    """Resolve display name from NHL landing API (for /cap/player/{nhl_id})."""
+    try:
+        from .nhl_bio import fetch_player_landing, _text
+
+        landing = fetch_player_landing(int(nhl_id))
+        first = _text(landing.get("firstName"))
+        last = _text(landing.get("lastName"))
+        name = f"{first} {last}".strip()
+        return name or None
+    except Exception:
+        return None
+
+
+def _live_cap_response(
+    *,
+    name: str,
+    player_id: int | None = None,
+    team: str | None = None,
+) -> dict[str, Any]:
+    from .cap_source import CapUnavailableError, fetch_cap_info
+
+    try:
+        cap = fetch_cap_info(name, player_id=player_id, live=True, team=team)
+    except CapUnavailableError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if not cap:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No CapWages contract found for {name!r}",
+        )
+    return {
+        "player": name,
+        "player_id": player_id or cap.get("nhl_id"),
+        "team": team or cap.get("team"),
+        "live": True,
+        "cap": cap,
+    }
+
+
+@app.get("/cap/player")
+def cap_player(
+    name: str = Query(..., min_length=2, description="Player display name"),
+    player_id: int | None = Query(None, description="NHL player id (optional)"),
+    team: str | None = Query(None, description="Team abbrev — uses CapWages team wage page first"),
+) -> dict[str, Any]:
+    """Live CapWages contract summary (AAV, proj value, expiry, extension).
+
+    Prefers the club wage page where new signings/extensions appear first.
+    """
+    return _live_cap_response(name=name, player_id=player_id, team=team)
+
+
+@app.get("/cap/player/{nhl_id}")
+def cap_player_by_id(
+    nhl_id: int,
+    team: str | None = Query(None, description="Team abbrev (optional)"),
+) -> dict[str, Any]:
+    """Live CapWages contract by NHL player id."""
+    name = _resolve_name_for_nhl_id(nhl_id)
+    if not name:
+        raise HTTPException(status_code=404, detail=f"NHL player id {nhl_id} not found")
+    return _live_cap_response(name=name, player_id=nhl_id, team=team)
 
 
 @app.get("/players/search")

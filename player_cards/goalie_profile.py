@@ -60,6 +60,16 @@ def _team_full_name(team: str) -> str:
     return NHL_TEAM_SEARCH.get(team.upper(), team)
 
 
+def _safe_async_run(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
 def build_goalie_card_profile(
     player_name: str,
     team: str,
@@ -85,14 +95,14 @@ def build_goalie_card_profile(
     player_id = bio["player_id"]
 
     official = _fetch_nhl_official_stats(player_id, season)
-    cap = fetch_cap_info(bio["name"], player_id=player_id)
+    cap = fetch_cap_info(bio["name"], player_id=player_id, live=True, team=team or bio.get("team"))
 
     cfg = get_league(league)
     team_instat_id = cfg.instat_ids.get(team.upper())
     instat_summary = None
     if team_instat_id:
         try:
-            instat_summary = asyncio.run(
+            instat_summary = _safe_async_run(
                 fetch_goalie_instat_summary(bio["name"], team_instat_id, instat_season_id)
             )
         except Exception as e:
@@ -113,6 +123,27 @@ def build_goalie_card_profile(
     except Exception as e:
         logger.warning("Situational goalie split build failed for %s: %s", player_name, e)
 
+    if shots:
+        game_shots: dict[str, list[dict[str, Any]]] = {}
+        for s in shots:
+            game_shots.setdefault(s.get("game_file", ""), []).append(s)
+        qs = 0
+        rbs = 0
+        for gf, gshots in game_shots.items():
+            sa = len(gshots)
+            ga = sum(1 for s in gshots if s.get("is_goal"))
+            svp = (sa - ga) / max(1, sa)
+            if sa >= 10 and (svp >= 0.900 or ga <= 2):
+                qs += 1
+            if sa >= 10 and svp < 0.850 and ga >= 3:
+                rbs += 1
+        official["quality_starts"] = qs
+        official["quality_start_pct"] = round(100.0 * qs / max(1, len(game_shots)), 1)
+        official["really_bad_starts"] = rbs
+        official["really_bad_start_pct"] = round(100.0 * rbs / max(1, len(game_shots)), 1)
+        official["shots_against"] = len(shots)
+        official["saves"] = len(shots) - sum(1 for s in shots if s.get("is_goal"))
+
     percentiles: dict[str, Any] = {}
     if instat_summary and league_goalie_rows:
         try:
@@ -121,18 +152,22 @@ def build_goalie_card_profile(
             logger.warning("Goalie percentile computation failed for %s: %s", player_name, e)
 
     # Real (non-proxy) per-shot data: heatmap, handedness/attack-type/visibility/
-    # rebound-detail splits, real style-of-play. Only covers games InStat
-    # manually shot-charted for this goalie (see 'games_tracked' in the result).
+    # rebound-detail splits, real style-of-play.
     real_shots: list[dict[str, Any]] = []
     real_shot_agg: dict[str, Any] = {}
-    if team_instat_id:
+    from .instat_source import HUDL_ROOT
+    if team_instat_id and instat_summary is not None and (HUDL_ROOT / "auth.json").exists():
         try:
-            real_shots = asyncio.run(
+            real_shots = _safe_async_run(
                 fetch_real_goalie_shot_data(team_instat_id, instat_season_id, bio["name"], shooter_hands)
             )
             real_shot_agg = aggregate_real_shot_data(real_shots)
         except Exception as e:
             logger.warning("Real per-shot goalie data failed for %s: %s", player_name, e)
+
+    if not real_shot_agg or not real_shot_agg.get("shots"):
+        from .prospect_goalie_profile import _build_pbp_shot_agg
+        real_shot_agg = _build_pbp_shot_agg(shots)
 
     return {
         "league": league,
@@ -158,6 +193,7 @@ def build_goalie_card_profile(
             "percentiles": bool(percentiles),
         },
     }
+
 
 
 def generate_goalie_card(

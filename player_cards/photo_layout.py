@@ -65,7 +65,10 @@ def photo_frame(width: int | None, height: int | None, *, kind: str = "mug") -> 
 
 
 def fetch_photo(url: str) -> tuple[bytes, str]:
-    resp = httpx.get(url, timeout=20.0, follow_redirects=True, headers={"User-Agent": "PlayerCards/1.0"})
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    resp = httpx.get(url, timeout=10.0, follow_redirects=True, headers=headers)
     resp.raise_for_status()
     mime = (resp.headers.get("content-type") or "image/jpeg").split(";")[0].strip()
     if not mime.startswith("image/"):
