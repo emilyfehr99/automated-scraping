@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
@@ -252,7 +253,8 @@ def _bootstrap_season_fallback() -> tuple[str, int]:
     return tag, sid
 
 
-_SEASON_DETECTION_CACHE: dict[str, Any] = {"time": 0.0, "result": _bootstrap_season_fallback()}
+# Per-league season cache: league_key → (monotonic_time, (tag, instat_id))
+_SEASON_DETECTION_CACHE: dict[str, tuple[float, tuple[str, int]]] = {}
 _PWHL_SEASON_CACHE: dict[str, Any] = {"time": 0.0, "result": PWHL_HOCKEYTECH_SEASON}
 
 
@@ -421,11 +423,79 @@ def _detect_nhl_season_from_standings() -> tuple[str, int] | None:
     return tag, instat_season_id(tag, "nhl")
 
 
+def _pwhl_regular_seasons_from_hockeytech() -> list[dict[str, Any]]:
+    """HockeyTech PWHL regular-season rows (newest first), with parsed dates."""
+    from datetime import date
+
+    data = _http_json(
+        "https://lscluster.hockeytech.com/feed/"
+        "?feed=modulekit&view=seasons&key=446521baf8c38984&client_code=pwhl&fmt=json",
+        timeout=15.0,
+    )
+    seasons = ((data or {}).get("SiteKit") or {}).get("Seasons") or []
+    out: list[dict[str, Any]] = []
+    for row in seasons:
+        name = str(row.get("season_name") or "")
+        if "Regular Season" not in name:
+            continue
+        try:
+            sid = int(row.get("season_id"))
+            start = date.fromisoformat(str(row.get("start_date"))[:10])
+            end = date.fromisoformat(str(row.get("end_date"))[:10])
+        except Exception:
+            continue
+        # "2025-26 Regular Season" or inaugural "2024 Regular Season"
+        m = re.search(r"(20\d{2})-(\d{2})", name)
+        if m:
+            tag = f"{m.group(1)}-{m.group(2)}"
+        else:
+            m1 = re.search(r"(20\d{2})", name)
+            if not m1:
+                continue
+            y0 = int(m1.group(1))
+            tag = f"{y0}-{str(y0 + 1)[-2:]}"
+        out.append({"season_id": sid, "tag": tag, "start": start, "end": end, "name": name})
+    return out
+
+
+def _detect_pwhl_season_from_hockeytech() -> tuple[str, int] | None:
+    """PWHL active season from HockeyTech regular-season windows.
+
+    Does **not** follow the NHL October rollover — PWHL regular season typically
+    starts in Nov/Dec. Until the new regular season's start_date, keep the prior
+    completed regular season so CI still builds last year's cards.
+    """
+    from datetime import date
+
+    rows = _pwhl_regular_seasons_from_hockeytech()
+    if not rows:
+        return None
+    today = date.today()
+
+    for row in rows:
+        if row["start"] <= today <= row["end"]:
+            tag = row["tag"]
+            return tag, instat_season_id(tag, "pwhl")
+
+    # Offseason / preseason: most recent regular season that has already started
+    # (or ended). Prefer completed seasons over future ones.
+    started = [r for r in rows if r["start"] <= today]
+    if started:
+        # Prefer the latest by start date among those already started.
+        row = max(started, key=lambda r: r["start"])
+        tag = row["tag"]
+        return tag, instat_season_id(tag, "pwhl")
+
+    row = min(rows, key=lambda r: r["start"])
+    tag = row["tag"]
+    return tag, instat_season_id(tag, "pwhl")
+
+
 def detect_active_season(league: str | None = "nhl") -> tuple[str, int]:
     """Detect current active season dynamically (with 5-minute memory TTL).
 
-    Uses the NHL standings-season calendar so rollover happens on the new
-    season's start date (even at 0 GP), not only after the first game.
+    NHL uses the standings-season calendar (October rollover).
+    PWHL uses HockeyTech regular-season windows (typically Nov/Dec start).
     Override with PLAYER_CARDS_SEASON / INSTAT_SEASON_ID when needed.
     """
     env_season = os.getenv("PLAYER_CARDS_SEASON", "").strip()
@@ -436,25 +506,32 @@ def detect_active_season(league: str | None = "nhl") -> tuple[str, int]:
 
     import time
 
+    key = (league or "nhl").strip().lower() or "nhl"
     now = time.time()
-    if now - _SEASON_DETECTION_CACHE["time"] < 300.0:
-        return _SEASON_DETECTION_CACHE["result"]
+    cached = _SEASON_DETECTION_CACHE.get(key)
+    if cached and now - cached[0] < 300.0:
+        return cached[1]
 
-    key = (league or "nhl").strip().lower()
     detected: tuple[str, int] | None = None
-    if key in ("nhl", "prospect", ""):
+    if key in ("nhl", "prospect"):
         detected = _detect_nhl_season_from_calendar() or _detect_nhl_season_from_standings()
     elif key == "pwhl":
-        # PWHL InStat season tags track the same year label as NHL.
-        detected = _detect_nhl_season_from_calendar() or _detect_nhl_season_from_standings()
+        detected = _detect_pwhl_season_from_hockeytech()
 
-    if detected:
-        _SEASON_DETECTION_CACHE["time"] = now
-        _SEASON_DETECTION_CACHE["result"] = detected
-        return detected
+    if detected is None:
+        if key == "pwhl":
+            from datetime import date
 
-    _SEASON_DETECTION_CACHE["time"] = now
-    return _SEASON_DETECTION_CACHE["result"]
+            today = date.today()
+            # Jul–Oct: stay on previous PWHL season (regular season starts ~Nov/Dec).
+            start_yr = today.year - 1 if today.month < 11 else today.year
+            tag = f"{start_yr}-{str(start_yr + 1)[-2:]}"
+            detected = (tag, instat_season_id(tag, "pwhl"))
+        else:
+            detected = _bootstrap_season_fallback()
+
+    _SEASON_DETECTION_CACHE[key] = (now, detected)
+    return detected
 
 
 def detect_pwhl_hockeytech_season() -> int:
@@ -465,35 +542,21 @@ def detect_pwhl_hockeytech_season() -> int:
     if now - _PWHL_SEASON_CACHE["time"] < 300.0:
         return int(_PWHL_SEASON_CACHE["result"])
 
-    data = _http_json(
-        "https://lscluster.hockeytech.com/feed/"
-        "?feed=modulekit&view=seasons&key=446521baf8c38984&client_code=pwhl&fmt=json",
-        timeout=15.0,
-    )
-    seasons = ((data or {}).get("SiteKit") or {}).get("Seasons") or []
-    nhl_tag, _ = detect_active_season("nhl")
-    start_yr = nhl_tag.split("-")[0] if "-" in nhl_tag else ""
+    rows = _pwhl_regular_seasons_from_hockeytech()
+    from datetime import date
 
+    today = date.today()
     chosen: int | None = None
-    for row in seasons:
-        name = str(row.get("season_name") or "")
-        if "Regular Season" not in name:
-            continue
-        try:
-            sid = int(row.get("season_id"))
-        except Exception:
-            continue
-        if start_yr and start_yr in name:
-            chosen = sid
+    for row in rows:
+        if row["start"] <= today <= row["end"]:
+            chosen = int(row["season_id"])
             break
-        if chosen is None:
-            chosen = sid  # seasons list is newest-first
-
-    if chosen is None and seasons:
-        try:
-            chosen = int(seasons[0].get("season_id"))
-        except Exception:
-            chosen = PWHL_HOCKEYTECH_SEASON
+    if chosen is None:
+        started = [r for r in rows if r["start"] <= today]
+        if started:
+            chosen = int(max(started, key=lambda r: r["start"])["season_id"])
+        elif rows:
+            chosen = int(rows[0]["season_id"])
 
     result = chosen if chosen is not None else PWHL_HOCKEYTECH_SEASON
     _PWHL_SEASON_CACHE["time"] = now

@@ -341,6 +341,7 @@ jobs:
           path: .player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
 
       - name: Package PBP cache for upload
+        id: pbp_pack
         run: |
           if [ ! -d .player-cards-data ]; then
             echo "No .player-cards-data directory" >&2
@@ -349,19 +350,24 @@ jobs:
           count=$(find .player-cards-data -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
           echo "PBP CSV files on disk: $count"
           if [ "$count" -lt 1 ]; then
-            echo "No PBP CSV files to upload" >&2
-            exit 1
+            # Early-season / offseason shards (esp. PWHL before Nov/Dec) may have
+            # a store but no fresh PBP yet — do not fail the whole build.
+            echo "No PBP CSV files to upload (skipping pbp-cache artifact)"
+            echo "has_pbp=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           tar -czf "pbp-cache-shard-${{ matrix.shard_id }}.tar.gz" \
             --exclude='./shards' \
             --exclude='*.db' \
             -C .player-cards-data .
+          echo "has_pbp=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload PBP cache snapshot
+        if: steps.pbp_pack.outputs.has_pbp == 'true'
         uses: actions/upload-artifact@v5
         with:
           name: pbp-cache-shard-${{ matrix.shard_id }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
           path: pbp-cache-shard-${{ matrix.shard_id }}.tar.gz
           compression-level: 0
