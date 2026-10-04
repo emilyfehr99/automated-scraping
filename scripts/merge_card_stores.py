@@ -8,7 +8,18 @@ import sqlite3
 from pathlib import Path
 
 
-def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
+def merge_stores(
+    target: Path,
+    sources: list[Path],
+    *,
+    base: Path | None = None,
+) -> dict[str, int]:
+    """Merge shard DBs into ``target``.
+
+    When ``base`` is set (prior merged store), start from that DB and upsert
+    shard rows on top — used for incremental scheduled rebuilds that only
+    refresh teams with new games.
+    """
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists():
         target.unlink()
@@ -18,9 +29,12 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
     first = True
     counts = {"player_profiles": 0, "team_builds": 0}
 
-    for src in sources:
-        if not src.is_file():
-            continue
+    ordered: list[Path] = []
+    if base is not None and base.is_file():
+        ordered.append(base)
+    ordered.extend(src for src in sources if src.is_file())
+
+    for src in ordered:
         if first:
             backup = sqlite3.connect(src)
             backup.backup(main)
@@ -36,6 +50,10 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
             main.commit()
             main.execute("DETACH DATABASE shard")
 
+    if first:
+        main.close()
+        raise SystemExit("No source databases to merge")
+
     for table in ("player_profiles", "team_builds"):
         row = main.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
         counts[table] = int(row[0]) if row else 0
@@ -48,10 +66,16 @@ def merge_stores(target: Path, sources: list[Path]) -> dict[str, int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Merge player card store shards")
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--base",
+        type=Path,
+        default=None,
+        help="Prior merged store to upsert into (incremental builds)",
+    )
     parser.add_argument("shards", type=Path, nargs="+")
     args = parser.parse_args()
-    counts = merge_stores(args.out, args.shards)
-    print(f"Merged {len(args.shards)} shards -> {args.out}")
+    counts = merge_stores(args.out, args.shards, base=args.base)
+    print(f"Merged {len(args.shards)} shards -> {args.out}" + (f" (base={args.base})" if args.base else ""))
     print(counts)
 
 

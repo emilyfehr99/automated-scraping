@@ -53,6 +53,10 @@ jobs:
       reason: ${{ steps.gate.outputs.reason }}
       summary: ${{ steps.gate.outputs.summary }}
       seed_only: ${{ steps.flags.outputs.seed_only }}
+      matrix: ${{ steps.gate.outputs.matrix }}
+      full_build: ${{ steps.gate.outputs.full_build }}
+      full_nhl: ${{ steps.gate.outputs.full_nhl }}
+      include_pwhl: ${{ steps.gate.outputs.include_pwhl }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -89,18 +93,25 @@ jobs:
           python3 scripts/ci_check_player_cards_freshness.py \
             --previous .ci/data-fingerprint.json \
             --write-live .ci/live-fingerprint.json \
+            --write-plan .ci/build-plan.json \
             $FORCE_FLAG
           if [ "$SEED_ONLY" = "true" ]; then
             echo "should_build=false" >> "$GITHUB_OUTPUT"
             echo "reason=seed_fingerprint_only" >> "$GITHUB_OUTPUT"
             echo "summary=seeded live fingerprint without rebuild" >> "$GITHUB_OUTPUT"
+            echo "full_build=false" >> "$GITHUB_OUTPUT"
+            echo "full_nhl=false" >> "$GITHUB_OUTPUT"
+            echo "include_pwhl=false" >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload live fingerprint
         uses: actions/upload-artifact@v5
         with:
           name: live-data-fingerprint
-          path: .ci/live-fingerprint.json
+          path: |
+            .ci/live-fingerprint.json
+            .ci/build-plan.json
           retention-days: 30
 
   seed-fingerprint:
@@ -139,48 +150,85 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       full_build: ${{ steps.set.outputs.full_build }}
+      full_nhl: ${{ steps.set.outputs.full_nhl }}
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download build plan
+        uses: actions/download-artifact@v5
+        with:
+          name: live-data-fingerprint
+          path: .ci
+
       - id: set
         env:
           EVENT_NAME: ${{ github.event_name }}
           SHARD: ${{ github.event.inputs.shard }}
           TEAMS: ${{ github.event.inputs.teams }}
+          CHECK_MATRIX: ${{ needs.check.outputs.matrix }}
+          CHECK_FULL: ${{ needs.check.outputs.full_build }}
+          CHECK_FULL_NHL: ${{ needs.check.outputs.full_nhl }}
         run: |
           python3 - <<'PY'
           import json, os
+          from pathlib import Path
+
           shard = (os.environ.get("SHARD") or "").strip()
           teams = (os.environ.get("TEAMS") or "").strip()
           event = os.environ.get("EVENT_NAME") or ""
+
+          plan_path = Path(".ci/build-plan.json")
+          plan = json.loads(plan_path.read_text()) if plan_path.is_file() else {}
+          selected = list((plan.get("matrix") or {}).get("include") or [])
+          full = bool(plan.get("full_build"))
+          full_nhl = bool(plan.get("full_nhl"))
+
+          # Manual overrides: explicit team list or single shard.
           all_shards = [
-              {"shard_id": 1, "teams": "ANA,BOS,BUF,CGY"},
-              {"shard_id": 2, "teams": "CAR,CBJ,CHI,COL"},
-              {"shard_id": 3, "teams": "DAL,DET,EDM,FLA"},
-              {"shard_id": 4, "teams": "LAK,MIN,MTL,NJD"},
-              {"shard_id": 5, "teams": "NSH,NYI,NYR,OTT"},
-              {"shard_id": 6, "teams": "PHI,PIT,SEA,SJS"},
-              {"shard_id": 7, "teams": "STL,TBL,TOR,UTA"},
-              {"shard_id": 8, "teams": "VAN,VGK,WPG,WSH"},
+              {"shard_id": 1, "teams": "ANA,BOS,BUF,CGY", "league": "nhl"},
+              {"shard_id": 2, "teams": "CAR,CBJ,CHI,COL", "league": "nhl"},
+              {"shard_id": 3, "teams": "DAL,DET,EDM,FLA", "league": "nhl"},
+              {"shard_id": 4, "teams": "LAK,MIN,MTL,NJD", "league": "nhl"},
+              {"shard_id": 5, "teams": "NSH,NYI,NYR,OTT", "league": "nhl"},
+              {"shard_id": 6, "teams": "PHI,PIT,SEA,SJS", "league": "nhl"},
+              {"shard_id": 7, "teams": "STL,TBL,TOR,UTA", "league": "nhl"},
+              {"shard_id": 8, "teams": "VAN,VGK,WPG,WSH", "league": "nhl"},
               {"shard_id": 9, "teams": "BPF,MNF,MVL,NYS,OTC,TSR", "league": "pwhl"},
           ]
-          full = event == "schedule" or (not teams and shard in ("", "all"))
           if teams:
-              selected = [s for s in all_shards if s["shard_id"] == 1]
-          elif full:
-              selected = all_shards
-          else:
+              want = {t.strip().upper() for t in teams.split(",") if t.strip()}
+              selected = []
+              for s in all_shards:
+                  hit = [t for t in s["teams"].split(",") if t in want]
+                  if hit:
+                      selected.append({**s, "teams": ",".join(hit)})
+              full = False
+              full_nhl = False
+          elif shard and shard not in ("", "all"):
               try:
-                  want = int(shard)
+                  want_id = int(shard)
               except ValueError:
                   raise SystemExit(f"Invalid shard {shard!r}; use 1-9 or all")
-              selected = [s for s in all_shards if s["shard_id"] == want]
+              selected = [s for s in all_shards if s["shard_id"] == want_id]
               if not selected:
-                  raise SystemExit(f"Unknown shard {want}; use 1-9 or all")
+                  raise SystemExit(f"Unknown shard {want_id}; use 1-9 or all")
+              # Manual shard: still drop inactive PWHL unless forced via shard=9
+              if want_id == 9 and not plan.get("pwhl_season_active") and event == "schedule":
+                  selected = []
+              full = False
+              full_nhl = want_id != 9 and len(selected) == 8
+
+          if not selected:
+              raise SystemExit("Build plan has no dirty teams/shards — nothing to run")
+
           matrix = {"include": selected}
-          print(f"event={event} shard={shard!r} teams={teams!r} full_build={full}")
+          print(f"event={event} shard={shard!r} teams={teams!r} full_build={full} full_nhl={full_nhl}")
           print("matrix", json.dumps(matrix))
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"full_build={'true' if full else 'false'}\n")
+              fh.write(f"full_nhl={'true' if full_nhl else 'false'}\n")
               fh.write("matrix<<MATRIX\n")
               fh.write(json.dumps(matrix, separators=(",", ":")))
               fh.write("\nMATRIX\n")
@@ -376,10 +424,18 @@ jobs:
     needs: [check, plan, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: needs.check.outputs.should_build == 'true' && needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
+    if: needs.check.outputs.should_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Restore previous merged store
+        uses: actions/cache/restore@v5
+        with:
+          path: .player-cards-data/card_store.prev.db
+          key: player-cards-merged-${{ github.run_id }}
+          restore-keys: |
+            player-cards-merged-
 
       - name: Download shard stores
         uses: actions/download-artifact@v5
@@ -389,6 +445,8 @@ jobs:
           merge-multiple: true
 
       - name: Merge stores
+        env:
+          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
         run: |
           mkdir -p .player-cards-data
           shopt -s nullglob
@@ -401,14 +459,26 @@ jobs:
             echo "No shard databases found" >&2
             exit 1
           fi
+          BASE_ARGS=()
+          if [ -f .player-cards-data/card_store.prev.db ] && [ "$FULL_NHL" != "true" ]; then
+            echo "Incremental merge onto previous store"
+            BASE_ARGS=(--base .player-cards-data/card_store.prev.db)
+          elif [ ! -f .player-cards-data/card_store.prev.db ] && [ "$FULL_NHL" != "true" ]; then
+            echo "No previous merged store cached — merging shards only (may be partial)" >&2
+          fi
           python3 scripts/merge_card_stores.py \
             --out .player-cards-data/card_store.db \
+            "${BASE_ARGS[@]}" \
             "${found[@]}"
+          cp .player-cards-data/card_store.db .player-cards-data/card_store.prev.db
 
       - name: Report merged store coverage
+        env:
+          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
+          INCLUDE_PWHL: ${{ needs.check.outputs.include_pwhl }}
         run: |
           python3 - <<'PY'
-          import sqlite3, sys
+          import os, sqlite3, sys
           con = sqlite3.connect(".player-cards-data/card_store.db")
           teams = con.execute(
               "SELECT league, COUNT(DISTINCT team) FROM team_builds GROUP BY league"
@@ -438,8 +508,18 @@ jobs:
           if missing_pwhl:
               print(f"  MISSING PWHL teams: {', '.join(missing_pwhl)}")
           nhl, pwhl = by.get("nhl", 0), by.get("pwhl", 0)
-          if nhl < 32 or pwhl < 6:
-              print(f"ERROR: expected 32 NHL + 6 PWHL teams, got nhl={nhl} pwhl={pwhl}", file=sys.stderr)
+          full_nhl = os.environ.get("FULL_NHL") == "true"
+          include_pwhl = os.environ.get("INCLUDE_PWHL") == "true"
+          # Incremental runs keep prior teams via --base; only enforce full
+          # coverage when this run rebuilt the entire NHL (or PWHL is active).
+          if full_nhl and nhl < 32:
+              print(f"ERROR: expected 32 NHL teams, got nhl={nhl}", file=sys.stderr)
+              sys.exit(1)
+          if include_pwhl and pwhl < 6:
+              print(f"ERROR: expected 6 PWHL teams, got pwhl={pwhl}", file=sys.stderr)
+              sys.exit(1)
+          if players < 1:
+              print("ERROR: merged store has no player profiles", file=sys.stderr)
               sys.exit(1)
           PY
 
@@ -450,6 +530,12 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           path: .player-cards-data/card_store.db
+
+      - name: Persist merged store for next incremental run
+        uses: actions/cache/save@v5
+        with:
+          path: .player-cards-data/card_store.prev.db
+          key: player-cards-merged-${{ github.run_id }}
 
   record-fingerprint:
     needs: [check, merge]
@@ -512,15 +598,18 @@ jobs:
           merge-multiple: true
 
       - name: Unpack PBP into work root
+        id: unpack
         env:
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
+          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
         run: |
           mkdir -p "$PLAYER_CARDS_WORK_ROOT"
           shopt -s nullglob
           archives=(pbp-shards/pbp-cache-shard-*.tar.gz pbp-shards/*/pbp-cache-shard-*.tar.gz)
           if [ "${#archives[@]}" -eq 0 ]; then
-            echo "No pbp-cache-shard-*.tar.gz artifacts" >&2
-            exit 1
+            echo "No pbp-cache-shard-*.tar.gz artifacts (incremental/empty) — skip line chemistry"
+            echo "run_analysis=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           for arc in "${archives[@]}"; do
             echo "Unpacking $arc"
@@ -528,12 +617,19 @@ jobs:
           done
           count=$(find "$PLAYER_CARDS_WORK_ROOT" -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
           echo "Unpacked $count PBP CSV files"
-          if [ "$count" -lt 500 ]; then
-            echo "Expected >=500 NHL PBP CSVs after a full build, got $count" >&2
+          if [ "$FULL_NHL" = "true" ] && [ "$count" -lt 500 ]; then
+            echo "Expected >=500 NHL PBP CSVs after a full NHL build, got $count" >&2
             exit 1
           fi
+          if [ "$count" -lt 1 ]; then
+            echo "No PBP CSVs after unpack — skip line chemistry"
+            echo "run_analysis=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "run_analysis=true" >> "$GITHUB_OUTPUT"
 
       - name: Run line chemistry analysis
+        if: steps.unpack.outputs.run_analysis == 'true'
         env:
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
           PYTHONPATH: ${{ github.workspace }}
