@@ -437,6 +437,37 @@ jobs:
           restore-keys: |
             player-cards-merged-
 
+      - name: Fetch previous merged store artifact if cache miss
+        if: needs.plan.outputs.full_nhl != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p .player-cards-data
+          if [ -f .player-cards-data/card_store.prev.db ]; then
+            echo "Using cached previous merged store"
+            exit 0
+          fi
+          # Last successful workflow run that published card-store-merged
+          RUN_ID=$(gh run list \
+            --workflow "Player Cards Store Build" \
+            --branch "${{ github.ref_name }}" \
+            --limit 20 \
+            --json databaseId,conclusion,status \
+            --jq '.[] | select(.conclusion=="success" and .status=="completed") | .databaseId' \
+            | head -n 1)
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: incremental rebuild needs a prior merged store (cache + artifact miss). Re-run once with force=true." >&2
+            exit 1
+          fi
+          echo "Downloading card-store-merged from run $RUN_ID"
+          gh run download "$RUN_ID" -n card-store-merged -D .player-cards-data/prev-art
+          if [ -f .player-cards-data/prev-art/card_store.db ]; then
+            cp .player-cards-data/prev-art/card_store.db .player-cards-data/card_store.prev.db
+          else
+            echo "ERROR: prior run $RUN_ID had no card_store.db" >&2
+            exit 1
+          fi
+
       - name: Download shard stores
         uses: actions/download-artifact@v5
         with:
@@ -460,11 +491,13 @@ jobs:
             exit 1
           fi
           BASE_ARGS=()
-          if [ -f .player-cards-data/card_store.prev.db ] && [ "$FULL_NHL" != "true" ]; then
+          if [ "$FULL_NHL" != "true" ]; then
+            if [ ! -f .player-cards-data/card_store.prev.db ]; then
+              echo "ERROR: incremental merge refused without base store (would publish partial DB)" >&2
+              exit 1
+            fi
             echo "Incremental merge onto previous store"
             BASE_ARGS=(--base .player-cards-data/card_store.prev.db)
-          elif [ ! -f .player-cards-data/card_store.prev.db ] && [ "$FULL_NHL" != "true" ]; then
-            echo "No previous merged store cached — merging shards only (may be partial)" >&2
           fi
           python3 scripts/merge_card_stores.py \
             --out .player-cards-data/card_store.db \
