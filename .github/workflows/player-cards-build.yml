@@ -562,12 +562,15 @@ jobs:
           done
           count=$(find "$PLAYER_CARDS_WORK_ROOT" -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
           echo "Unpacked $count PBP CSV files"
-          if [ "$FULL_NHL" = "true" ] && [ "$count" -lt 500 ]; then
-            echo "Expected >=500 NHL PBP CSVs after a full NHL build, got $count" >&2
-            exit 1
-          fi
           if [ "$count" -lt 1 ]; then
             echo "No PBP CSVs after unpack — skip line chemistry"
+            echo "run_analysis=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Mid/late season full NHL builds have ~800+ CSVs. Early season is far
+          # lower (~200 today) — skip research rather than failing the workflow.
+          if [ "$FULL_NHL" = "true" ] && [ "$count" -lt 500 ]; then
+            echo "Early-season PBP sample ($count CSVs < 500) — skip line chemistry"
             echo "run_analysis=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
