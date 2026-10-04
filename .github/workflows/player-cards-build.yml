@@ -1,8 +1,10 @@
 name: Player Cards Store Build
 
 # Offload long InStat PBP + card indexing from local machines.
-# Auth: set INSTAT_X_AUTH_TOKEN + INSTAT_AUTHORIZATION repo secrets (API headers).
-# Generate once locally: python scripts/print_instat_api_tokens.py
+# Auth: CI always force-remints JWTs via dedicated Hudl account (HUDL_USERNAME /
+# HUDL_PASSWORD). Repo JWT secrets are optional warm caches only — Hudl revokes
+# them; remint is the source of truth. Optional INSTAT_SECRET_SYNC_TOKEN (PAT
+# with secrets:write) keeps those secrets updated after each remint.
 # Sharded matrix keeps each job under GitHub's 6h limit.
 
 concurrency:
@@ -170,45 +172,21 @@ jobs:
       - name: Install CI Python deps
         run: pip install -r player_cards/requirements-ci.txt
 
-      # Warm JWTs from the last successful remint so we are not stuck on stale
-      # repo secrets when Hudl revokes them between Sundays.
-      - name: Restore InStat auth cache
-        id: auth_cache
-        uses: actions/cache/restore@v5
-        with:
-          path: instat_auth_session
-          key: player-cards-instat-auth-${{ github.run_id }}
-          restore-keys: |
-            player-cards-instat-auth-
-
+      # Always remint. Hudl revokes JWTs; secrets/cache are never the source of truth.
       - name: Obtain InStat Auth Tokens
         id: auth
         env:
-          INSTAT_X_AUTH_TOKEN: ${{ secrets.INSTAT_X_AUTH_TOKEN }}
-          INSTAT_AUTHORIZATION: ${{ secrets.INSTAT_AUTHORIZATION }}
           INSTAT_AUTH_JSON: ${{ secrets.INSTAT_AUTH_JSON }}
           HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
           INSTAT_DEDICATED_ACCOUNT: "1"
           ALLOW_INSTAT_LOGIN: "1"
           DISABLE_AUTO_LOGIN: "0"
+          INSTAT_MIN_TTL_HOURS: "6"
         run: |
-          mkdir -p ~/.cache/player-cards hudl-scraping
-          if [ -f instat_auth_session/instat_headers_cache.json ]; then
-            cp instat_auth_session/instat_headers_cache.json ~/.cache/player-cards/instat_headers_cache.json
-            echo "Seeded headers from previous CI auth cache"
-          fi
-          if [ -f instat_auth_session/auth.json ]; then
-            cp instat_auth_session/auth.json hudl-scraping/auth.json
-          fi
-          if python scripts/ci_instat_auth.py --tokens-only; then
-            echo "reminted=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
           python -m playwright install chromium || \
             timeout 180 python -m playwright install --with-deps chromium
-          python scripts/ci_instat_auth.py
-          echo "reminted=true" >> "$GITHUB_OUTPUT"
+          python scripts/ci_instat_auth.py --force-remint
 
       - name: Persist InStat auth cache
         if: always() && steps.auth.outcome == 'success'
@@ -217,14 +195,14 @@ jobs:
           path: instat_auth_session
           key: player-cards-instat-auth-${{ github.run_id }}
 
-      # Optional: keep repo secrets warm when a PAT with secrets:write is configured.
+      # Keep repo secrets warm when a PAT with secrets:write is configured.
       - name: Sync minted JWTs to repo secrets
         if: steps.auth.outputs.reminted == 'true'
         env:
           GH_TOKEN: ${{ secrets.INSTAT_SECRET_SYNC_TOKEN }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "No INSTAT_SECRET_SYNC_TOKEN — skip secret sync (CI auth cache still persists JWTs)"
+            echo "No INSTAT_SECRET_SYNC_TOKEN — skip secret sync (force-remint does not need warm secrets)"
             exit 0
           fi
           python3 - <<'PY'
@@ -328,6 +306,9 @@ jobs:
           INSTAT_AUTH_FILE: ${{ github.workspace }}/hudl-scraping/auth.json
           HUDL_USERNAME: ${{ secrets.HUDL_USERNAME }}
           HUDL_PASSWORD: ${{ secrets.HUDL_PASSWORD }}
+          # Shards use freshly reminted JWTs from the auth job. Login stays off
+          # here so parallel shards do not stampede a remint; auth guarantees
+          # >=6h TTL before shards start.
           INSTAT_DEDICATED_ACCOUNT: "0"
           ALLOW_INSTAT_LOGIN: "0"
           DISABLE_AUTO_LOGIN: "1"
