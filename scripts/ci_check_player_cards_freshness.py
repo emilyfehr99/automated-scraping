@@ -15,6 +15,7 @@ import json
 import os
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -134,8 +135,11 @@ def pwhl_fingerprint() -> dict[str, Any]:
 
 
 def live_fingerprint() -> dict[str, Any]:
-    nhl = nhl_fingerprint()
-    pwhl = pwhl_fingerprint()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        nhl_f = pool.submit(nhl_fingerprint)
+        pwhl_f = pool.submit(pwhl_fingerprint)
+        nhl = nhl_f.result()
+        pwhl = pwhl_f.result()
     return {
         "version": 3,
         "nhl_season_tag": nhl["season_tag"],
@@ -195,6 +199,42 @@ def pwhl_should_build(prev: dict[str, Any] | None, live: dict[str, Any], *, forc
     if int(live.get("pwhl_final_games") or 0) > int(prev.get("pwhl_final_games") or 0):
         return True
     return False
+
+
+def apply_dispatch_overrides(
+    matrix_include: list[dict[str, Any]],
+    *,
+    event: str,
+    shard: str,
+    teams: str,
+    pwhl_season_active: bool,
+) -> tuple[list[dict[str, Any]], bool, bool]:
+    """Manual workflow_dispatch shard/teams filters. Returns (matrix, full_nhl, full_build)."""
+    all_shards = list(NHL_SHARDS) + [dict(PWHL_SHARD)]
+    selected = list(matrix_include)
+    full = False
+    full_nhl = False
+    if teams:
+        want = {t.strip().upper() for t in teams.split(",") if t.strip()}
+        selected = []
+        for s in all_shards:
+            hit = [t for t in s["teams"].split(",") if t in want]
+            if hit:
+                selected.append({**s, "teams": ",".join(hit)})
+        return selected, False, False
+    if shard and shard not in ("", "all"):
+        try:
+            want_id = int(shard)
+        except ValueError as exc:
+            raise SystemExit(f"Invalid shard {shard!r}; use 1-9 or all") from exc
+        selected = [s for s in all_shards if s["shard_id"] == want_id]
+        if not selected:
+            raise SystemExit(f"Unknown shard {want_id}; use 1-9 or all")
+        if want_id == 9 and not pwhl_season_active and event == "schedule":
+            selected = []
+        full_nhl = want_id != 9 and len(selected) == 8
+        return selected, full_nhl, False
+    return selected, full, full
 
 
 def build_matrix(dirty_nhl: list[str], include_pwhl: bool) -> list[dict[str, Any]]:
@@ -288,36 +328,40 @@ def main() -> int:
 
     prev = load_previous(args.previous)
     force = bool(args.force)
+    event = os.environ.get("EVENT_NAME") or os.environ.get("GITHUB_EVENT_NAME") or ""
+    shard = (os.environ.get("SHARD") or "").strip()
+    teams = (os.environ.get("TEAMS") or "").strip()
+    dispatch_filter = bool(teams or (shard and shard not in ("", "all")))
 
     dirty_nhl = dirty_nhl_teams(prev, live, force=force)
     include_pwhl = pwhl_should_build(prev, live, force=force)
     matrix_include = build_matrix(dirty_nhl, include_pwhl)
     should_build = bool(matrix_include)
     reason = change_reason(prev, live, dirty_nhl, include_pwhl, force=force)
-    full_build = bool(
-        force
-        or prev is None
-        or (
-            len(dirty_nhl) >= 32
-            and include_pwhl
-            and live.get("pwhl_season_active")
-        )
-        or (
-            len(dirty_nhl) >= 32
-            and not live.get("pwhl_season_active")
-            and not include_pwhl
-        )
-    )
-    # "Full" for merge coverage = rebuilt every NHL team this run (PWHL optional).
     full_nhl = len(dirty_nhl) >= 32 or (
         force and bool(live.get("nhl_team_gp"))
     )
+    full_build = bool(
+        full_nhl and (include_pwhl or not live.get("pwhl_season_active"))
+    )
+
+    if should_build and dispatch_filter:
+        matrix_include, full_nhl, full_build = apply_dispatch_overrides(
+            matrix_include,
+            event=event,
+            shard=shard,
+            teams=teams,
+            pwhl_season_active=bool(live.get("pwhl_season_active")),
+        )
+        if not matrix_include:
+            raise SystemExit("Build plan has no dirty teams/shards — nothing to run")
+        should_build = True
 
     plan = {
         "should_build": should_build,
         "reason": reason,
-        "full_build": full_nhl and (include_pwhl or not live.get("pwhl_season_active")),
-        "full_nhl": full_nhl,
+        "full_build": bool(full_build),
+        "full_nhl": bool(full_nhl),
         "include_pwhl": include_pwhl,
         "dirty_nhl_teams": dirty_nhl,
         "matrix": {"include": matrix_include},

@@ -20,8 +20,11 @@ logging.basicConfig(
 logger = logging.getLogger("ci_instat_auth")
 
 
+def _tokens_only() -> bool:
+    return "--tokens-only" in sys.argv
+
+
 async def main() -> None:
-    from playwright.async_api import async_playwright
     from instat_api import InStatAPI
 
     hudl_dir = ROOT / "hudl-scraping"
@@ -54,7 +57,13 @@ async def main() -> None:
     except Exception as exc:
         logger.warning("Initial token check raised: %s", exc)
 
+    if _tokens_only():
+        await api.close()
+        logger.error("Existing tokens are not valid (--tokens-only)")
+        raise SystemExit(1)
+
     # 3. If not valid, perform credential login with Playwright
+    from playwright.async_api import async_playwright
     logger.info("Tokens expired or missing. Minting fresh tokens via Playwright login...")
     async with async_playwright() as p:
         try:

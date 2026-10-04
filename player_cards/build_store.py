@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +25,7 @@ from .instat_pbp_fetch import (
     team_pbp_dir,
     try_fast_pbp_cache,
 )
-from .leagues import get_league, instat_season_id, list_teams, nhl_api_season_id, team_full_name
+from .leagues import LEAGUES, get_league, instat_season_id, list_teams, nhl_api_season_id, team_full_name
 from .pbp_display import _pbp_values, compute_team_metric_percentiles
 from .pbp_metrics import aggregate_player_pbp
 from .pbp_team_cache import warm_team_pbp
@@ -191,7 +192,12 @@ def build_team(
     built = 0
     skipped = 0
     skip_reasons: list[str] = []
-    for entry in roster:
+    try:
+        workers = max(1, min(12, int(os.environ.get("PLAYER_CARDS_INDEX_WORKERS", "6"))))
+    except ValueError:
+        workers = 6
+
+    def _build_one(entry: dict[str, Any]) -> tuple[str, dict[str, Any] | None, str]:
         name = entry["name"]
         try:
             profile = build_player_card_profile(
@@ -209,13 +215,20 @@ def build_team(
                 url = (profile.get("bio") or {}).get("card_photo_url")
                 if url:
                     prewarm_photo(url)
+            return name, profile, ""
+        except Exception as exc:
+            return name, None, str(exc)
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for name, profile, err in pool.map(_build_one, roster):
+            if profile is None:
+                skipped += 1
+                skip_reasons.append(f"{name}: {err}")
+                logger.warning("  skip %s: %s", name, err)
+                continue
             store.upsert_profile(profile, season=season, pbp_fingerprint=fingerprint)
             built += 1
             logger.info("  [%s/%s] %s", built, len(roster), name)
-        except Exception as exc:
-            skipped += 1
-            skip_reasons.append(f"{name}: {exc}")
-            logger.warning("  skip %s: %s", name, exc)
 
     if roster and skipped / len(roster) > 0.25:
         logger.error(

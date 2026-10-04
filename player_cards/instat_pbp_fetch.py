@@ -52,6 +52,27 @@ def _block_instat_auth(reason: str) -> None:
     _INSTAT_AUTH_BLOCKED = reason
     logger.error("Latching InStat auth failure for this process: %s", reason)
 
+
+def _pbp_concurrency() -> int:
+    raw = os.getenv("PLAYER_CARDS_PBP_CONCURRENCY", "8").strip()
+    try:
+        return max(1, min(16, int(raw)))
+    except ValueError:
+        return 8
+
+
+def _mark_pbp_cache_dirty() -> None:
+    explicit = os.getenv("PLAYER_CARDS_PBP_DIRTY_FLAG", "").strip()
+    if explicit:
+        path = Path(explicit)
+    else:
+        root = os.getenv("PLAYER_CARDS_WORK_ROOT", "").strip()
+        if not root:
+            return
+        path = Path(root).parent / ".pbp_cache_dirty"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("1", encoding="utf-8")
+
 def team_pbp_dir(
     team_abbrev: str,
     *,
@@ -263,7 +284,7 @@ async def _download_team_pbp_with_api(
 
     downloaded = 0
     failed: list[int] = []
-    sem = asyncio.Semaphore(6)
+    sem = asyncio.Semaphore(_pbp_concurrency())
 
     async def fetch_one(i: int, mid: int):
         async with sem:
@@ -306,6 +327,8 @@ async def _download_team_pbp_with_api(
             "league": league,
         },
     )
+    if downloaded:
+        _mark_pbp_cache_dirty()
 
     return {
         "team": tri,
@@ -384,8 +407,7 @@ async def _download_team_pbp_async(
 async def batch_download_team_pbp(
     jobs: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Download PBP for multiple teams in one InStat/Playwright session."""
-    from playwright.async_api import async_playwright
+    """Download PBP for multiple teams in one InStat session."""
     from instat_api import InStatAPI
 
     if not jobs:
@@ -422,6 +444,8 @@ async def batch_download_team_pbp(
         if not await api.init_session(None):
             if _instat_api_tokens_configured() and not os.getenv("ALLOW_INSTAT_LOGIN") and not os.getenv("INSTAT_DEDICATED_ACCOUNT"):
                 raise RuntimeError("InStat API token auth failed")
+            from playwright.async_api import async_playwright
+
             async with async_playwright() as p:
                 if not await api.init_session(p):
                     raise RuntimeError("InStat session init failed (check auth.json or credentials)")

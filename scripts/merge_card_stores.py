@@ -26,6 +26,9 @@ def merge_stores(
 
     main = sqlite3.connect(target)
     main.execute("PRAGMA busy_timeout = 30000")
+    main.execute("PRAGMA journal_mode = WAL")
+    main.execute("PRAGMA synchronous = NORMAL")
+    main.execute("PRAGMA temp_store = MEMORY")
     first = True
     counts = {"player_profiles": 0, "team_builds": 0}
 

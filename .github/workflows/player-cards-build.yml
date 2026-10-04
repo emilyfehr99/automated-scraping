@@ -43,6 +43,8 @@ env:
   PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
   PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/card_store.db
   SKIP_PHOTO_PREWARM: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_PYTHON_VERSION_WARNING: "1"
 
 jobs:
   check:
@@ -84,6 +86,9 @@ jobs:
         env:
           FORCE: ${{ steps.flags.outputs.force }}
           SEED_ONLY: ${{ steps.flags.outputs.seed_only }}
+          EVENT_NAME: ${{ github.event_name }}
+          SHARD: ${{ github.event.inputs.shard }}
+          TEAMS: ${{ github.event.inputs.teams }}
         run: |
           mkdir -p .ci
           FORCE_FLAG=""
@@ -144,98 +149,8 @@ jobs:
           path: .ci/data-fingerprint.json
           retention-days: 90
 
-  plan:
-    needs: check
-    if: needs.check.outputs.should_build == 'true' && needs.check.outputs.seed_only != 'true'
-    runs-on: ubuntu-latest
-    outputs:
-      full_build: ${{ steps.set.outputs.full_build }}
-      full_nhl: ${{ steps.set.outputs.full_nhl }}
-      matrix: ${{ steps.set.outputs.matrix }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Download build plan
-        uses: actions/download-artifact@v5
-        with:
-          name: live-data-fingerprint
-          path: .ci
-
-      - id: set
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          SHARD: ${{ github.event.inputs.shard }}
-          TEAMS: ${{ github.event.inputs.teams }}
-          CHECK_MATRIX: ${{ needs.check.outputs.matrix }}
-          CHECK_FULL: ${{ needs.check.outputs.full_build }}
-          CHECK_FULL_NHL: ${{ needs.check.outputs.full_nhl }}
-        run: |
-          python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-
-          shard = (os.environ.get("SHARD") or "").strip()
-          teams = (os.environ.get("TEAMS") or "").strip()
-          event = os.environ.get("EVENT_NAME") or ""
-
-          plan_path = Path(".ci/build-plan.json")
-          plan = json.loads(plan_path.read_text()) if plan_path.is_file() else {}
-          selected = list((plan.get("matrix") or {}).get("include") or [])
-          full = bool(plan.get("full_build"))
-          full_nhl = bool(plan.get("full_nhl"))
-
-          # Manual overrides: explicit team list or single shard.
-          all_shards = [
-              {"shard_id": 1, "teams": "ANA,BOS,BUF,CGY", "league": "nhl"},
-              {"shard_id": 2, "teams": "CAR,CBJ,CHI,COL", "league": "nhl"},
-              {"shard_id": 3, "teams": "DAL,DET,EDM,FLA", "league": "nhl"},
-              {"shard_id": 4, "teams": "LAK,MIN,MTL,NJD", "league": "nhl"},
-              {"shard_id": 5, "teams": "NSH,NYI,NYR,OTT", "league": "nhl"},
-              {"shard_id": 6, "teams": "PHI,PIT,SEA,SJS", "league": "nhl"},
-              {"shard_id": 7, "teams": "STL,TBL,TOR,UTA", "league": "nhl"},
-              {"shard_id": 8, "teams": "VAN,VGK,WPG,WSH", "league": "nhl"},
-              {"shard_id": 9, "teams": "BPF,MNF,MVL,NYS,OTC,TSR", "league": "pwhl"},
-          ]
-          if teams:
-              want = {t.strip().upper() for t in teams.split(",") if t.strip()}
-              selected = []
-              for s in all_shards:
-                  hit = [t for t in s["teams"].split(",") if t in want]
-                  if hit:
-                      selected.append({**s, "teams": ",".join(hit)})
-              full = False
-              full_nhl = False
-          elif shard and shard not in ("", "all"):
-              try:
-                  want_id = int(shard)
-              except ValueError:
-                  raise SystemExit(f"Invalid shard {shard!r}; use 1-9 or all")
-              selected = [s for s in all_shards if s["shard_id"] == want_id]
-              if not selected:
-                  raise SystemExit(f"Unknown shard {want_id}; use 1-9 or all")
-              # Manual shard: still drop inactive PWHL unless forced via shard=9
-              if want_id == 9 and not plan.get("pwhl_season_active") and event == "schedule":
-                  selected = []
-              full = False
-              full_nhl = want_id != 9 and len(selected) == 8
-
-          if not selected:
-              raise SystemExit("Build plan has no dirty teams/shards — nothing to run")
-
-          matrix = {"include": selected}
-          print(f"event={event} shard={shard!r} teams={teams!r} full_build={full} full_nhl={full_nhl}")
-          print("matrix", json.dumps(matrix))
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"full_build={'true' if full else 'false'}\n")
-              fh.write(f"full_nhl={'true' if full_nhl else 'false'}\n")
-              fh.write("matrix<<MATRIX\n")
-              fh.write(json.dumps(matrix, separators=(",", ":")))
-              fh.write("\nMATRIX\n")
-          PY
-
   auth:
-    needs: [check, plan]
+    needs: check
     if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -250,16 +165,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            player_cards/requirements.txt
+          cache-dependency-path: player_cards/requirements-ci.txt
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r player_cards/requirements.txt
-          python -m playwright install chromium || \
-            timeout 180 python -m playwright install --with-deps chromium
+      - name: Install CI Python deps
+        run: pip install -r player_cards/requirements-ci.txt
 
       - name: Obtain InStat Auth Tokens
         id: auth
@@ -273,6 +182,11 @@ jobs:
           ALLOW_INSTAT_LOGIN: "1"
           DISABLE_AUTO_LOGIN: "0"
         run: |
+          if python scripts/ci_instat_auth.py --tokens-only; then
+            exit 0
+          fi
+          python -m playwright install chromium || \
+            timeout 180 python -m playwright install --with-deps chromium
           python scripts/ci_instat_auth.py
 
       - name: Upload InStat auth artifact
@@ -283,13 +197,13 @@ jobs:
           retention-days: 1
 
   build-shard:
-    needs: [check, plan, auth]
+    needs: [check, auth]
     if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.check.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -299,9 +213,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            player_cards/requirements.txt
+          cache-dependency-path: player_cards/requirements-ci.txt
 
       - name: Download InStat auth artifact
         uses: actions/download-artifact@v5
@@ -321,15 +233,8 @@ jobs:
           fi
           echo "Restored verified InStat auth session from auth job"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r player_cards/requirements.txt
-          # ubuntu-24.04 runners have all Playwright system deps pre-installed.
-          # Try without --with-deps first; fall back with a 3-min timeout to
-          # avoid hanging on transient Azure apt mirror outages.
-          python -m playwright install chromium || \
-            timeout 180 python -m playwright install --with-deps chromium
+      - name: Install CI Python deps
+        run: pip install -r player_cards/requirements-ci.txt
 
       - name: Resolve team list
         id: teams
@@ -353,10 +258,11 @@ jobs:
           echo "Building shard ${{ matrix.shard_id }}: league=$LEAGUE teams=$TEAMS"
 
       - name: Restore PBP cache
-        uses: actions/cache@v5
+        id: pbp_cache
+        uses: actions/cache/restore@v5
         with:
           path: .player-cards-data
-          key: player-cards-pbp-${{ matrix.shard_id }}-${{ hashFiles('player_cards/leagues.py', 'player_cards/instat_source.py', 'player_cards/instat_pbp_fetch.py', 'player_cards/build_store.py') }}
+          key: player-cards-pbp-${{ matrix.shard_id }}-${{ github.run_id }}
           restore-keys: |
             player-cards-pbp-${{ matrix.shard_id }}-
 
@@ -371,14 +277,23 @@ jobs:
           ALLOW_INSTAT_LOGIN: "0"
           DISABLE_AUTO_LOGIN: "1"
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
-          PLAYER_CARDS_STORE: ${{ github.workspace }}/.player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
+          PLAYER_CARDS_STORE: ${{ github.workspace }}/shard-store/card_store_${{ matrix.shard_id }}.db
+          PLAYER_CARDS_INDEX_WORKERS: "6"
+          PLAYER_CARDS_PBP_CONCURRENCY: "8"
         run: |
-          mkdir -p "$PLAYER_CARDS_WORK_ROOT/shards"
+          mkdir -p "$PLAYER_CARDS_WORK_ROOT" "$(dirname "$PLAYER_CARDS_STORE")"
           python -m player_cards.build_store \
             --league "${{ steps.teams.outputs.league }}" \
             --teams "${{ steps.teams.outputs.teams }}" \
             --store "$PLAYER_CARDS_STORE" \
             -v
+
+      - name: Save PBP cache
+        if: steps.pbp_cache.outputs.cache-matched-key == '' || hashFiles('.pbp_cache_dirty') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: .player-cards-data
+          key: player-cards-pbp-${{ matrix.shard_id }}-${{ github.run_id }}
 
       - name: Upload shard store
         uses: actions/upload-artifact@v5
@@ -386,10 +301,11 @@ jobs:
           name: card-store-shard-${{ matrix.shard_id }}
           if-no-files-found: error
           retention-days: 30
-          path: .player-cards-data/shards/card_store_${{ matrix.shard_id }}.db
+          path: shard-store/card_store_${{ matrix.shard_id }}.db
 
       - name: Package PBP cache for upload
         id: pbp_pack
+        if: needs.check.outputs.full_build == 'true'
         run: |
           if [ ! -d .player-cards-data ]; then
             echo "No .player-cards-data directory" >&2
@@ -398,8 +314,6 @@ jobs:
           count=$(find .player-cards-data -path '*/Instat_API_Downloads/*_pbp.csv' | wc -l)
           echo "PBP CSV files on disk: $count"
           if [ "$count" -lt 1 ]; then
-            # Early-season / offseason shards (esp. PWHL before Nov/Dec) may have
-            # a store but no fresh PBP yet — do not fail the whole build.
             echo "No PBP CSV files to upload (skipping pbp-cache artifact)"
             echo "has_pbp=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -411,7 +325,7 @@ jobs:
           echo "has_pbp=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload PBP cache snapshot
-        if: steps.pbp_pack.outputs.has_pbp == 'true'
+        if: needs.check.outputs.full_build == 'true' && steps.pbp_pack.outputs.has_pbp == 'true'
         uses: actions/upload-artifact@v5
         with:
           name: pbp-cache-shard-${{ matrix.shard_id }}
@@ -421,7 +335,7 @@ jobs:
           compression-level: 0
 
   merge:
-    needs: [check, plan, build-shard]
+    needs: [check, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: needs.check.outputs.should_build == 'true' && needs.build-shard.result == 'success'
@@ -438,7 +352,7 @@ jobs:
             player-cards-merged-
 
       - name: Fetch previous merged store artifact if cache miss
-        if: needs.plan.outputs.full_nhl != 'true'
+        if: needs.check.outputs.full_nhl != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -477,7 +391,7 @@ jobs:
 
       - name: Merge stores
         env:
-          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
+          FULL_NHL: ${{ needs.check.outputs.full_nhl }}
         run: |
           mkdir -p .player-cards-data
           shopt -s nullglob
@@ -507,7 +421,7 @@ jobs:
 
       - name: Report merged store coverage
         env:
-          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
+          FULL_NHL: ${{ needs.check.outputs.full_nhl }}
           INCLUDE_PWHL: ${{ needs.check.outputs.include_pwhl }}
         run: |
           python3 - <<'PY'
@@ -603,10 +517,10 @@ jobs:
           retention-days: 90
 
   line-chemistry:
-    needs: [check, plan, build-shard]
+    needs: [check, build-shard]
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    if: needs.check.outputs.should_build == 'true' && needs.plan.outputs.full_build == 'true' && needs.build-shard.result == 'success'
+    if: needs.check.outputs.should_build == 'true' && needs.check.outputs.full_build == 'true' && needs.build-shard.result == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -619,9 +533,7 @@ jobs:
           cache-dependency-path: research/line_chemistry_passing_networks/requirements.txt
 
       - name: Install analysis dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r research/line_chemistry_passing_networks/requirements.txt
+        run: pip install -r research/line_chemistry_passing_networks/requirements.txt
 
       - name: Download PBP cache shards
         uses: actions/download-artifact@v5
@@ -634,7 +546,7 @@ jobs:
         id: unpack
         env:
           PLAYER_CARDS_WORK_ROOT: ${{ github.workspace }}/.player-cards-data
-          FULL_NHL: ${{ needs.plan.outputs.full_nhl }}
+          FULL_NHL: ${{ needs.check.outputs.full_nhl }}
         run: |
           mkdir -p "$PLAYER_CARDS_WORK_ROOT"
           shopt -s nullglob

@@ -1,0 +1,7 @@
+# Store-build CI only. Do not pull rembg/onnx/fastapi/reportlab.
+httpx>=0.27.0
+requests>=2.28.0
+pandas>=1.5.0
+numpy>=1.24.0
+Pillow>=10.0.0
+playwright>=1.40.0
