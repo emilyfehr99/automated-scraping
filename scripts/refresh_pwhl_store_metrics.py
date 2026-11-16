@@ -24,7 +24,7 @@ from player_cards.card_config import PWHL_PILLAR_BARS
 from player_cards.profile import (
     _cached_pbp_aggregate,
     _cached_qoc_qot,
-    _player_pbp_percentiles,
+    _lookup_player_pcts,
 )
 from player_cards.pwhl_vitals import resolve_ht_vitals
 from player_cards.leagues import team_full_name
@@ -80,11 +80,7 @@ def refresh_team(store, tri: str, *, season: str = "2025-26") -> dict:
         if name not in deployment_cache:
             deployment_cache[name] = _cached_qoc_qot(player_id, name, team_full, files) or {}
         deployment = deployment_cache[name]
-        player_pct = pct_by_player.get(name) or _player_pbp_percentiles(
-            name, pbp, [tri], season=season, league="pwhl",
-            file_groups=[(tri, files, team_games)],
-            instat_name=bio.get("instat_name"),
-        )
+        player_pct = _lookup_player_pcts(pct_by_player, name)
         a3z = build_pbp_display_profile(
             pbp, deployment, season=season, percentiles=player_pct, pillar_bars=PWHL_PILLAR_BARS,
         )
